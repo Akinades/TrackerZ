@@ -2,36 +2,32 @@
 
 import * as React from "react";
 import type { PriceMap } from "@/lib/storage";
-import { loadPrices, savePrices } from "@/lib/storage";
+import { useAppDispatch, useAppSelector } from "@/store/redux/hooks";
+import { fetchMarketPrices, hydratePrices, setPrice as setPriceAction } from "@/store/redux/pricesSlice";
 
 export function usePrices() {
-  const [prices, setPrices] = React.useState<PriceMap>({});
-  const [hydrated, setHydrated] = React.useState(false);
+  const dispatch = useAppDispatch();
+  const prices = useAppSelector((s) => s.prices.prices) as PriceMap;
+  const hydrated = useAppSelector((s) => s.prices.hydrated);
+  const status = useAppSelector((s) => s.prices.status);
+  const error = useAppSelector((s) => s.prices.error);
+  const lastUpdatedAt = useAppSelector((s) => s.prices.lastUpdatedAt);
 
   React.useEffect(() => {
-    setPrices(loadPrices());
-    setHydrated(true);
-  }, []);
-
-  React.useEffect(() => {
-    if (!hydrated) return;
-    savePrices(prices);
-  }, [prices, hydrated]);
+    dispatch(hydratePrices());
+  }, [dispatch]);
 
   const setPrice = React.useCallback((assetName: string, price: number | null) => {
-    const key = assetName.trim();
-    if (!key) return;
-    setPrices((prev) => {
-      const next = { ...prev };
-      if (price === null || !Number.isFinite(price) || price <= 0) {
-        delete next[key];
-      } else {
-        next[key] = price;
-      }
-      return next;
-    });
-  }, []);
+    dispatch(setPriceAction({ symbol: assetName, price }));
+  }, [dispatch]);
 
-  return { prices, hydrated, setPrice };
+  const refreshMarket = React.useCallback(
+    (symbols: string[]) => {
+      dispatch(fetchMarketPrices(symbols));
+    },
+    [dispatch]
+  );
+
+  return { prices, hydrated, setPrice, refreshMarket, status, error, lastUpdatedAt };
 }
 

@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useCurrency } from "@/store/useCurrency";
+import { formatMoney, formatNumber2 } from "@/lib/format";
 
 export type PieSlice = {
   name: string;
@@ -9,20 +11,15 @@ export type PieSlice = {
 };
 
 const COLORS = [
-  "#22c55e", // emerald
-  "#3b82f6", // blue
-  "#f59e0b", // amber
-  "#ec4899", // pink
-  "#a855f7", // purple
-  "#14b8a6", // teal
-  "#e11d48", // rose
-  "#eab308" // yellow
+  "#86efac", // emerald-300
+  "#93c5fd", // blue-300
+  "#fcd34d", // amber-300
+  "#f9a8d4", // pink-300
+  "#c4b5fd", // violet-300
+  "#5eead4", // teal-300
+  "#fda4af", // rose-300
+  "#bef264" // lime-300
 ];
-
-function formatNumber(n: number) {
-  const v = Number.isFinite(n) ? n : 0;
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(v);
-}
 
 export function PortfolioPie({
   data,
@@ -31,6 +28,7 @@ export function PortfolioPie({
   data: PieSlice[];
   height?: number;
 }) {
+  const { currency } = useCurrency();
   const cleaned = React.useMemo(
     () => data.filter((d) => Number.isFinite(d.value) && d.value > 0),
     [data]
@@ -67,7 +65,7 @@ export function PortfolioPie({
             formatter={(value: unknown, name: unknown) => {
               const v = typeof value === "number" ? value : Number(value);
               const pct = total > 0 ? (v / total) * 100 : 0;
-              return [`${formatNumber(v)} (${formatNumber(pct)}%)`, String(name)];
+              return [`${formatMoney(v, currency)} (${formatNumber2(pct, "th-TH")}%)`, String(name)];
             }}
             contentStyle={{
               background: "rgba(255,255,255,0.95)",

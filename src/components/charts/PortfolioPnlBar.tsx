@@ -11,6 +11,8 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { useCurrency } from "@/store/useCurrency";
+import { formatMoney, formatNumber2 } from "@/lib/format";
 
 export type PnlRow = {
   name: string;
@@ -18,12 +20,8 @@ export type PnlRow = {
   unrealized: number;
 };
 
-function formatNumber(n: number) {
-  const v = Number.isFinite(n) ? n : 0;
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(v);
-}
-
 export function PortfolioPnlBar({ data, height = 320 }: { data: PnlRow[]; height?: number }) {
+  const { currency } = useCurrency();
   const cleaned = React.useMemo(
     () =>
       data
@@ -44,35 +42,36 @@ export function PortfolioPnlBar({ data, height = 320 }: { data: PnlRow[]; height
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={cleaned} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
-          <CartesianGrid stroke="rgba(63,63,70,0.5)" strokeDasharray="3 3" />
+          <CartesianGrid stroke="rgba(24,24,27,0.08)" strokeDasharray="4 6" />
           <XAxis
             dataKey="name"
-            tick={{ fill: "rgb(161,161,170)", fontSize: 12 }}
-            axisLine={{ stroke: "rgb(39,39,42)" }}
-            tickLine={{ stroke: "rgb(39,39,42)" }}
+            tick={{ fill: "rgb(113,113,122)", fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
           />
           <YAxis
-            tick={{ fill: "rgb(161,161,170)", fontSize: 12 }}
-            axisLine={{ stroke: "rgb(39,39,42)" }}
-            tickLine={{ stroke: "rgb(39,39,42)" }}
-            tickFormatter={(v) => formatNumber(Number(v))}
+            tick={{ fill: "rgb(113,113,122)", fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(v) => formatNumber2(Number(v), "th-TH")}
           />
           <Tooltip
             formatter={(value: unknown, name: unknown) => {
               const v = typeof value === "number" ? value : Number(value);
-              return [formatNumber(v), String(name)];
+              return [formatMoney(v, currency), String(name)];
             }}
             contentStyle={{
-              background: "rgba(9,9,11,0.9)",
-              border: "1px solid rgb(39,39,42)",
-              borderRadius: 12
+              background: "rgba(255,255,255,0.96)",
+              border: "1px solid rgb(228,228,231)",
+              borderRadius: 12,
+              color: "rgb(24,24,27)"
             }}
           />
           <Legend
-            formatter={(value: string) => <span className="text-xs text-zinc-300">{value}</span>}
+            formatter={(value: string) => <span className="text-xs text-zinc-600">{value}</span>}
           />
-          <Bar dataKey="realized" name="Realized" fill="#22c55e" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="unrealized" name="Unrealized" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="realized" name="Realized" fill="#86efac" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="unrealized" name="Unrealized" fill="#c4b5fd" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

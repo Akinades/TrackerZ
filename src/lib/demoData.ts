@@ -79,6 +79,56 @@ export function demoTransactions(): Transaction[] {
       amount: 1500,
       fee: 2,
       createdAt: isoDaysAgo(8)
+    },
+    {
+      id: "demo-8",
+      assetName: "MSFT",
+      assetType: "stock",
+      side: "buy",
+      price: 402.5,
+      amount: 3,
+      fee: 2,
+      createdAt: isoDaysAgo(16)
+    },
+    {
+      id: "demo-9",
+      assetName: "NVDA",
+      assetType: "stock",
+      side: "buy",
+      price: 820.75,
+      amount: 2,
+      fee: 2,
+      createdAt: isoDaysAgo(13)
+    },
+    {
+      id: "demo-10",
+      assetName: "ETH",
+      assetType: "crypto",
+      side: "buy",
+      price: 3400,
+      amount: 0.4,
+      fee: 4,
+      createdAt: isoDaysAgo(11)
+    },
+    {
+      id: "demo-11",
+      assetName: "USDJPY",
+      assetType: "forex",
+      side: "buy",
+      price: 147.2,
+      amount: 1000,
+      fee: 1,
+      createdAt: isoDaysAgo(6)
+    },
+    {
+      id: "demo-12",
+      assetName: "XAGUSD",
+      assetType: "gold",
+      side: "buy",
+      price: 29.5,
+      amount: 50,
+      fee: 1,
+      createdAt: isoDaysAgo(5)
     }
   ];
 }
@@ -88,7 +138,12 @@ export function demoPrices(): PriceMap {
     XAUUSD: 2240,
     AAPL: 202,
     BTC: 69000,
-    EURUSD: 1.09
+    EURUSD: 1.09,
+    MSFT: 415,
+    NVDA: 905,
+    ETH: 3600,
+    USDJPY: 148.3,
+    XAGUSD: 30.1
   };
 }
 

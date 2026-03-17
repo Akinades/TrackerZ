@@ -35,13 +35,13 @@ export function Modal({
       <button
         type="button"
         aria-label="Close modal"
-        className="absolute inset-0 bg-zinc-900/20 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-zinc-900/30 backdrop-blur-[2px]"
         onClick={onClose}
       />
-      <div className="absolute inset-0 flex items-end justify-center p-3 sm:items-center">
+      <div className="absolute inset-0 flex items-center justify-center p-3">
         <div
           className={cx(
-            "w-full max-w-2xl rounded-3xl border border-zinc-200/70 bg-white p-5 shadow-[0_30px_80px_-50px_rgba(0,0,0,0.6)]",
+            "w-full max-w-2xl rounded-3xl border border-zinc-200/70 bg-white p-5 text-zinc-900 shadow-[0_30px_80px_-50px_rgba(0,0,0,0.6)] dark:border-zinc-800/70 dark:bg-zinc-950 dark:text-zinc-100",
             className
           )}
           role="dialog"
@@ -53,7 +53,7 @@ export function Modal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+              className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800/70 dark:bg-zinc-950/40 dark:text-zinc-200 dark:hover:bg-zinc-900/50"
             >
               ปิด
             </button>

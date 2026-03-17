@@ -16,10 +16,10 @@ export function Button({
 
   const variants: Record<Variant, string> = {
     primary:
-      "bg-zinc-900 text-white shadow-[0_10px_25px_-18px_rgba(0,0,0,0.45)] hover:bg-zinc-800",
+      "bg-zinc-900 text-white shadow-[0_10px_25px_-18px_rgba(0,0,0,0.45)] hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white",
     secondary:
-      "border border-zinc-200/70 bg-white text-zinc-900 hover:bg-zinc-50 shadow-[0_10px_25px_-20px_rgba(0,0,0,0.25)]",
-    ghost: "bg-transparent text-zinc-700 hover:bg-zinc-100"
+      "border border-zinc-200/70 bg-white text-zinc-900 hover:bg-zinc-50 shadow-[0_10px_25px_-20px_rgba(0,0,0,0.25)] dark:border-zinc-800/70 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50",
+    ghost: "bg-transparent text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900/60"
   };
 
   return (

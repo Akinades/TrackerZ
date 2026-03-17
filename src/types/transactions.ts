@@ -4,6 +4,7 @@ export type TransactionSide = "buy" | "sell";
 export type Transaction = {
   id: string;
   assetName: string;
+  assetLabel?: string;
   assetType: AssetType;
   side: TransactionSide;
   price: number; // per unit

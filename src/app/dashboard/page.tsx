@@ -4,14 +4,17 @@ import * as React from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { PortfolioPie } from "@/components/charts/PortfolioPie";
 import { PortfolioPnlBar } from "@/components/charts/PortfolioPnlBar";
 import { useTransactions } from "@/store/useTransactions";
 import { usePrices } from "@/store/usePrices";
 import { useAuth } from "@/store/useAuth";
+import { useCurrency } from "@/store/useCurrency";
 import { ASSET_TYPES } from "@/lib/constants";
 import { demoPrices, demoTransactions } from "@/lib/demoData";
+import { formatMoney, formatNumber2 } from "@/lib/format";
 import {
   computePositionsAvgCost,
   currentValue,
@@ -22,11 +25,17 @@ import {
 } from "@/lib/calculations";
 import { clearAllData, savePrices, saveTransactions } from "@/lib/storage";
 
+function formatPct(n: number) {
+  return formatNumber2(n, "th-TH");
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl border border-zinc-200/70 bg-white p-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.25)]">
-      <div className="text-xs text-zinc-500">{label}</div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-900">{value}</div>
+    <div className="rounded-3xl border border-zinc-200/70 bg-white p-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.25)] dark:border-zinc-800/70 dark:bg-zinc-950/40">
+      <div className="text-xs text-zinc-500 dark:text-zinc-400">{label}</div>
+      <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+        {value}
+      </div>
     </div>
   );
 }
@@ -34,34 +43,79 @@ function Metric({ label, value }: { label: string; value: string }) {
 export default function DashboardPage() {
   const { user, hydrated: authHydrated } = useAuth();
   const { txs, hydrated } = useTransactions();
-  const { prices, hydrated: pricesHydrated, setPrice } = usePrices();
+  const { currency } = useCurrency();
+  const {
+    prices,
+    hydrated: pricesHydrated,
+    setPrice,
+    refreshMarket,
+    status: priceStatus,
+    error: priceError,
+    lastUpdatedAt
+  } = usePrices();
   const [pieMode, setPieMode] = React.useState<"asset" | "type">("asset");
 
-  const positions = computePositionsAvgCost(txs);
-  const invested = investedTotal(txs);
-  const fees = totalFees(txs);
-  const realized = realizedPnlFromPositions(positions);
-  const unrealized = unrealizedPnl(positions, prices);
-  const net = Math.round((realized + unrealized) * 100) / 100;
-  const valueNow = currentValue(positions, prices);
+  const positions = React.useMemo(() => computePositionsAvgCost(txs), [txs]);
+  const invested = React.useMemo(() => investedTotal(txs), [txs]);
+  const fees = React.useMemo(() => totalFees(txs), [txs]);
+  const realized = React.useMemo(() => realizedPnlFromPositions(positions), [positions]);
+  const unrealized = React.useMemo(() => unrealizedPnl(positions, prices), [positions, prices]);
+  const net = React.useMemo(() => Math.round((realized + unrealized) * 100) / 100, [realized, unrealized]);
+  const valueNow = React.useMemo(() => currentValue(positions, prices), [positions, prices]);
+  const roiPct = React.useMemo(() => (invested > 0 ? (net / invested) * 100 : 0), [invested, net]);
+  const equityDelta = React.useMemo(
+    () => Math.round((valueNow - invested) * 100) / 100,
+    [valueNow, invested]
+  );
+
+  const [autoRefresh, setAutoRefresh] = React.useState(false);
+  const [refreshEvery, setRefreshEvery] = React.useState<60 | 300 | 900>(300);
+
+  const priceOf = React.useCallback(
+    (symbol: string) => {
+      const k = symbol.trim().toUpperCase();
+      const v = prices[k];
+      return Number.isFinite(v) && v > 0 ? v : null;
+    },
+    [prices]
+  );
+
+  const marketSymbols = React.useMemo(() => {
+    return Array.from(new Set(positions.map((p) => p.assetName.trim()).filter(Boolean)));
+  }, [positions]);
+
+  const marketSymbolsKey = React.useMemo(() => marketSymbols.join("|"), [marketSymbols]);
+
+  React.useEffect(() => {
+    if (!autoRefresh) return;
+    if (!hydrated || !pricesHydrated) return;
+    if (marketSymbols.length === 0) return;
+
+    refreshMarket(marketSymbols);
+    const id = window.setInterval(() => {
+      refreshMarket(marketSymbols);
+    }, refreshEvery * 1000);
+    return () => window.clearInterval(id);
+    // marketSymbolsKey ensures stable dependency (positions array is recreated often)
+  }, [autoRefresh, hydrated, pricesHydrated, marketSymbols, marketSymbolsKey, refreshEvery, refreshMarket]);
 
   const allocationByAsset = React.useMemo(() => {
     return positions
       .map((p) => {
-        const px = prices[p.assetName];
-        const v = Number.isFinite(px) && px > 0 ? p.qty * px : 0;
+        const px = priceOf(p.assetName);
+        const v = px ? p.qty * px : 0;
         return { name: p.assetName, value: Math.round(v * 100) / 100 };
       })
       .filter((x) => x.value > 0)
       .sort((a, b) => b.value - a.value);
-  }, [positions, prices]);
+  }, [positions, priceOf]);
 
   const allocationByType = React.useMemo(() => {
     const labelOf = new Map(ASSET_TYPES.map((t) => [t.value, t.label] as const));
     const sum: Record<string, number> = {};
     for (const p of positions) {
-      const px = prices[p.assetName];
-      if (!Number.isFinite(px) || px <= 0) continue;
+      const px = priceOf(p.assetName);
+      if (!px) continue;
       const label = labelOf.get(p.assetType) ?? p.assetType;
       sum[label] = (sum[label] ?? 0) + p.qty * px;
     }
@@ -69,16 +123,15 @@ export default function DashboardPage() {
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .filter((x) => x.value > 0)
       .sort((a, b) => b.value - a.value);
-  }, [positions, prices]);
+  }, [positions, priceOf]);
 
   const allocation = pieMode === "type" ? allocationByType : allocationByAsset;
 
   const pnlRows = React.useMemo(() => {
     return positions
       .map((p) => {
-        const px = prices[p.assetName];
-        const u =
-          Number.isFinite(px) && px > 0 ? (px - p.avgCost) * p.qty : 0;
+        const px = priceOf(p.assetName);
+        const u = px ? (px - p.avgCost) * p.qty : 0;
         return {
           name: p.assetName,
           realized: Math.round(p.realizedPnl * 100) / 100,
@@ -91,7 +144,7 @@ export default function DashboardPage() {
           Math.abs(b.realized + b.unrealized) - Math.abs(a.realized + a.unrealized)
       )
       .slice(0, 12);
-  }, [positions, prices]);
+  }, [positions, priceOf]);
 
   const seedDemo = React.useCallback(() => {
     saveTransactions(demoTransactions());
@@ -158,14 +211,124 @@ export default function DashboardPage() {
         </Card>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Metric label="เงินลงทุนทั้งหมด (Buy + Fee)" value={hydrated ? `${invested}` : "…"} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Metric
+          label="เงินลงทุนทั้งหมด (Buy + Fee)"
+          value={hydrated ? formatMoney(invested, currency) : "…"}
+        />
         <Metric
           label="มูลค่าปัจจุบัน (ต้องใส่ราคา)"
-          value={hydrated && pricesHydrated ? `${valueNow}` : "…"}
+          value={hydrated && pricesHydrated ? formatMoney(valueNow, currency) : "…"}
         />
-        <Metric label="กำไรสุทธิ (Realized+Unrealized)" value={hydrated ? `${net}` : "…"} />
+        <div className="rounded-3xl border border-zinc-200/70 bg-white p-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.25)]">
+          <div className="text-xs text-zinc-500">กำไรสุทธิ (Realized+Unrealized)</div>
+          <div
+            className={[
+              "mt-2 text-2xl font-semibold tabular-nums",
+              !hydrated
+                ? "text-zinc-900"
+                : net > 0
+                  ? "text-emerald-700"
+                  : net < 0
+                    ? "text-rose-600"
+                    : "text-zinc-900"
+            ].join(" ")}
+          >
+            {!hydrated
+              ? "…"
+              : `${net > 0 ? "+" : net < 0 ? "-" : ""}${formatMoney(Math.abs(net), currency)}`}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-200/70 bg-white p-5 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.25)]">
+          <div className="text-xs text-zinc-500">ผลตอบแทน (ROI)</div>
+          <div
+            className={[
+              "mt-2 text-2xl font-semibold tabular-nums",
+              !hydrated
+                ? "text-zinc-900"
+                : roiPct > 0
+                  ? "text-emerald-700"
+                  : roiPct < 0
+                    ? "text-rose-600"
+                    : "text-zinc-900"
+            ].join(" ")}
+          >
+            {!hydrated ? "…" : `${roiPct > 0 ? "+" : ""}${formatPct(roiPct)}%`}
+          </div>
+          <div className="mt-1 text-xs text-zinc-500">
+            สุทธิ:{" "}
+            {!hydrated
+              ? "…"
+              : `${equityDelta > 0 ? "+" : equityDelta < 0 ? "-" : ""}${formatMoney(Math.abs(equityDelta), currency)}`}
+          </div>
+        </div>
       </div>
+
+      <Card>
+        <div className="grid gap-3">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <div className="text-sm font-medium">Positions (สรุป)</div>
+              <div className="text-xs text-zinc-500">Top 5 ตามมูลค่าปัจจุบัน</div>
+            </div>
+            <div className="text-xs text-zinc-500">
+              {hydrated && pricesHydrated ? "อิงราคาปัจจุบันที่กรอก/ดึงมา" : "กำลังโหลด…"}
+            </div>
+          </div>
+
+          {!hydrated || !pricesHydrated ? (
+            <div className="text-sm text-zinc-400">กำลังโหลดข้อมูล…</div>
+          ) : positions.length === 0 ? (
+            <div className="text-sm text-zinc-400">ยังไม่มี position</div>
+          ) : (
+            <div className="overflow-hidden rounded-3xl border border-zinc-200/70">
+              <div className="grid grid-cols-12 gap-2 bg-zinc-50/70 px-4 py-3 text-xs font-medium text-zinc-600">
+                <div className="col-span-4">สินทรัพย์</div>
+                <div className="col-span-3 text-right">มูลค่า</div>
+                <div className="col-span-2 text-right">ราคา</div>
+                <div className="col-span-3 text-right">P/L</div>
+              </div>
+              <div className="divide-y divide-zinc-200/70 bg-white">
+                {positions
+                  .map((p) => {
+                    const price = priceOf(p.assetName);
+                    const value = price ? p.qty * price : 0;
+                    const u = price ? (price - p.avgCost) * p.qty : 0;
+                    const pl = Math.round((p.realizedPnl + u) * 100) / 100;
+                    return { p, price, value: Math.round(value * 100) / 100, pl };
+                  })
+                  .sort((a, b) => b.value - a.value)
+                  .slice(0, 5)
+                  .map(({ p, price, value, pl }) => (
+                    <div key={p.assetName} className="grid grid-cols-12 items-center gap-2 px-4 py-3">
+                      <div className="col-span-4">
+                        <div className="text-sm font-medium text-zinc-900">{p.assetName}</div>
+                        <div className="text-xs text-zinc-500">
+                          Qty {p.qty} • Avg {Math.round(p.avgCost * 100) / 100}
+                        </div>
+                      </div>
+                      <div className="col-span-3 text-right text-sm tabular-nums text-zinc-900">
+                        {value > 0 ? formatMoney(value, currency) : "—"}
+                      </div>
+                      <div className="col-span-2 text-right text-sm tabular-nums text-zinc-700">
+                        {price ? formatMoney(price, currency) : "—"}
+                      </div>
+                      <div
+                        className={[
+                          "col-span-3 text-right text-sm font-medium tabular-nums",
+                          pl > 0 ? "text-emerald-700" : pl < 0 ? "text-rose-600" : "text-zinc-700"
+                        ].join(" ")}
+                      >
+                        {pl === 0 ? "—" : `${pl > 0 ? "+" : "-"}${formatMoney(Math.abs(pl), currency)}`}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
 
       <Card>
         <div className="grid gap-3">
@@ -238,6 +401,66 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-zinc-200/70 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-700">
+                อัปเดตล่าสุด
+              </span>
+              <span className="text-xs font-semibold tabular-nums text-zinc-900">
+                {lastUpdatedAt ? new Date(lastUpdatedAt).toLocaleString("th-TH") : "—"}
+              </span>
+              {priceStatus === "loading" ? (
+                <span className="rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+                  กำลังอัปเดต…
+                </span>
+              ) : null}
+              {priceError ? (
+                <span className="rounded-full border border-rose-200/80 bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700">
+                  {priceError}
+                </span>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setAutoRefresh((v) => !v)}
+                className={
+                  autoRefresh
+                    ? "rounded-2xl border border-zinc-200/70 bg-zinc-900 px-3 py-2 text-xs font-medium text-white"
+                    : "rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                }
+                disabled={!hydrated || !pricesHydrated || positions.length === 0}
+              >
+                {autoRefresh ? "Auto: เปิด" : "Auto: ปิด"}
+              </button>
+              <div className="w-[140px]">
+                <Select
+                  value={String(refreshEvery)}
+                  onChange={(e) => setRefreshEvery(Number(e.target.value) as 60 | 300 | 900)}
+                  disabled={!autoRefresh || !hydrated || !pricesHydrated || positions.length === 0}
+                  className={
+                    !autoRefresh
+                      ? "h-9 rounded-2xl px-3 text-xs text-zinc-400 shadow-none"
+                      : "h-9 rounded-2xl px-3 text-xs shadow-none"
+                  }
+                  aria-label="Auto refresh interval"
+                >
+                  <option value="60">ทุก 1 นาที</option>
+                  <option value="300">ทุก 5 นาที</option>
+                  <option value="900">ทุก 15 นาที</option>
+                </Select>
+              </div>
+              <button
+                type="button"
+                onClick={() => refreshMarket(positions.map((p) => p.assetName))}
+                className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!hydrated || !pricesHydrated || priceStatus === "loading" || positions.length === 0}
+              >
+                {priceStatus === "loading" ? "กำลังอัปเดตราคาตลาด…" : "อัปเดตราคาตลาด"}
+              </button>
+            </div>
+          </div>
+
           <div className="grid gap-2">
             {!hydrated || !pricesHydrated ? (
               <div className="text-sm text-zinc-400">กำลังโหลดข้อมูล…</div>
@@ -262,7 +485,7 @@ export default function DashboardPage() {
                       <Input
                         inputMode="decimal"
                         placeholder="ราคาปัจจุบัน"
-                        value={prices[p.assetName] ? String(prices[p.assetName]) : ""}
+                        value={priceOf(p.assetName) ? String(priceOf(p.assetName)) : ""}
                         onChange={(e) => {
                           const v = e.target.value.trim();
                           if (!v) return setPrice(p.assetName, null);
