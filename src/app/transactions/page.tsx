@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -9,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ASSET_TYPES } from "@/lib/constants";
 import type { AssetType, TransactionSide } from "@/types/transactions";
 import { useTransactions } from "@/store/useTransactions";
+import { useAuth } from "@/store/useAuth";
 import { round2, txValue } from "@/lib/calculations";
 
 type FormState = {
@@ -49,6 +51,7 @@ function endOfDay(d: Date) {
 }
 
 export default function TransactionsPage() {
+  const { user, hydrated: authHydrated } = useAuth();
   const { txs, hydrated, add, remove } = useTransactions();
   const [form, setForm] = React.useState<FormState>(initial);
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -147,6 +150,29 @@ export default function TransactionsPage() {
       return true;
     });
   }, [txs, from, to]);
+
+  if (authHydrated && !user) {
+    return (
+      <Card className="p-6">
+        <div className="grid gap-2">
+          <div className="text-lg font-semibold">เข้าสู่ระบบเพื่อบันทึกรายการ</div>
+          <div className="text-sm text-zinc-600">
+            ล็อกอินก่อน แล้วค่อยเพิ่ม/แก้ไข/ลบรายการซื้อขายได้
+          </div>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Link href="/login?next=/transactions" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto">เข้าสู่ระบบ</Button>
+            </Link>
+            <Link href="/register?next=/transactions" className="w-full sm:w-auto">
+              <Button variant="secondary" className="w-full sm:w-auto">
+                สมัครสมาชิก
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="grid gap-6">
