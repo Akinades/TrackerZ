@@ -7,8 +7,8 @@ export function Footer() {
   if (pathname === "/login" || pathname === "/register") return null;
 
   return (
-    <footer className="py-8 text-sm text-zinc-500">
-      TrackerZ MVP • Minimal
+    <footer className="py-8 text-sm text-zinc-500 text-center">
+      © 2026 TrackerZ
     </footer>
   );
 }
