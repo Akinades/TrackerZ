@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -33,55 +34,74 @@ export function RegisterClient() {
   };
 
   return (
-    <div className="grid gap-4">
-      <div>
-        <div className="text-lg font-semibold">สมัครสมาชิก</div>
-        <div className="text-sm text-zinc-600">เริ่มต้นใช้งานภายใน 30 วินาที</div>
-      </div>
+    <div className="grid gap-6 md:grid-cols-2 md:gap-10 md:items-center">
+      <div className="p-2 sm:p-4">
+        <div className="grid gap-4">
+          <div>
+            <div className="text-lg font-semibold">สมัครสมาชิก</div>
+            <div className="text-sm text-zinc-600">เริ่มต้นใช้งานภายใน 30 วินาที</div>
+          </div>
 
-      <div className="grid gap-3">
-        <div className="grid gap-1">
-          <label className="text-sm text-zinc-700">อีเมล</label>
-          <Input
-            value={email}
-            inputMode="email"
-            placeholder="you@example.com"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div className="grid gap-1">
-          <label className="text-sm text-zinc-700">รหัสผ่าน</label>
-          <Input
-            value={password}
-            type="password"
-            placeholder="อย่างน้อย 6 ตัวอักษร"
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <div className="text-xs text-zinc-500">
-            MVP: เก็บรหัสผ่านในเครื่อง (localStorage) เพื่อทดลองเท่านั้น
+          <div className="grid gap-3">
+            <div className="grid gap-1">
+              <label className="text-sm text-zinc-700">อีเมล</label>
+              <Input
+                value={email}
+                inputMode="email"
+                placeholder="you@example.com"
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-1">
+              <label className="text-sm text-zinc-700">รหัสผ่าน</label>
+              <Input
+                value={password}
+                type="password"
+                placeholder="อย่างน้อย 6 ตัวอักษร"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <div className="text-xs text-zinc-500">
+                MVP: เก็บรหัสผ่านในเครื่อง (localStorage) เพื่อทดลองเท่านั้น
+              </div>
+            </div>
+          </div>
+
+          {error ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="grid gap-3">
+            <div className="text-sm text-zinc-600">
+              มีบัญชีแล้ว?{" "}
+              <Link
+                href={`/login?next=${encodeURIComponent(next)}`}
+                className="text-zinc-900 underline underline-offset-4"
+              >
+                เข้าสู่ระบบ
+              </Link>
+            </div>
+            <Button onClick={submit} disabled={!hydrated} className="w-full">
+              สร้างบัญชี
+            </Button>
           </div>
         </div>
       </div>
 
-      {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
+      <div className="hidden md:block">
+        <div className="grid place-items-center">
+          <div className="relative aspect-square w-[320px] max-w-full">
+            <Image
+              src="/brand/register-icon.png"
+              alt="TrackerZ"
+              fill
+              sizes="320px"
+              className="object-contain"
+              priority
+            />
+          </div>
         </div>
-      ) : null}
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-zinc-600">
-          มีบัญชีแล้ว?{" "}
-          <Link
-            href={`/login?next=${encodeURIComponent(next)}`}
-            className="text-zinc-900 underline underline-offset-4"
-          >
-            เข้าสู่ระบบ
-          </Link>
-        </div>
-        <Button onClick={submit} disabled={!hydrated}>
-          สร้างบัญชี
-        </Button>
       </div>
     </div>
   );

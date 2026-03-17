@@ -22,6 +22,10 @@ export default function HomePage() {
             <div className="grid gap-5">
               <div className="grid gap-3">
                 <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">
+                  <span className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-zinc-900 bg-clip-text text-transparent">
+                    TrackerZ
+                  </span>
+                  <br />
                   จดไว้ให้ครบ
                   <br />
                   แล้วดูพอร์ตให้สวย
@@ -156,7 +160,7 @@ export default function HomePage() {
               <span className="font-medium text-zinc-900">3)</span>{" "}
               ดูสัดส่วนพอร์ต + กำไร/ขาดทุนแบบกราฟ
             </div>
-            <div className="relative mx-auto mt-2 aspect-[4/3] w-full max-w-md">
+            <div className="relative mx-auto mt-2 aspect-[4/3] w-1/2 max-w-md">
               <Image
                 src="/landing/dashboard.png"
                 alt=""
@@ -169,11 +173,14 @@ export default function HomePage() {
         <Card className="relative overflow-hidden p-6">
           <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-emerald-50" />
           <div className="relative grid gap-3">
-            <div className="text-sm font-semibold">เหมาะกับมือถือ</div>
+            <div className="text-sm font-semibold">ใช้งานสะดวกทุกอุปกรณ์</div>
             <div className="text-sm text-zinc-600">
-              เลื่อนดูง่าย กดเพิ่มรายการแบบ Modal ได้ทันที
+              ใช้ได้ลื่นทั้งคอม/แล็ปท็อป/มือถือ — บนหน้าจอใหญ่ดูภาพรวมได้ครบ
+              ทั้งกราฟสัดส่วนพอร์ต, P/L และตารางรายการแบบอ่านง่าย ขณะที่บนมือถือ
+              ปุ่ม/ฟอร์มถูกจัดให้กดและกรอกสะดวก เลื่อนดูไว และเพิ่ม/แก้รายการผ่าน
+              Modal ได้ทันที เหมาะกับการเช็คพอร์ตระหว่างวัน
             </div>
-            <div className="relative mx-auto mt-2 aspect-[4/3] w-full max-w-md">
+            <div className="relative mx-auto mt-2 aspect-[4/3] w-1/2 items-end justify-end max-w-xs sm:max-w-sm">
               <Image
                 src="/landing/mobile.png"
                 alt=""

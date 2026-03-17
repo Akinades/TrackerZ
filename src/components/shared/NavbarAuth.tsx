@@ -12,16 +12,7 @@ export function AuthButtons() {
   if (!hydrated) return null;
 
   if (!user) {
-    return (
-      <div className="flex items-center gap-2">
-        <Link href="/login">
-          <Button variant="ghost">เข้าสู่ระบบ</Button>
-        </Link>
-        <Link href="/register">
-          <Button>สมัคร</Button>
-        </Link>
-      </div>
-    );
+    return null;
   }
 
   return (

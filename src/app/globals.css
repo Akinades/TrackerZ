@@ -14,7 +14,15 @@ body {
   }
 
   body {
-    background: #fbfbfd;
+    background-color: #fbfbfd;
+    background-image:
+      radial-gradient(800px 520px at 12% 10%, rgba(16, 185, 129, 0.22), transparent 60%),
+      radial-gradient(720px 520px at 78% 22%, rgba(52, 211, 153, 0.18), transparent 62%),
+      radial-gradient(900px 620px at 18% 92%, rgba(16, 185, 129, 0.10), transparent 62%),
+      linear-gradient(135deg, rgba(236, 253, 245, 0.75) 0%, rgba(248, 250, 252, 0.95) 55%, rgba(255, 255, 255, 1) 100%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
   }
 }
 
