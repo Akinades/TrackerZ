@@ -12,7 +12,9 @@ export type Transaction = {
   price: number; // per unit
   amount: number; // units
   fee: number; // in THB (or account currency)
+  tax?: number; // in transaction currency (optional)
   currency?: AppCurrency; // currency of price/fee in this transaction
+  fxRateAtTrade?: number; // USDTHB at trade time (optional, for consistent history)
   createdAt: string; // ISO
 };
 

@@ -26,6 +26,7 @@ type FormState = {
   price: string;
   amount: string;
   fee: string;
+  tax: string;
 };
 
 const initial: FormState = {
@@ -35,7 +36,8 @@ const initial: FormState = {
   side: "buy",
   price: "",
   amount: "",
-  fee: "0"
+  fee: "0",
+  tax: "0"
 };
 
 function toDateInputValue(d: Date) {
@@ -85,6 +87,9 @@ export default function TransactionsPage() {
   const [confirmBody, setConfirmBody] = React.useState<React.ReactNode>(null);
   const [confirmCta, setConfirmCta] = React.useState("ยืนยัน");
   const confirmActionRef = React.useRef<null | (() => void)>(null);
+  const [importing, setImporting] = React.useState(false);
+  const [importError, setImportError] = React.useState<string | null>(null);
+  // (file action select removed)
 
   const [pageSize, setPageSize] = React.useState<10 | 25 | 50 | 100 | "all">(10);
   const [page, setPage] = React.useState(1);
@@ -95,11 +100,12 @@ export default function TransactionsPage() {
   const fx = React.useMemo(() => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36), [usdThb]);
 
   const toDisplayMoney = React.useCallback(
-    (value: number, from?: "THB" | "USD") => {
+    (value: number, from?: "THB" | "USD", fxAtTrade?: number) => {
       const src = from ?? currency;
+      const rate = Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0 ? (fxAtTrade as number) : fx;
       if (src === currency) return value;
-      if (src === "USD" && currency === "THB") return value * fx;
-      if (src === "THB" && currency === "USD") return value / fx;
+      if (src === "USD" && currency === "THB") return value * rate;
+      if (src === "THB" && currency === "USD") return value / rate;
       return value;
     },
     [currency, fx]
@@ -115,16 +121,169 @@ export default function TransactionsPage() {
     setAssetSuggestOpen(false);
   };
 
+  // (dropdown removed) file actions handled by <Select>
+
+  const exportCsv = React.useCallback(() => {
+    const header = [
+      "createdAt",
+      "assetName",
+      "assetLabel",
+      "assetType",
+      "side",
+      "price",
+      "amount",
+      "fee",
+      "tax",
+      "currency",
+      "fxRateAtTrade"
+    ];
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const rows = txs.map((t) =>
+      [
+        t.createdAt,
+        t.assetName,
+        t.assetLabel ?? "",
+        t.assetType,
+        t.side,
+        t.price,
+        t.amount,
+        t.fee ?? 0,
+        t.tax ?? 0,
+        t.currency ?? "",
+        t.fxRateAtTrade ?? ""
+      ].map(esc).join(",")
+    );
+    const csv = [header.join(","), ...rows].join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `trackerz-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [txs]);
+
+  const parseCsvLine = (line: string) => {
+    const out: string[] = [];
+    let cur = "";
+    let i = 0;
+    let inQ = false;
+    while (i < line.length) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i + 1] === '"') {
+          cur += '"';
+          i += 2;
+          continue;
+        }
+        if (ch === '"') {
+          inQ = false;
+          i += 1;
+          continue;
+        }
+        cur += ch;
+        i += 1;
+        continue;
+      }
+      if (ch === '"') {
+        inQ = true;
+        i += 1;
+        continue;
+      }
+      if (ch === ",") {
+        out.push(cur);
+        cur = "";
+        i += 1;
+        continue;
+      }
+      cur += ch;
+      i += 1;
+    }
+    out.push(cur);
+    return out;
+  };
+
+  const importCsv = React.useCallback(
+    async (file: File) => {
+      setImportError(null);
+      setImporting(true);
+      try {
+        const text = await file.text();
+        const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        if (lines.length < 2) throw new Error("ไฟล์ CSV ว่าง หรือไม่มีข้อมูล");
+        const header = parseCsvLine(lines[0]).map((h) => h.trim());
+        const idx = (k: string) => header.indexOf(k);
+        const req = ["assetName", "assetType", "side", "price", "amount"];
+        for (const k of req) if (idx(k) === -1) throw new Error(`CSV ต้องมีคอลัมน์ ${k}`);
+
+        for (let r = 1; r < lines.length; r++) {
+          const cols = parseCsvLine(lines[r]);
+          const get = (k: string) => {
+            const j = idx(k);
+            return j >= 0 ? (cols[j] ?? "").trim() : "";
+          };
+          const assetName = get("assetName").toUpperCase();
+          const assetType = (get("assetType") || "other") as AssetType;
+          const side = (get("side") || "buy") as TransactionSide;
+          const price = Number(get("price"));
+          const amount = Number(get("amount"));
+          const fee = Number(get("fee") || 0);
+          const tax = Number(get("tax") || 0);
+          const assetLabel = get("assetLabel") || undefined;
+          const currencyFrom = (get("currency") as any) || currency;
+          const fxRateAtTrade = Number(get("fxRateAtTrade") || fx);
+          if (!assetName || !Number.isFinite(price) || !Number.isFinite(amount)) continue;
+
+          // Create via API (backend sets createdAt). Keep fx/currency/tax in notes.
+          await add({
+            assetName,
+            assetLabel,
+            assetType,
+            side,
+            price,
+            amount,
+            fee: Number.isFinite(fee) ? fee : 0,
+            tax: Number.isFinite(tax) ? tax : 0,
+            currency: currencyFrom,
+            fxRateAtTrade: Number.isFinite(fxRateAtTrade) && fxRateAtTrade > 0 ? fxRateAtTrade : fx
+          } as any);
+        }
+      } catch (e) {
+        setImportError(e instanceof Error ? e.message : "นำเข้าไม่สำเร็จ");
+      } finally {
+        setImporting(false);
+      }
+    },
+    [add, currency, fx]
+  );
+
+  const pickCsvFile = React.useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,text/csv";
+    input.onchange = () => {
+      const f = input.files?.[0];
+      if (f) importCsv(f);
+    };
+    input.click();
+  }, [importCsv]);
+
   const submitImpl = () => {
     const assetName = form.assetName.trim().toUpperCase();
     const price = Number(form.price);
     const amount = Number(form.amount);
     const fee = Number(form.fee || 0);
+    const tax = Number(form.tax || 0);
 
     if (!assetName) return;
     if (!Number.isFinite(price) || price <= 0) return;
     if (!Number.isFinite(amount) || amount <= 0) return;
     if (!Number.isFinite(fee) || fee < 0) return;
+    if (!Number.isFinite(tax) || tax < 0) return;
 
     const catalog = findAssetCatalogItem(assetName);
     const assetLabel = (form.assetLabel || catalog?.label || "").trim();
@@ -137,7 +296,9 @@ export default function TransactionsPage() {
       price: round2(price),
       amount: round2(amount),
       fee: round2(fee),
-      currency
+      tax: round2(tax),
+      currency,
+      fxRateAtTrade: fx
     } as const;
 
     if (isEditing) update(editingId!, payload);
@@ -192,7 +353,8 @@ export default function TransactionsPage() {
       side: tx.side,
       price: String(tx.price),
       amount: String(tx.amount),
-      fee: String(tx.fee ?? 0)
+      fee: String(tx.fee ?? 0),
+      tax: String(tx.tax ?? 0)
     });
     setOpen(true);
     setAssetSuggestOpen(false);
@@ -371,17 +533,19 @@ export default function TransactionsPage() {
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-2">
-        <h1 className="text-xl font-semibold">บันทึกรายการซื้อ/ขาย</h1>
-        <p className="text-sm text-zinc-600">เพิ่ม/แก้ไขรายการซื้อขายของคุณ</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-2">
+          <h1 className="text-xl font-semibold">บันทึกรายการซื้อ/ขาย</h1>
+          <p className="text-sm text-zinc-600">เพิ่ม/แก้ไขรายการซื้อขายของคุณ</p>
+        </div>
       </div>
 
       <Card>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="grid gap-1">
+          <div className="grid flex-1 gap-1 sm:pr-4">
             <div className="text-sm font-medium">ช่วงวันที่</div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="w-full sm:w-[260px]">
+              <div className="w-full sm:w-[220px]">
                 <div className="text-xs text-zinc-400">ช่วงเวลา</div>
                 <Select
                   value={rangePreset}
@@ -406,10 +570,11 @@ export default function TransactionsPage() {
                   <option value="all">ทั้งหมด</option>
                 </Select>
               </div>
-              <div className="w-full sm:w-[200px]">
+              <div className="w-full sm:w-[190px]">
                 <div className="text-xs text-zinc-400">จาก</div>
                 <Input
                   type="date"
+                  className="h-11 rounded-2xl px-3 text-xs shadow-none"
                   value={from}
                   onChange={(e) => {
                     setRangePreset("");
@@ -418,10 +583,11 @@ export default function TransactionsPage() {
                   disabled={!hydrated}
                 />
               </div>
-              <div className="w-full sm:w-[200px]">
+              <div className="w-full sm:w-[190px]">
                 <div className="text-xs text-zinc-400">ถึง</div>
                 <Input
                   type="date"
+                  className="h-11 rounded-2xl px-3 text-xs shadow-none"
                   value={to}
                   onChange={(e) => {
                     setRangePreset("");
@@ -438,13 +604,19 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-            <Button onClick={startAdd} disabled={!hydrated}>
-              เพิ่มรายการ (Modal)
+          <div className="flex shrink-0 items-center justify-end sm:self-center">
+            <Button onClick={startAdd} disabled={!hydrated} className="h-11 rounded-2xl px-4 py-0">
+              เพิ่มรายการ
             </Button>
           </div>
         </div>
       </Card>
+
+      {importError ? (
+        <Card className="p-4">
+          <div className="text-sm text-rose-700">{importError}</div>
+        </Card>
+      ) : null}
 
       <Modal
         open={open}
@@ -536,7 +708,7 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
             <div className="grid gap-1">
               <label className="text-sm text-zinc-700 dark:text-zinc-200">ฝั่ง</label>
               <Select
@@ -574,12 +746,32 @@ export default function TransactionsPage() {
             </div>
 
             <div className="grid gap-1">
-              <label className="text-sm text-zinc-700 dark:text-zinc-200">Fee</label>
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm text-zinc-700 dark:text-zinc-200">Fee</label>
+                <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                  {currency}
+                </span>
+              </div>
               <Input
                 inputMode="decimal"
                 value={form.fee}
                 placeholder="0"
                 onChange={(e) => onChange({ fee: e.target.value })}
+              />
+            </div>
+
+            <div className="grid gap-1">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm text-zinc-700 dark:text-zinc-200">Tax</label>
+                <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                  {currency}
+                </span>
+              </div>
+              <Input
+                inputMode="decimal"
+                value={form.tax}
+                placeholder="0"
+                onChange={(e) => onChange({ tax: e.target.value })}
               />
             </div>
           </div>
@@ -642,49 +834,23 @@ export default function TransactionsPage() {
                 แสดง {filteredTxs.length} / ทั้งหมด {txs.length} รายการ
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <div className="w-[150px]">
-                <Select
-                  value={String(pageSize)}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setPageSize(v === "all" ? "all" : (Number(v) as 10 | 25 | 50 | 100));
-                  }}
-                  className="h-9 rounded-2xl px-3 text-xs shadow-none"
-                  aria-label="Page size"
-                >
-                  <option value="10">แสดง 10</option>
-                  <option value="25">แสดง 25</option>
-                  <option value="50">แสดง 50</option>
-                  <option value="100">แสดง 100</option>
-                  <option value="all">ดูทั้งหมด</option>
-                </Select>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={safePage <= 1 || pageSize === "all"}
-                className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={exportCsv}
+                disabled={!hydrated || txs.length === 0}
+                className="h-9 rounded-2xl px-4 py-0"
               >
-                ก่อนหน้า
-              </button>
-              <div className="text-xs text-zinc-500">
-                {pageSize === "all" ? (
-                  <>แสดงทั้งหมด {totalItems} รายการ</>
-                ) : (
-                  <>
-                    {startIdx + 1}-{endIdx} / {totalItems} (หน้า {safePage}/{totalPages})
-                  </>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={safePage >= totalPages || pageSize === "all"}
-                className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                Export CSV
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={pickCsvFile}
+                disabled={!hydrated || importing}
+                className="h-9 rounded-2xl px-4 py-0"
               >
-                ถัดไป
-              </button>
+                Import CSV
+              </Button>
             </div>
           </div>
         </div>
@@ -744,7 +910,7 @@ export default function TransactionsPage() {
                     <div className="flex items-center justify-between text-sm sm:block">
                       <span className="text-xs text-zinc-500 sm:hidden">ราคา</span>
                       <span className="tabular-nums text-zinc-700">
-                        {formatMoney(round2(toDisplayMoney(t.price, t.currency)), currency)}
+                        {formatMoney(round2(toDisplayMoney(t.price, t.currency, t.fxRateAtTrade)), currency)}
                       </span>
                     </div>
                   </div>
@@ -758,7 +924,10 @@ export default function TransactionsPage() {
                     <div className="flex items-center justify-between text-sm sm:block">
                       <span className="text-xs text-zinc-500 sm:hidden">มูลค่า</span>
                       <span className="tabular-nums font-medium text-zinc-900">
-                        {formatMoney(round2(toDisplayMoney(txValue(t), t.currency)), currency)}
+                        {formatMoney(
+                          round2(toDisplayMoney(txValue(t), t.currency, t.fxRateAtTrade)),
+                          currency
+                        )}
                       </span>
                     </div>
                   </div>
@@ -798,7 +967,11 @@ export default function TransactionsPage() {
                                   <div className="grid gap-2">
                                     <div className="text-sm text-zinc-700">
                                       คุณกำลังจะลบ <span className="font-medium">{t.assetName}</span> ({t.side.toUpperCase()}){" "}
-                                      มูลค่า {formatMoney(round2(toDisplayMoney(txValue(t), t.currency)), currency)}
+                                      มูลค่า{" "}
+                                      {formatMoney(
+                                        round2(toDisplayMoney(txValue(t), t.currency, t.fxRateAtTrade)),
+                                        currency
+                                      )}
                                     </div>
                                     <div className="text-xs text-zinc-500">การลบไม่สามารถกู้คืนได้</div>
                                   </div>
@@ -818,6 +991,55 @@ export default function TransactionsPage() {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="border-t border-zinc-200/70 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs text-zinc-500">
+              {pageSize === "all" ? (
+                <>แสดงทั้งหมด {totalItems} รายการ</>
+              ) : (
+                <>
+                  {startIdx + 1}-{endIdx} / {totalItems} (หน้า {safePage}/{totalPages})
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="w-[150px]">
+                <Select
+                  value={String(pageSize)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPageSize(v === "all" ? "all" : (Number(v) as 10 | 25 | 50 | 100));
+                  }}
+                  className="h-9 rounded-2xl px-3 text-xs shadow-none"
+                  aria-label="Page size"
+                >
+                  <option value="10">แสดง 10</option>
+                  <option value="25">แสดง 25</option>
+                  <option value="50">แสดง 50</option>
+                  <option value="100">แสดง 100</option>
+                  <option value="all">ดูทั้งหมด</option>
+                </Select>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1 || pageSize === "all"}
+                className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                ก่อนหน้า
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages || pageSize === "all"}
+                className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                ถัดไป
+              </button>
+            </div>
+          </div>
         </div>
       </Card>
     </div>

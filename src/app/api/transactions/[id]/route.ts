@@ -20,8 +20,13 @@ function toBackendPatch(body: any) {
   if (body.currency != null) out.currency = body.currency;
 
   // Preserve optional metadata in notes (non-breaking for backend)
-  if (body.fee != null || body.assetType != null) {
-    out.notes = JSON.stringify({ fee: body.fee ?? 0, assetType: body.assetType ?? null });
+  if (body.fee != null || body.tax != null || body.assetType != null || body.fxRateAtTrade != null) {
+    out.notes = JSON.stringify({
+      fee: body.fee ?? 0,
+      tax: body.tax ?? 0,
+      assetType: body.assetType ?? null,
+      fxRateAtTrade: body.fxRateAtTrade ?? null
+    });
   }
 
   return out;

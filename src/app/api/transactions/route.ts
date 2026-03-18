@@ -17,10 +17,17 @@ function toBackendCreate(body: any) {
   const currency = body?.currency ?? "THB";
 
   const fee = body?.fee;
+  const tax = body?.tax;
   const assetType = body?.assetType;
+  const fxRateAtTrade = body?.fxRateAtTrade;
   const notes =
-    fee != null || assetType != null
-      ? JSON.stringify({ fee: fee ?? 0, assetType: assetType ?? null })
+    fee != null || tax != null || assetType != null || fxRateAtTrade != null
+      ? JSON.stringify({
+          fee: fee ?? 0,
+          tax: tax ?? 0,
+          assetType: assetType ?? null,
+          fxRateAtTrade: fxRateAtTrade ?? null
+        })
       : undefined;
 
   return {

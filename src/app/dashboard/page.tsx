@@ -21,6 +21,7 @@ import { formatMoney, formatNumber2 } from "@/lib/format";
 import { metricIcon, pnlIcon } from "@/lib/icons";
 import {
   computePositionsAvgCost,
+  computePositionsFifo,
   currentValue,
   investedTotal,
   realizedPnlFromPositions,
@@ -28,6 +29,7 @@ import {
   unrealizedPnl,
 } from "@/lib/calculations";
 import { clearAllData, savePrices, saveTransactions } from "@/lib/storage";
+import { usePreferences } from "@/store/usePreferences";
 
 function formatPct(n: number) {
   return formatNumber2(n, "th-TH");
@@ -60,6 +62,7 @@ export default function DashboardPage() {
   const { txs, hydrated } = useTransactions();
   const { currency } = useCurrency();
   const { usdThb } = useFxRate();
+  const { prefs } = usePreferences();
   const {
     prices,
     hydrated: pricesHydrated,
@@ -123,7 +126,10 @@ export default function DashboardPage() {
     });
   }, [txs, fx]);
 
-  const positions = React.useMemo(() => computePositionsAvgCost(txsUsd), [txsUsd]);
+  const positions = React.useMemo(
+    () => (prefs.costBasis === "fifo" ? computePositionsFifo(txsUsd) : computePositionsAvgCost(txsUsd)),
+    [txsUsd, prefs.costBasis]
+  );
   const invested = React.useMemo(() => investedTotal(txsUsd), [txsUsd]);
   const fees = React.useMemo(() => totalFees(txsUsd), [txsUsd]);
   const realized = React.useMemo(
@@ -164,6 +170,25 @@ export default function DashboardPage() {
     () => Math.round(toDisplay(equityDelta) * 100) / 100,
     [equityDelta, toDisplay],
   );
+
+  const allocationRows = React.useMemo(() => {
+    const byType = new Map<string, number>();
+    for (const p of positions) {
+      const px = prices[p.assetName];
+      if (!Number.isFinite(px) || px <= 0) continue;
+      const valueUsd = p.qty * px;
+      const prev = byType.get(p.assetType) ?? 0;
+      byType.set(p.assetType, prev + valueUsd);
+    }
+    const totalUsd = Array.from(byType.values()).reduce((s, v) => s + v, 0);
+    const keys = ["gold", "stock", "forex", "crypto", "other"] as const;
+    return keys.map((k) => {
+      const vUsd = byType.get(k) ?? 0;
+      const pct = totalUsd > 0 ? (vUsd / totalUsd) * 100 : 0;
+      const target = prefs.allocation?.[k] ?? 0;
+      return { type: k, pct: Math.round(pct * 100) / 100, target };
+    });
+  }, [positions, prices, prefs.allocation]);
 
   const [autoRefresh, setAutoRefresh] = React.useState(false);
   const [refreshEvery, setRefreshEvery] = React.useState<60 | 300 | 900>(300);
@@ -739,6 +764,45 @@ export default function DashboardPage() {
             <div className="text-sm font-medium">
               {hydrated ? `${positions.length}` : "…"}
             </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="grid gap-3">
+          <div>
+            <div className="text-sm font-medium">สัดส่วนพอร์ต (Allocation)</div>
+            <div className="text-xs text-zinc-400">เทียบกับเป้าหมายที่ตั้งไว้ในหน้า Settings</div>
+          </div>
+          <div className="grid gap-2">
+            {allocationRows.map((r) => {
+              const drift = Math.round((r.pct - r.target) * 100) / 100;
+              return (
+                <div
+                  key={r.type}
+                  className="flex items-center justify-between rounded-2xl border border-zinc-200/70 bg-zinc-50/60 px-4 py-3 text-sm"
+                >
+                  <div className="font-medium text-zinc-900">{r.type.toUpperCase()}</div>
+                  <div className="flex items-center gap-3 tabular-nums">
+                    <div className="text-zinc-600">
+                      {r.pct.toFixed(2)}% / Target {Number(r.target).toFixed(2)}%
+                    </div>
+                    <div
+                      className={
+                        drift > 0.01
+                          ? "font-medium text-emerald-700"
+                          : drift < -0.01
+                            ? "font-medium text-rose-700"
+                            : "font-medium text-zinc-500"
+                      }
+                    >
+                      {drift > 0 ? "+" : ""}
+                      {drift.toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Card>

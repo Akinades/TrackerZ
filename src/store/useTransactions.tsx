@@ -3,15 +3,29 @@
 import * as React from "react";
 import type { Transaction } from "@/types/transactions";
 
-function parseNotes(notes: unknown): { fee?: number; assetType?: Transaction["assetType"] } | null {
+function parseNotes(notes: unknown): {
+  fee?: number;
+  tax?: number;
+  assetType?: Transaction["assetType"];
+  fxRateAtTrade?: number;
+} | null {
   if (typeof notes !== "string" || !notes.trim()) return null;
   try {
     const obj = JSON.parse(notes) as any;
     const fee = obj?.fee;
+    const tax = obj?.tax;
     const assetType = obj?.assetType;
+    const fxRateAtTrade = obj?.fxRateAtTrade;
     return {
       fee: typeof fee === "number" ? fee : fee != null ? Number(fee) : undefined,
-      assetType: assetType as any
+      tax: typeof tax === "number" ? tax : tax != null ? Number(tax) : undefined,
+      assetType: assetType as any,
+      fxRateAtTrade:
+        typeof fxRateAtTrade === "number"
+          ? fxRateAtTrade
+          : fxRateAtTrade != null
+            ? Number(fxRateAtTrade)
+            : undefined
     };
   } catch {
     return null;
@@ -36,11 +50,32 @@ function mapTx(raw: any): Transaction | null {
   const notesMeta = parseNotes(raw.notes);
   const assetType = (raw.assetType ?? notesMeta?.assetType ?? "other") as Transaction["assetType"];
   const fee = Number(raw.fee ?? notesMeta?.fee ?? 0);
+  const tax = Number(raw.tax ?? notesMeta?.tax ?? 0);
+  const fxRateAtTrade = notesMeta?.fxRateAtTrade;
   const assetLabelStr = assetLabel != null && String(assetLabel).trim() ? String(assetLabel) : undefined;
 
   if (!id || !assetName) return null;
-  if (!Number.isFinite(price) || !Number.isFinite(amount) || !Number.isFinite(fee)) return null;
-  return { id, assetName, assetType, side, price, amount, fee, createdAt, assetLabel: assetLabelStr, currency };
+  if (
+    !Number.isFinite(price) ||
+    !Number.isFinite(amount) ||
+    !Number.isFinite(fee) ||
+    !Number.isFinite(tax)
+  )
+    return null;
+  return {
+    id,
+    assetName,
+    assetType,
+    side,
+    price,
+    amount,
+    fee,
+    tax,
+    currency,
+    fxRateAtTrade,
+    createdAt,
+    assetLabel: assetLabelStr
+  };
 }
 
 async function readJsonSafe(res: Response) {
