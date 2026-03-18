@@ -16,7 +16,7 @@ import { useCurrency } from "@/store/useCurrency";
 import { useFxRate } from "@/store/useFxRate";
 import { round2, txValue } from "@/lib/calculations";
 import { ASSETS_CATALOG, findAssetCatalogItem } from "@/lib/assetsCatalog";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatMoneyMax } from "@/lib/format";
 
 type FormState = {
   assetName: string;
@@ -59,6 +59,14 @@ function endOfDay(d: Date) {
   return x;
 }
 
+function fmtMaxDp(n: number, dp = 3) {
+  const v = Number.isFinite(n) ? n : 0;
+  const p = Math.pow(10, dp);
+  const r = Math.round(v * p) / p;
+  // avoid long floats in inputs; trim trailing zeros
+  return String(r).replace(/(\.\d*?[1-9])0+$/g, "$1").replace(/\.0+$/g, "");
+}
+
 function daysAgo(n: number) {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -80,6 +88,13 @@ export default function TransactionsPage() {
   const [form, setForm] = React.useState<FormState>(initial);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
+  const editingBaseRef = React.useRef<null | {
+    currency: "THB" | "USD";
+    fxRateAtTrade?: number;
+    price: number;
+    fee: number;
+    tax: number;
+  }>(null);
   const [assetSuggestOpen, setAssetSuggestOpen] = React.useState(false);
   const assetSuggestWrapRef = React.useRef<HTMLDivElement | null>(null);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
@@ -106,6 +121,19 @@ export default function TransactionsPage() {
       if (src === currency) return value;
       if (src === "USD" && currency === "THB") return value * rate;
       if (src === "THB" && currency === "USD") return value / rate;
+      return value;
+    },
+    [currency, fx]
+  );
+
+  const fromDisplayMoney = React.useCallback(
+    (value: number, to?: "THB" | "USD", fxAtTrade?: number) => {
+      const dst = to ?? currency;
+      const rate = Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0 ? (fxAtTrade as number) : fx;
+      if (dst === currency) return value;
+      // display -> dst
+      if (currency === "USD" && dst === "THB") return value * rate;
+      if (currency === "THB" && dst === "USD") return value / rate;
       return value;
     },
     [currency, fx]
@@ -288,17 +316,26 @@ export default function TransactionsPage() {
     const catalog = findAssetCatalogItem(assetName);
     const assetLabel = (form.assetLabel || catalog?.label || "").trim();
 
+    const isEditWithBase = isEditing && editingBaseRef.current;
+    const base = editingBaseRef.current;
+
     const payload = {
       assetName,
       assetLabel: assetLabel || undefined,
       assetType: form.assetType,
       side: form.side,
-      price: round2(price),
+      price: round2(
+        isEditWithBase
+          ? fromDisplayMoney(price, base!.currency, base!.fxRateAtTrade)
+          : price
+      ),
       amount: round2(amount),
-      fee: round2(fee),
-      tax: round2(tax),
-      currency,
-      fxRateAtTrade: fx
+      // Do not round fee/tax to 2 decimals.
+      // Users may input very small values (e.g. 0.003) and rounding would turn them into 0.
+      fee: isEditWithBase ? fromDisplayMoney(fee, base!.currency, base!.fxRateAtTrade) : fee,
+      tax: isEditWithBase ? fromDisplayMoney(tax, base!.currency, base!.fxRateAtTrade) : tax,
+      currency: isEditWithBase ? base!.currency : currency,
+      fxRateAtTrade: isEditWithBase ? base!.fxRateAtTrade ?? fx : fx
     } as const;
 
     if (isEditing) update(editingId!, payload);
@@ -345,16 +382,26 @@ export default function TransactionsPage() {
   const startEdit = (id: string) => {
     const tx = txs.find((t) => t.id === id);
     if (!tx) return;
+    const baseCurrency = (tx.currency ?? currency) as "THB" | "USD";
+    const baseFx = tx.fxRateAtTrade;
+    editingBaseRef.current = {
+      currency: baseCurrency,
+      fxRateAtTrade: baseFx,
+      price: tx.price,
+      fee: tx.fee ?? 0,
+      tax: tx.tax ?? 0
+    };
     setEditingId(tx.id);
     setForm({
       assetName: tx.assetName,
       assetLabel: tx.assetLabel ?? "",
       assetType: tx.assetType,
       side: tx.side,
-      price: String(tx.price),
+      // Display price/fee/tax in the currently selected app currency
+      price: fmtMaxDp(toDisplayMoney(tx.price, baseCurrency, baseFx), 3),
       amount: String(tx.amount),
-      fee: String(tx.fee ?? 0),
-      tax: String(tx.tax ?? 0)
+      fee: fmtMaxDp(toDisplayMoney(tx.fee ?? 0, baseCurrency, baseFx), 3),
+      tax: fmtMaxDp(toDisplayMoney(tx.tax ?? 0, baseCurrency, baseFx), 3)
     });
     setOpen(true);
     setAssetSuggestOpen(false);
@@ -362,10 +409,24 @@ export default function TransactionsPage() {
 
   const startAdd = () => {
     setEditingId(null);
+    editingBaseRef.current = null;
     setForm(initial);
     setOpen(true);
     setAssetSuggestOpen(false);
   };
+
+  React.useEffect(() => {
+    if (!open) return;
+    if (!isEditing) return;
+    const base = editingBaseRef.current;
+    if (!base) return;
+    setForm((prev) => ({
+      ...prev,
+      price: fmtMaxDp(toDisplayMoney(base.price, base.currency, base.fxRateAtTrade), 3),
+      fee: fmtMaxDp(toDisplayMoney(base.fee, base.currency, base.fxRateAtTrade), 3),
+      tax: fmtMaxDp(toDisplayMoney(base.tax, base.currency, base.fxRateAtTrade), 3)
+    }));
+  }, [currency, open, isEditing, toDisplayMoney]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -862,17 +923,22 @@ export default function TransactionsPage() {
             <div className="p-5 text-sm text-zinc-400">ยังไม่มีรายการ ลองเพิ่มรายการแรกได้เลย</div>
           ) : (
             <div ref={rowMenuWrapRef}>
-              <div className="hidden grid-cols-12 gap-3 bg-zinc-50/60 px-5 py-3 text-xs font-medium text-zinc-600 sm:grid">
-                <div className="col-span-4">สินทรัพย์</div>
-                <div className="col-span-2">ฝั่ง</div>
-                <div className="col-span-2 text-right">ราคา</div>
-                <div className="col-span-2 text-right">จำนวน</div>
-                <div className="col-span-1 text-right">มูลค่า</div>
-                <div className="col-span-1 text-right">จัดการ</div>
+              <div className="hidden gap-3 bg-zinc-50/60 px-5 py-3 text-xs font-medium text-zinc-600 sm:grid sm:grid-cols-[minmax(260px,3fr)_minmax(90px,1fr)_minmax(140px,1.2fr)_minmax(110px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(140px,1.2fr)_minmax(80px,0.7fr)]">
+                <div>สินทรัพย์</div>
+                <div>ฝั่ง</div>
+                <div className="text-right">มูลค่า</div>
+                <div className="text-right">จำนวน</div>
+                <div className="text-right">Fee</div>
+                <div className="text-right">Tax</div>
+                <div className="text-right">ราคา</div>
+                <div className="text-right">จัดการ</div>
               </div>
               {pageItems.map((t) => (
-                <div key={t.id} className="grid gap-3 p-5 sm:grid-cols-12 sm:items-center">
-                  <div className="sm:col-span-4">
+                <div
+                  key={t.id}
+                  className="grid gap-3 p-5 sm:grid sm:grid-cols-[minmax(260px,3fr)_minmax(90px,1fr)_minmax(140px,1.2fr)_minmax(110px,1fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(140px,1.2fr)_minmax(80px,0.7fr)] sm:items-center"
+                >
+                  <div>
                     <div className="font-medium text-zinc-900">
                       {t.assetLabel ? (
                         <span className="flex flex-wrap items-center gap-2">
@@ -894,7 +960,7 @@ export default function TransactionsPage() {
                     </div>
                   </div>
 
-                  <div className="sm:col-span-2">
+                  <div>
                     <span
                       className={
                         t.side === "buy"
@@ -906,21 +972,7 @@ export default function TransactionsPage() {
                     </span>
                   </div>
 
-                  <div className="sm:col-span-2 sm:text-right">
-                    <div className="flex items-center justify-between text-sm sm:block">
-                      <span className="text-xs text-zinc-500 sm:hidden">ราคา</span>
-                      <span className="tabular-nums text-zinc-700">
-                        {formatMoney(round2(toDisplayMoney(t.price, t.currency, t.fxRateAtTrade)), currency)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="sm:col-span-2 sm:text-right">
-                    <div className="flex items-center justify-between text-sm sm:block">
-                      <span className="text-xs text-zinc-500 sm:hidden">จำนวน</span>
-                      <span className="tabular-nums text-zinc-700">{t.amount}</span>
-                    </div>
-                  </div>
-                  <div className="sm:col-span-1 sm:text-right">
+                  <div className="sm:text-right">
                     <div className="flex items-center justify-between text-sm sm:block">
                       <span className="text-xs text-zinc-500 sm:hidden">มูลค่า</span>
                       <span className="tabular-nums font-medium text-zinc-900">
@@ -932,7 +984,49 @@ export default function TransactionsPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end sm:col-span-1">
+                  <div className="sm:text-right">
+                    <div className="flex items-center justify-between text-sm sm:block">
+                      <span className="text-xs text-zinc-500 sm:hidden">จำนวน</span>
+                      <span className="tabular-nums text-zinc-700">{t.amount}</span>
+                    </div>
+                  </div>
+
+                  <div className="sm:text-right">
+                    <div className="flex items-center justify-between text-sm sm:block">
+                      <span className="text-xs text-zinc-500 sm:hidden">Fee</span>
+                      <span className="tabular-nums text-zinc-700">
+                        {formatMoneyMax(
+                          round2(toDisplayMoney(t.fee ?? 0, t.currency, t.fxRateAtTrade)),
+                          currency,
+                          3
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="sm:text-right">
+                    <div className="flex items-center justify-between text-sm sm:block">
+                      <span className="text-xs text-zinc-500 sm:hidden">Tax</span>
+                      <span className="tabular-nums text-zinc-700">
+                        {formatMoneyMax(
+                          round2(toDisplayMoney(t.tax ?? 0, t.currency, t.fxRateAtTrade)),
+                          currency,
+                          3
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="sm:text-right">
+                    <div className="flex items-center justify-between text-sm sm:block">
+                      <span className="text-xs text-zinc-500 sm:hidden">ราคา</span>
+                      <span className="tabular-nums text-zinc-700">
+                        {formatMoney(round2(toDisplayMoney(t.price, t.currency, t.fxRateAtTrade)), currency)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
                     <div className="relative">
                       <button
                         type="button"

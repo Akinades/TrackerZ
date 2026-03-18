@@ -20,12 +20,18 @@ export function CurrencyPicker({ compact = false }: { compact?: boolean }) {
           onClick={() => setCurrency(c)}
           className={
             c === currency
-              ? "rounded-2xl border border-zinc-200/70 bg-zinc-900 px-2 py-2 text-white"
-              : "rounded-2xl border border-zinc-200/70 bg-white px-2 py-2 text-zinc-700 hover:bg-zinc-50"
+              ? "flex h-9 min-w-[96px] items-center justify-center gap-2 rounded-2xl border border-zinc-200/70 bg-zinc-900 px-3 text-white"
+              : "flex h-9 min-w-[96px] items-center justify-center gap-2 rounded-2xl border border-zinc-200/70 bg-white px-3 text-zinc-700 hover:bg-zinc-50"
           }
           aria-label={`Set currency ${c}`}
         >
-          <CurrencyBadge currency={c} size="sm" className={c === currency ? "border-transparent bg-transparent text-white shadow-none" : "shadow-none"} />
+          <CurrencyBadge
+            currency={c}
+            size="md"
+            variant={c === currency ? "inverted" : "default"}
+            style="plain"
+            className="shadow-none"
+          />
         </button>
       ))}
     </div>

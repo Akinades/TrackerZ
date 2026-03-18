@@ -210,6 +210,41 @@ export default function DashboardPage() {
     [marketSymbols],
   );
 
+  // Refresh market prices once whenever user comes back to this page.
+  // In App Router, this runs on mount; we also re-run on window focus to cover cases where the page is kept alive.
+  const lastFocusRefreshRef = React.useRef<number>(0);
+  React.useEffect(() => {
+    if (!hydrated || !pricesHydrated) return;
+    if (marketSymbols.length === 0) return;
+
+    refreshMarket(marketSymbols);
+  }, [hydrated, pricesHydrated, marketSymbolsKey, refreshMarket, marketSymbols]);
+
+  React.useEffect(() => {
+    if (!hydrated || !pricesHydrated) return;
+    if (marketSymbols.length === 0) return;
+
+    const refreshOnce = () => {
+      const now = Date.now();
+      // Avoid double fire (focus + visibility) within a short window
+      if (now - lastFocusRefreshRef.current < 1500) return;
+      lastFocusRefreshRef.current = now;
+      refreshMarket(marketSymbols);
+    };
+
+    const onFocus = () => refreshOnce();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshOnce();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [hydrated, pricesHydrated, marketSymbolsKey, refreshMarket, marketSymbols]);
+
   React.useEffect(() => {
     if (!autoRefresh) return;
     if (!hydrated || !pricesHydrated) return;
@@ -445,7 +480,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-12 gap-2 bg-zinc-50/70 px-4 py-3 text-xs font-medium text-zinc-600">
                 <div className="col-span-4">สินทรัพย์</div>
                 <div className="col-span-3 text-right">มูลค่า</div>
-                <div className="col-span-2 text-right">ราคา</div>
+                <div className="col-span-2 text-right">จำนวน</div>
                 <div className="col-span-3 text-right">P/L</div>
               </div>
               <div className="divide-y divide-zinc-200/70 bg-white">
@@ -457,14 +492,13 @@ export default function DashboardPage() {
                     const pl = Math.round((toDisplay(p.realizedPnl) + u) * 100) / 100;
                     return {
                       p,
-                      price: price ? toDisplay(price) : null,
                       value: Math.round(value * 100) / 100,
                       pl,
                     };
                   })
                   .sort((a, b) => b.value - a.value)
                   .slice(0, 5)
-                  .map(({ p, price, value, pl }) => (
+                  .map(({ p, value, pl }) => (
                     <div
                       key={p.assetName}
                       className="grid grid-cols-12 items-center gap-2 px-4 py-3"
@@ -491,7 +525,7 @@ export default function DashboardPage() {
                         {value > 0 ? formatMoney(value, currency) : "—"}
                       </div>
                       <div className="col-span-2 text-right text-sm tabular-nums text-zinc-700">
-                        {price ? formatMoney(price, currency) : "—"}
+                        {formatNumber2(p.qty, "th-TH")}
                       </div>
                       <div
                         className={[

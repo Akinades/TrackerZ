@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { Transaction } from "@/types/transactions";
+import { findAssetCatalogItem } from "@/lib/assetsCatalog";
 
 function parseNotes(notes: unknown): {
   fee?: number;
@@ -48,7 +49,9 @@ function mapTx(raw: any): Transaction | null {
     currencyRaw === "THB" || currencyRaw === "USD" ? (currencyRaw as Transaction["currency"]) : undefined;
 
   const notesMeta = parseNotes(raw.notes);
-  const assetType = (raw.assetType ?? notesMeta?.assetType ?? "other") as Transaction["assetType"];
+  const catalog = assetName ? findAssetCatalogItem(assetName) : null;
+  const assetTypeRaw = raw.assetType ?? notesMeta?.assetType ?? catalog?.type ?? "other";
+  const assetType = assetTypeRaw as Transaction["assetType"];
   const fee = Number(raw.fee ?? notesMeta?.fee ?? 0);
   const tax = Number(raw.tax ?? notesMeta?.tax ?? 0);
   const fxRateAtTrade = notesMeta?.fxRateAtTrade;

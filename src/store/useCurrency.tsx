@@ -32,8 +32,12 @@ export function useCurrency() {
   const [hydrated, setHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    const stored = safeRead();
-    if (stored) setCurrencyState(stored);
+    const syncFromStorage = () => {
+      const stored = safeRead();
+      if (stored) setCurrencyState(stored);
+    };
+
+    syncFromStorage();
     setHydrated(true);
 
     const onCurrency = (e: Event) => {
@@ -41,8 +45,24 @@ export function useCurrency() {
       const v = ce.detail;
       if (v === "THB" || v === "USD") setCurrencyState(v);
     };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== KEY) return;
+      syncFromStorage();
+    };
+    const onFocus = () => syncFromStorage();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") syncFromStorage();
+    };
     window.addEventListener(EVT, onCurrency as EventListener);
-    return () => window.removeEventListener(EVT, onCurrency as EventListener);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener(EVT, onCurrency as EventListener);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const setCurrency = React.useCallback((v: AppCurrency) => {

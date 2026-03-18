@@ -13,23 +13,36 @@ export function CurrencyBadge({
   currency,
   size = "md",
   className,
-  onToggle
+  onToggle,
+  variant = "default",
+  style = "pill"
 }: {
   currency: AppCurrency;
   size?: "sm" | "md";
   className?: string;
   onToggle?: () => void;
+  variant?: "default" | "inverted";
+  style?: "pill" | "plain";
 }) {
   const s =
-    size === "sm"
-      ? "h-7 px-2.5 text-[11px] gap-1.5 rounded-2xl"
-      : "h-9 px-3 text-xs gap-2 rounded-2xl";
+    style === "plain"
+      ? size === "sm"
+        ? "text-[11px] gap-1.5"
+        : "text-xs gap-2"
+      : size === "sm"
+        ? "h-7 px-2.5 text-[11px] gap-1.5 rounded-2xl"
+        : "h-9 px-3 text-xs gap-2 rounded-2xl";
 
   const flagSrc = getCurrencyFlagIconSrc(currency);
 
+  const flagWrapCls =
+    variant === "inverted" ? "bg-white/15 ring-1 ring-white/20" : "bg-zinc-50";
+
   const Inner = (
     <>
-      <span className="inline-flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-zinc-50">
+      <span
+        className={`inline-flex h-5 w-5 items-center justify-center overflow-hidden rounded-full ${flagWrapCls}`}
+      >
         {flagSrc ? (
           <Image
             src={flagSrc}
@@ -47,8 +60,16 @@ export function CurrencyBadge({
     </>
   );
 
+  const base =
+    style === "plain"
+      ? "inline-flex items-center font-medium"
+      : variant === "inverted"
+        ? "inline-flex items-center border border-white/20 bg-transparent font-medium text-white shadow-none"
+        : "inline-flex items-center border border-zinc-200/70 bg-white font-medium text-zinc-700 shadow-[0_10px_25px_-22px_rgba(0,0,0,0.25)]";
+
   const cls = cx(
-    "inline-flex items-center border border-zinc-200/70 bg-white font-medium text-zinc-700 shadow-[0_10px_25px_-22px_rgba(0,0,0,0.25)]",
+    base,
+    variant === "inverted" ? "text-white" : "text-zinc-700",
     s,
     className
   );

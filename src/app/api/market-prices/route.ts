@@ -29,8 +29,17 @@ function isMetal(sym: string) {
   return sym === "XAUUSD" || sym === "XAGUSD";
 }
 
-function isStock(sym: string) {
+function isUsStock(sym: string) {
   return /^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) && !isCrypto(sym) && !isFx(sym) && !isMetal(sym);
+}
+
+// Stooq supports "exchange suffix" tickers like 700.HK, 9988.HK, 1299.HK, PTT.BK, etc.
+function isExchangeStock(sym: string) {
+  return /^[0-9]{1,6}\.[A-Z]{2}$/.test(sym) && !isCrypto(sym) && !isFx(sym) && !isMetal(sym);
+}
+
+function isStock(sym: string) {
+  return isUsStock(sym) || isExchangeStock(sym);
 }
 
 const COINGECKO_IDS: Record<string, string> = {
@@ -71,7 +80,9 @@ async function fetchStooqLatest(symbols: string[]) {
 
   await Promise.all(
     symbols.map(async (sym) => {
-      const stooqSymbol = isStock(sym) ? `${sym}.US` : sym;
+      // If it's a plain US ticker (e.g. AAPL) Stooq expects AAPL.US
+      // If it's already an exchange-suffixed ticker (e.g. 700.HK, PTT.BK), keep it.
+      const stooqSymbol = isUsStock(sym) ? `${sym}.US` : sym;
       const url = `https://stooq.com/q/l/?s=${encodeURIComponent(
         stooqSymbol.toLowerCase()
       )}&f=sd2t2c&h&e=csv`;
@@ -97,6 +108,59 @@ async function fetchStooqLatest(symbols: string[]) {
   return out;
 }
 
+async function fetchForexLatest(symbols: string[]) {
+  if (symbols.length === 0) return {};
+
+  // open.er-api latest endpoint gives rates relative to USD:
+  // `base=USD` => rates[X] = how many X you get for 1 USD.
+  // We need pair price consistent with symbol notation:
+  // - EURUSD => USD per 1 EUR
+  // - USDJPY => JPY per 1 USD
+  const url = "https://open.er-api.com/v6/latest/USD";
+  const res = await fetch(url, { next: { revalidate: 3600 } });
+  if (!res.ok) return {};
+  const json = (await res.json().catch(() => null)) as any;
+  const rates: Record<string, number> = json?.rates ?? {};
+
+  const out: Record<string, number> = {};
+
+  for (const sym of symbols) {
+    // Expect 6-char pair like EURUSD, USDJPY
+    if (!/^[A-Z]{6}$/.test(sym)) continue;
+    const base = sym.slice(0, 3);
+    const quote = sym.slice(3, 6);
+
+    let price: number;
+    if (quote === "USD") {
+      // EURUSD: want USD per 1 EUR
+      // rBase = EUR per 1 USD => USD per 1 EUR = 1 / rBase
+      const rBase = Number(rates[base]);
+      if (!Number.isFinite(rBase) || rBase <= 0) continue;
+      price = 1 / rBase;
+    } else if (base === "USD") {
+      // USDJPY: want JPY per 1 USD
+      // rQuote = JPY per 1 USD
+      const rQuote = Number(rates[quote]);
+      if (!Number.isFinite(rQuote) || rQuote <= 0) continue;
+      price = rQuote;
+    } else {
+      // Cross via USD:
+      // 1 base = (1 / rBase) USD
+      // then in quote: quote per base = rQuote * (1 / rBase) = rQuote / rBase
+      const rBase = Number(rates[base]);
+      const rQuote = Number(rates[quote]);
+      if (!Number.isFinite(rBase) || rBase <= 0) continue;
+      if (!Number.isFinite(rQuote) || rQuote <= 0) continue;
+      price = rQuote / rBase;
+    }
+
+    if (!Number.isFinite(price) || price <= 0) continue;
+    out[sym] = price;
+  }
+
+  return out;
+}
+
 export async function GET(req: Request) {
   const symbols = parseSymbols(req.url);
   if (symbols.length === 0) {
@@ -104,10 +168,20 @@ export async function GET(req: Request) {
   }
 
   const crypto = symbols.filter(isCrypto);
-  const others = symbols.filter((s) => !isCrypto(s));
+  const fx = symbols.filter(isFx);
+  const metals = symbols.filter(isMetal);
+  const stocks = symbols.filter(isStock);
 
-  const [cg, stooq] = await Promise.all([fetchCoinGecko(crypto), fetchStooqLatest(others)]);
-  const prices = { ...stooq, ...cg };
+  // Stooq supports both stocks and metals in our symbol conventions.
+  const stooqSyms = [...stocks, ...metals];
+
+  const [cg, stooq, fxPrices] = await Promise.all([
+    fetchCoinGecko(crypto),
+    fetchStooqLatest(stooqSyms),
+    fetchForexLatest(fx)
+  ]);
+
+  const prices = { ...stooq, ...fxPrices, ...cg };
 
   const missing = symbols.filter((s) => typeof prices[s] !== "number");
   const partial = missing.length > 0;

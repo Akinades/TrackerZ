@@ -25,7 +25,7 @@ export default function RootLayout({
     <html lang="th">
       <body className={`${kanit.className} min-h-dvh text-zinc-900`}>
         <ReduxProvider>
-          <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-4">
+          <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col px-4">
             <Navbar />
             <main className="flex flex-1 py-6">
               <div className="w-full">{children}</div>
