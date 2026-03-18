@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="EUR flag">
+  <defs>
+    <clipPath id="c">
+      <circle cx="32" cy="32" r="30"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="64" height="64" fill="#1F4AA8"/>
+    <!-- stars as dots around a circle -->
+    <g fill="#FFD34D">
+      <circle cx="32" cy="14" r="1.6"/>
+      <circle cx="41" cy="16.2" r="1.6"/>
+      <circle cx="48" cy="23" r="1.6"/>
+      <circle cx="50.2" cy="32" r="1.6"/>
+      <circle cx="48" cy="41" r="1.6"/>
+      <circle cx="41" cy="47.8" r="1.6"/>
+      <circle cx="32" cy="50" r="1.6"/>
+      <circle cx="23" cy="47.8" r="1.6"/>
+      <circle cx="16" cy="41" r="1.6"/>
+      <circle cx="13.8" cy="32" r="1.6"/>
+      <circle cx="16" cy="23" r="1.6"/>
+      <circle cx="23" cy="16.2" r="1.6"/>
+    </g>
+  </g>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#E5E7EB" stroke-width="2"/>
+</svg>

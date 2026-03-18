@@ -39,7 +39,7 @@ export default function HomePage() {
                     
                     <div className="min-w-0">
                       <div className="text-md font-semibold italic text-zinc-900">
-                        “If you can't measure it, you can't improve it.”
+                        “If you can&apos;t measure it, you can&apos;t improve it.”
                       </div>
                       <div className="mt-1 text-sm text-zinc-700">
                         ถ้าคุณวัดผลไม่ได้ คุณก็พัฒนาการเทรดไม่ได้

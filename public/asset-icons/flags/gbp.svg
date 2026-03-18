@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GBP flag">
+  <defs>
+    <clipPath id="c">
+      <circle cx="32" cy="32" r="30"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="64" height="64" fill="#1F3F8B"/>
+    <!-- white diagonals -->
+    <path d="M-6 6 L6 -6 L70 58 L58 70 Z" fill="#ffffff"/>
+    <path d="M58 -6 L70 6 L6 70 L-6 58 Z" fill="#ffffff"/>
+    <!-- red diagonals (thinner) -->
+    <path d="M-6 10 L10 -6 L70 54 L54 70 Z" fill="#D32E2E"/>
+    <path d="M54 -6 L70 10 L10 70 L-6 54 Z" fill="#D32E2E"/>
+    <!-- white cross -->
+    <rect x="0" y="26" width="64" height="12" fill="#ffffff"/>
+    <rect x="26" y="0" width="12" height="64" fill="#ffffff"/>
+    <!-- red cross -->
+    <rect x="0" y="28.5" width="64" height="7" fill="#D32E2E"/>
+    <rect x="28.5" y="0" width="7" height="64" fill="#D32E2E"/>
+  </g>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#E5E7EB" stroke-width="2"/>
+</svg>

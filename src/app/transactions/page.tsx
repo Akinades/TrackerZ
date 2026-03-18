@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { AssetIcon } from "@/components/ui/AssetIcon";
 import { ASSET_TYPES } from "@/lib/constants";
 import type { AssetType, TransactionSide } from "@/types/transactions";
 import { useTransactions } from "@/store/useTransactions";
@@ -695,13 +696,17 @@ export default function TransactionsPage() {
                     <div className="font-medium text-zinc-900">
                       {t.assetLabel ? (
                         <span className="flex flex-wrap items-center gap-2">
+                          <AssetIcon symbol={t.assetName} type={t.assetType} className="h-7 w-7 rounded-xl" />
                           <span className="truncate">{t.assetLabel}</span>
                           <span className="rounded-full border border-zinc-200/70 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
                             {t.assetName}
                           </span>
                         </span>
                       ) : (
-                        t.assetName
+                        <span className="flex items-center gap-2">
+                          <AssetIcon symbol={t.assetName} type={t.assetType} className="h-7 w-7 rounded-xl" />
+                          <span>{t.assetName}</span>
+                        </span>
                       )}
                     </div>
                     <div className="text-xs text-zinc-500">

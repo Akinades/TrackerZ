@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Stocks">
+  <rect x="10" y="12" width="44" height="40" rx="10" fill="#0f172a" opacity="0.08"/>
+  <path d="M18 44V28" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round"/>
+  <path d="M26 44V20" stroke="#22c55e" stroke-width="4" stroke-linecap="round"/>
+  <path d="M34 44V30" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round"/>
+  <path d="M42 44V18" stroke="#22c55e" stroke-width="4" stroke-linecap="round"/>
+  <path d="M18 44H46" stroke="#0f172a" stroke-opacity="0.25" stroke-width="3" stroke-linecap="round"/>
+  <path d="M20 26l10 6 10-12 6 4" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46 24l-2-4 5 1z" fill="#16a34a"/>
+</svg>
+

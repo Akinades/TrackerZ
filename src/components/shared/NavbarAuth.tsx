@@ -5,12 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/store/useAuth";
-import { useCurrency } from "@/store/useCurrency";
 
 export function AuthButtons() {
   const router = useRouter();
   const { user, hydrated, logout } = useAuth();
-  const { currency, setCurrency } = useCurrency();
   const [open, setOpen] = React.useState(false);
   const wrapRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -68,24 +66,6 @@ export function AuthButtons() {
           >
             ตั้งค่า
           </Link>
-
-          <div className="px-4 py-3">
-            <div className="text-xs font-medium text-zinc-500">การแสดงผล</div>
-            <div className="mt-2 grid gap-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm text-zinc-700">Currency</div>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value === "USD" ? "USD" : "THB")}
-                  className="h-9 rounded-2xl border border-zinc-200/70 bg-white px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-                  aria-label="Switch currency"
-                >
-                  <option value="THB">THB</option>
-                  <option value="USD">USD</option>
-                </select>
-              </div>
-            </div>
-          </div>
 
           <div className="border-t border-zinc-200/70 p-2">
             <Button
