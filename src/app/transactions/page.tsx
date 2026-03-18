@@ -12,8 +12,11 @@ import { ASSET_TYPES } from "@/lib/constants";
 import type { AssetType, TransactionSide } from "@/types/transactions";
 import { useTransactions } from "@/store/useTransactions";
 import { useAuth } from "@/store/useAuth";
+import { useCurrency } from "@/store/useCurrency";
+import { useFxRate } from "@/store/useFxRate";
 import { round2, txValue } from "@/lib/calculations";
 import { ASSETS_CATALOG, findAssetCatalogItem } from "@/lib/assetsCatalog";
+import { formatMoney } from "@/lib/format";
 
 type FormState = {
   assetName: string;
@@ -69,7 +72,9 @@ function startOfYear(d: Date) {
 
 export default function TransactionsPage() {
   const { user, hydrated: authHydrated } = useAuth();
-  const { txs, hydrated, add, remove } = useTransactions();
+  const { currency } = useCurrency();
+  const { usdThb } = useFxRate();
+  const { txs, hydrated, add, remove, update } = useTransactions();
   const [form, setForm] = React.useState<FormState>(initial);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -87,6 +92,18 @@ export default function TransactionsPage() {
   const rowMenuWrapRef = React.useRef<HTMLDivElement | null>(null);
 
   const isEditing = editingId !== null;
+  const fx = React.useMemo(() => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36), [usdThb]);
+
+  const toDisplayMoney = React.useCallback(
+    (value: number, from?: "THB" | "USD") => {
+      const src = from ?? currency;
+      if (src === currency) return value;
+      if (src === "USD" && currency === "THB") return value * fx;
+      if (src === "THB" && currency === "USD") return value / fx;
+      return value;
+    },
+    [currency, fx]
+  );
 
   const onChange = (patch: Partial<FormState>) =>
     setForm((prev) => ({ ...prev, ...patch }));
@@ -109,23 +126,22 @@ export default function TransactionsPage() {
     if (!Number.isFinite(amount) || amount <= 0) return;
     if (!Number.isFinite(fee) || fee < 0) return;
 
-    if (isEditing) {
-      // MVP: edit via remove+add to keep hook simple
-      remove(editingId!);
-    }
-
     const catalog = findAssetCatalogItem(assetName);
     const assetLabel = (form.assetLabel || catalog?.label || "").trim();
 
-    add({
+    const payload = {
       assetName,
       assetLabel: assetLabel || undefined,
       assetType: form.assetType,
       side: form.side,
       price: round2(price),
       amount: round2(amount),
-      fee: round2(fee)
-    });
+      fee: round2(fee),
+      currency
+    } as const;
+
+    if (isEditing) update(editingId!, payload);
+    else add(payload);
     reset();
   };
 
@@ -157,12 +173,7 @@ export default function TransactionsPage() {
       title: "ยืนยันบันทึกการแก้ไข?",
       body: (
         <div className="grid gap-2">
-          <div className="text-sm text-zinc-700">
-            ระบบ MVP จะบันทึกเป็นรายการใหม่ (remove + add) เพื่อความง่าย
-          </div>
-          <div className="text-xs text-zinc-500">
-            รายการเดิมจะถูกลบทิ้ง และสร้างรายการใหม่ด้วยข้อมูลที่คุณแก้ไข
-          </div>
+          <div className="text-sm text-zinc-700">ระบบจะบันทึกการแก้ไขรายการนี้</div>
         </div>
       ),
       cta: "ยืนยันแก้ไข",
@@ -362,9 +373,7 @@ export default function TransactionsPage() {
     <div className="grid gap-6">
       <div className="grid gap-2">
         <h1 className="text-xl font-semibold">บันทึกรายการซื้อ/ขาย</h1>
-        <p className="text-sm text-zinc-600">
-          ข้อมูลจะถูกเก็บในเครื่องของคุณ (localStorage) เหมาะสำหรับ MVP
-        </p>
+        <p className="text-sm text-zinc-600">เพิ่ม/แก้ไขรายการซื้อขายของคุณ</p>
       </div>
 
       <Card>
@@ -540,7 +549,12 @@ export default function TransactionsPage() {
             </div>
 
             <div className="grid gap-1">
-              <label className="text-sm text-zinc-700 dark:text-zinc-200">ราคา/หน่วย</label>
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm text-zinc-700 dark:text-zinc-200">ราคา/หน่วย</label>
+                <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                  {currency}
+                </span>
+              </div>
               <Input
                 inputMode="decimal"
                 value={form.price}
@@ -729,7 +743,9 @@ export default function TransactionsPage() {
                   <div className="sm:col-span-2 sm:text-right">
                     <div className="flex items-center justify-between text-sm sm:block">
                       <span className="text-xs text-zinc-500 sm:hidden">ราคา</span>
-                      <span className="tabular-nums text-zinc-700">{t.price}</span>
+                      <span className="tabular-nums text-zinc-700">
+                        {formatMoney(round2(toDisplayMoney(t.price, t.currency)), currency)}
+                      </span>
                     </div>
                   </div>
                   <div className="sm:col-span-2 sm:text-right">
@@ -741,7 +757,9 @@ export default function TransactionsPage() {
                   <div className="sm:col-span-1 sm:text-right">
                     <div className="flex items-center justify-between text-sm sm:block">
                       <span className="text-xs text-zinc-500 sm:hidden">มูลค่า</span>
-                      <span className="tabular-nums font-medium text-zinc-900">{round2(txValue(t))}</span>
+                      <span className="tabular-nums font-medium text-zinc-900">
+                        {formatMoney(round2(toDisplayMoney(txValue(t), t.currency)), currency)}
+                      </span>
                     </div>
                   </div>
 
@@ -780,7 +798,7 @@ export default function TransactionsPage() {
                                   <div className="grid gap-2">
                                     <div className="text-sm text-zinc-700">
                                       คุณกำลังจะลบ <span className="font-medium">{t.assetName}</span> ({t.side.toUpperCase()}){" "}
-                                      มูลค่า {round2(txValue(t))}
+                                      มูลค่า {formatMoney(round2(toDisplayMoney(txValue(t), t.currency)), currency)}
                                     </div>
                                     <div className="text-xs text-zinc-500">การลบไม่สามารถกู้คืนได้</div>
                                   </div>

@@ -17,19 +17,23 @@ export function RegisterClient() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const [pending, setPending] = React.useState(false);
 
   React.useEffect(() => {
     if (!hydrated) return;
     if (user) router.replace(next);
   }, [hydrated, user, router, next]);
 
-  const submit = () => {
+  const submit = async () => {
+    if (pending) return;
     setError(null);
+    setPending(true);
     try {
-      register(email, password);
+      await register(email, password);
       router.replace(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+      setPending(false);
     }
   };
 
@@ -60,9 +64,6 @@ export function RegisterClient() {
                 placeholder="อย่างน้อย 6 ตัวอักษร"
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <div className="text-xs text-zinc-500">
-                MVP: เก็บรหัสผ่านในเครื่อง (localStorage) เพื่อทดลองเท่านั้น
-              </div>
             </div>
           </div>
 
@@ -82,7 +83,7 @@ export function RegisterClient() {
                 เข้าสู่ระบบ
               </Link>
             </div>
-            <Button onClick={submit} disabled={!hydrated} className="w-full">
+            <Button onClick={submit} disabled={!hydrated || pending} className="w-full">
               สร้างบัญชี
             </Button>
           </div>

@@ -36,6 +36,26 @@ export function useFxRate() {
     if (stored) setUsdThbState(stored);
     setHydrated(true);
 
+    // Fetch latest once (not realtime). Keep stored value if fetch fails.
+    (async () => {
+      try {
+        const res = await fetch("/api/fx-usdthb", { method: "GET" });
+        if (!res.ok) return;
+        const json = (await res.json().catch(() => null)) as any;
+        const v = Number(json?.usdThb);
+        if (!Number.isFinite(v) || v <= 0) return;
+        setUsdThbState(v);
+        safeWrite(v);
+        try {
+          window.dispatchEvent(new CustomEvent<number>(EVT, { detail: v }));
+        } catch {
+          // ignore
+        }
+      } catch {
+        // ignore
+      }
+    })();
+
     const onFx = (e: Event) => {
       const ce = e as CustomEvent<number>;
       const v = ce.detail;

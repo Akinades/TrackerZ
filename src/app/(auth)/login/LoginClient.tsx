@@ -17,19 +17,23 @@ export function LoginClient() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const [pending, setPending] = React.useState(false);
 
   React.useEffect(() => {
     if (!hydrated) return;
     if (user) router.replace(next);
   }, [hydrated, user, router, next]);
 
-  const submit = () => {
+  const submit = async () => {
+    if (pending) return;
     setError(null);
+    setPending(true);
     try {
-      login(email, password);
+      await login(email, password);
       router.replace(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+      setPending(false);
     }
   };
 
@@ -83,7 +87,7 @@ export function LoginClient() {
                 สมัครสมาชิก
               </Link>
             </div>
-            <Button onClick={submit} disabled={!hydrated} className="w-full">
+            <Button onClick={submit} disabled={!hydrated || pending} className="w-full">
               เข้าสู่ระบบ
             </Button>
           </div>

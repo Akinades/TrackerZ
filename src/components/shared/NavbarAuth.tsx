@@ -4,12 +4,16 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { CurrencyBadge } from "@/components/ui/CurrencyBadge";
 import { useAuth } from "@/store/useAuth";
+import { useCurrency } from "@/store/useCurrency";
 
 export function AuthButtons() {
   const router = useRouter();
   const { user, hydrated, logout } = useAuth();
+  const { currency, setCurrency } = useCurrency();
   const [open, setOpen] = React.useState(false);
+  const [pending, setPending] = React.useState(false);
   const wrapRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -34,7 +38,8 @@ export function AuthButtons() {
   if (!user) return null;
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className="relative flex items-center gap-2">
+     
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -44,7 +49,11 @@ export function AuthButtons() {
         <span className="max-w-[200px] truncate">{user.email}</span>
         <span className="text-zinc-400">▾</span>
       </button>
-
+      <CurrencyBadge
+        currency={currency}
+        onToggle={() => setCurrency(currency === "USD" ? "THB" : "USD")}
+        className="shadow-none"
+      />
       {open ? (
         <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_30px_70px_-55px_rgba(0,0,0,0.55)]">
           <div className="border-b border-zinc-200/70 px-4 py-3">
@@ -71,9 +80,12 @@ export function AuthButtons() {
             <Button
               variant="secondary"
               className="w-full"
-              onClick={() => {
+              disabled={pending}
+              onClick={async () => {
+                if (pending) return;
+                setPending(true);
                 setOpen(false);
-                logout();
+                await logout();
                 router.push("/");
               }}
             >

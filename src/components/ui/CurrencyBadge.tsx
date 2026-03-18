@@ -43,7 +43,7 @@ export function CurrencyBadge({
           <span className="text-[14px] leading-none">{currency}</span>
         )}
       </span>
-      <span className="tabular-nums">{currency}</span>
+      <span className="tabular-nums">{currency} </span>
     </>
   );
 

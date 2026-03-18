@@ -45,7 +45,7 @@ export function Navbar() {
               {item.label}
             </Link>
           ))}
-          <div className="ml-2 hidden sm:block">
+          <div className="ml-2">
             <AuthButtons />
           </div>
         </nav>

@@ -10,24 +10,32 @@ export function useAuth() {
   const [hydrated, setHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    setUser(getCurrentUser());
-    setHydrated(true);
+    let mounted = true;
+    (async () => {
+      const u = await getCurrentUser();
+      if (!mounted) return;
+      setUser(u);
+      setHydrated(true);
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const doRegister = React.useCallback((email: string, password: string) => {
-    const u = register(email, password);
+  const doRegister = React.useCallback(async (email: string, password: string) => {
+    const u = await register(email, password);
     setUser(u);
     return u;
   }, []);
 
-  const doLogin = React.useCallback((email: string, password: string) => {
-    const u = login(email, password);
+  const doLogin = React.useCallback(async (email: string, password: string) => {
+    const u = await login(email, password);
     setUser(u);
     return u;
   }, []);
 
-  const doLogout = React.useCallback(() => {
-    logout();
+  const doLogout = React.useCallback(async () => {
+    await logout();
     setUser(null);
   }, []);
 

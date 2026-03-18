@@ -19,8 +19,6 @@ import { ASSET_TYPES } from "@/lib/constants";
 import { demoPrices, demoTransactions } from "@/lib/demoData";
 import { formatMoney, formatNumber2 } from "@/lib/format";
 import { metricIcon, pnlIcon } from "@/lib/icons";
-import { CurrencyBadge } from "@/components/ui/CurrencyBadge";
-import { CurrencyPicker } from "@/components/ui/CurrencyPicker";
 import {
   computePositionsAvgCost,
   currentValue,
@@ -60,7 +58,7 @@ function Metric({
 export default function DashboardPage() {
   const { user, hydrated: authHydrated } = useAuth();
   const { txs, hydrated } = useTransactions();
-  const { currency, setCurrency } = useCurrency();
+  const { currency } = useCurrency();
   const { usdThb } = useFxRate();
   const {
     prices,
@@ -78,16 +76,16 @@ export default function DashboardPage() {
     [usdThb],
   );
   const toDisplay = React.useCallback(
-    (nThb: number) => {
-      const v = Number.isFinite(nThb) ? nThb : 0;
-      return currency === "USD" ? v / fx : v;
+    (nUsd: number) => {
+      const v = Number.isFinite(nUsd) ? nUsd : 0;
+      return currency === "THB" ? v * fx : v;
     },
     [currency, fx],
   );
   const fromDisplay = React.useCallback(
     (n: number) => {
       const v = Number.isFinite(n) ? n : 0;
-      return currency === "USD" ? v * fx : v;
+      return currency === "THB" ? v / fx : v;
     },
     [currency, fx],
   );
@@ -105,15 +103,29 @@ export default function DashboardPage() {
     (symbol: string) => {
       const px = priceOf(symbol);
       if (!px) return null;
-      const v = currency === "USD" ? px / fx : px;
+      const v = currency === "THB" ? px * fx : px;
       return Number.isFinite(v) && v > 0 ? v : null;
     },
     [currency, fx, priceOf],
   );
 
-  const positions = React.useMemo(() => computePositionsAvgCost(txs), [txs]);
-  const invested = React.useMemo(() => investedTotal(txs), [txs]);
-  const fees = React.useMemo(() => totalFees(txs), [txs]);
+  const txsUsd = React.useMemo(() => {
+    return txs.map((t) => {
+      const src = t.currency ?? "THB";
+      if (src === "USD") return t;
+      // THB -> USD
+      return {
+        ...t,
+        price: t.price / fx,
+        fee: t.fee / fx,
+        currency: "USD" as const,
+      };
+    });
+  }, [txs, fx]);
+
+  const positions = React.useMemo(() => computePositionsAvgCost(txsUsd), [txsUsd]);
+  const invested = React.useMemo(() => investedTotal(txsUsd), [txsUsd]);
+  const fees = React.useMemo(() => totalFees(txsUsd), [txsUsd]);
   const realized = React.useMemo(
     () => realizedPnlFromPositions(positions),
     [positions],
@@ -289,12 +301,6 @@ export default function DashboardPage() {
             MVP: ต้นทุนเฉลี่ย (Average Cost) แยกตามสินทรัพย์ + ใส่
             “ราคาปัจจุบัน” เพื่อคำนวณมูลค่า/กำไรขาดทุน
           </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
-          <CurrencyBadge
-            currency={currency}
-            onToggle={() => setCurrency(currency === "USD" ? "THB" : "USD")}
-          />
         </div>
       </div>
 
