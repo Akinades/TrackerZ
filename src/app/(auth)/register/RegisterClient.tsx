@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/store/useAuth";
+import { notify } from "@/lib/notify";
 
 export function RegisterClient() {
   const router = useRouter();
@@ -30,9 +31,12 @@ export function RegisterClient() {
     setPending(true);
     try {
       await register(email, password);
+      notify.success("สมัครสมาชิกสำเร็จ");
       router.replace(next);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+      const msg = e instanceof Error ? e.message : "เกิดข้อผิดพลาด";
+      setError(msg);
+      notify.error(msg, "สมัครสมาชิกไม่สำเร็จ");
       setPending(false);
     }
   };

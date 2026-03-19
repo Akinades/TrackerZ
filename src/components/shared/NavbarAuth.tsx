@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { CurrencyBadge } from "@/components/ui/CurrencyBadge";
 import { useAuth } from "@/store/useAuth";
 import { useCurrency } from "@/store/useCurrency";
+import { notify } from "@/lib/notify";
 
 export function AuthButtons() {
   const router = useRouter();
@@ -86,6 +87,7 @@ export function AuthButtons() {
                 setPending(true);
                 setOpen(false);
                 await logout();
+                notify.success("ออกจากระบบแล้ว");
                 router.push("/");
               }}
             >

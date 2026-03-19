@@ -8,7 +8,8 @@ import { AuthButtons } from "@/components/shared/NavbarAuth";
 
 const nav = [
   { href: "/dashboard", label: "พอร์ตภาพรวม" },
-  { href: "/transactions", label: "บันทึกรายการ" }
+  { href: "/transactions", label: "บันทึกรายการ" },
+  { href: "/assets", label: "กราฟสินทรัพย์" }
 ] as const;
 
 export function Navbar() {

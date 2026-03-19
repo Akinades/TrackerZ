@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { Transaction } from "@/types/transactions";
 import { findAssetCatalogItem } from "@/lib/assetsCatalog";
+import { notify } from "@/lib/notify";
 
 function parseNotes(notes: unknown): {
   fee?: number;
@@ -33,7 +34,7 @@ function parseNotes(notes: unknown): {
   }
 }
 
-function mapTx(raw: any): Transaction | null {
+export function mapTx(raw: any): Transaction | null {
   if (!raw || typeof raw !== "object") return null;
   const id = String(raw.id ?? raw._id ?? "");
 
@@ -139,12 +140,15 @@ export function useTransactions() {
     }).catch(() => null);
     const json = res ? await readJsonSafe(res) : null;
     if (!res || !res.ok) {
-      setError((json as any)?.message || (json as any)?.error || "เพิ่มรายการไม่สำเร็จ");
+      const msg = (json as any)?.message || (json as any)?.error || "เพิ่มรายการไม่สำเร็จ";
+      setError(msg);
+      notify.error(msg, "เพิ่มรายการไม่สำเร็จ");
       return;
     }
     const created = mapTx((json as any)?.transaction ?? json);
     if (created) setTxs((prev) => [created, ...prev]);
     else await refresh();
+    notify.success("เพิ่มรายการสำเร็จ");
     },
     [refresh]
   );
@@ -159,8 +163,11 @@ export function useTransactions() {
       );
       if (!res || !res.ok) {
         setError("ลบรายการไม่สำเร็จ");
+        notify.error("ลบรายการไม่สำเร็จ");
         setTxs(prev);
+        return;
       }
+      notify.success("ลบรายการสำเร็จ");
     },
     [txs]
   );
@@ -177,12 +184,15 @@ export function useTransactions() {
       }).catch(() => null);
       const json = res ? await readJsonSafe(res) : null;
       if (!res || !res.ok) {
-        setError((json as any)?.message || (json as any)?.error || "แก้ไขรายการไม่สำเร็จ");
+        const msg = (json as any)?.message || (json as any)?.error || "แก้ไขรายการไม่สำเร็จ";
+        setError(msg);
+        notify.error(msg, "แก้ไขรายการไม่สำเร็จ");
         setTxs(prev);
         return;
       }
       const updated = mapTx((json as any)?.transaction ?? json);
       if (updated) setTxs((p) => p.map((t) => (t.id === id ? updated : t)));
+      notify.success("บันทึกการแก้ไขสำเร็จ");
     },
     [txs]
   );

@@ -17,6 +17,7 @@ import { useFxRate } from "@/store/useFxRate";
 import { round2, txValue } from "@/lib/calculations";
 import { ASSETS_CATALOG, findAssetCatalogItem } from "@/lib/assetsCatalog";
 import { formatMoney, formatMoneyMax } from "@/lib/format";
+import { notify } from "@/lib/notify";
 
 type FormState = {
   assetName: string;
@@ -28,6 +29,8 @@ type FormState = {
   fee: string;
   tax: string;
 };
+
+type FormErrors = Partial<Record<keyof Pick<FormState, "assetName" | "price" | "amount">, string>>;
 
 const initial: FormState = {
   assetName: "",
@@ -80,12 +83,30 @@ function startOfYear(d: Date) {
   return x;
 }
 
+function sanitizeDecimalInput(raw: string) {
+  // Keep only digits and one dot. This avoids users typing letters/symbols.
+  const s = raw.replace(/[^\d.]/g, "");
+  const [head, ...rest] = s.split(".");
+  return rest.length === 0 ? head : `${head}.${rest.join("").replace(/\./g, "")}`;
+}
+
+function parseStrictPositiveNumber(raw: string) {
+  const s = raw.trim();
+  if (!s) return { ok: false as const, reason: "required" as const };
+  // strict numeric string: digits or digits.decimals
+  if (!/^\d+(\.\d+)?$/.test(s)) return { ok: false as const, reason: "nan" as const };
+  const n = Number(s);
+  if (!Number.isFinite(n) || n <= 0) return { ok: false as const, reason: "nonPositive" as const };
+  return { ok: true as const, value: n };
+}
+
 export default function TransactionsPage() {
   const { user, hydrated: authHydrated } = useAuth();
   const { currency } = useCurrency();
   const { usdThb } = useFxRate();
   const { txs, hydrated, add, remove, update } = useTransactions();
   const [form, setForm] = React.useState<FormState>(initial);
+  const [errors, setErrors] = React.useState<FormErrors>({});
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
   const editingBaseRef = React.useRef<null | {
@@ -144,6 +165,7 @@ export default function TransactionsPage() {
 
   const reset = () => {
     setForm(initial);
+    setErrors({});
     setEditingId(null);
     setOpen(false);
     setAssetSuggestOpen(false);
@@ -302,14 +324,33 @@ export default function TransactionsPage() {
 
   const submitImpl = () => {
     const assetName = form.assetName.trim().toUpperCase();
-    const price = Number(form.price);
-    const amount = Number(form.amount);
+    const priceParsed = parseStrictPositiveNumber(form.price);
+    const amountParsed = parseStrictPositiveNumber(form.amount);
     const fee = Number(form.fee || 0);
     const tax = Number(form.tax || 0);
 
-    if (!assetName) return;
-    if (!Number.isFinite(price) || price <= 0) return;
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    const nextErrors: FormErrors = {};
+    if (!assetName) nextErrors.assetName = "กรุณากรอกชื่อสินทรัพย์";
+    if (!priceParsed.ok) {
+      nextErrors.price =
+        priceParsed.reason === "required"
+          ? "กรุณากรอกราคา"
+          : "กรุณากรอกราคาเป็นตัวเลขเท่านั้น";
+    }
+    if (!amountParsed.ok) {
+      nextErrors.amount =
+        amountParsed.reason === "required"
+          ? "กรุณากรอกจำนวน"
+          : "กรุณากรอกจำนวนเป็นตัวเลขเท่านั้น";
+    }
+    setErrors(nextErrors);
+    if (!assetName || !priceParsed.ok || !amountParsed.ok || Object.keys(nextErrors).length > 0) {
+      notify.error("กรุณากรอกข้อมูลให้ครบและถูกต้อง");
+      return;
+    }
+
+    const price = priceParsed.value;
+    const amount = amountParsed.value;
     if (!Number.isFinite(fee) || fee < 0) return;
     if (!Number.isFinite(tax) || tax < 0) return;
 
@@ -392,6 +433,7 @@ export default function TransactionsPage() {
       tax: tx.tax ?? 0
     };
     setEditingId(tx.id);
+    setErrors({});
     setForm({
       assetName: tx.assetName,
       assetLabel: tx.assetLabel ?? "",
@@ -411,6 +453,7 @@ export default function TransactionsPage() {
     setEditingId(null);
     editingBaseRef.current = null;
     setForm(initial);
+    setErrors({});
     setOpen(true);
     setAssetSuggestOpen(false);
   };
@@ -692,10 +735,13 @@ export default function TransactionsPage() {
                 <Input
                   value={form.assetName}
                   placeholder="เช่น AAPL, BTC, EURUSD, XAUUSD"
+                  aria-invalid={Boolean(errors.assetName) || undefined}
+                  className={errors.assetName ? "border-rose-300 focus:ring-rose-200" : undefined}
                   onFocus={() => setAssetSuggestOpen(true)}
                   onChange={(e) => {
                     const v = e.target.value;
                     onChange({ assetName: v, assetLabel: "" });
+                    if (errors.assetName) setErrors((p) => ({ ...p, assetName: undefined }));
                     setAssetSuggestOpen(true);
                     const hit = ASSETS_CATALOG.find(
                       (x) => x.symbol === v.trim().toUpperCase()
@@ -707,7 +753,10 @@ export default function TransactionsPage() {
                   }}
                   onBlur={() => {
                     const sym = form.assetName.trim().toUpperCase();
-                    if (!sym) return;
+                    if (!sym) {
+                      setErrors((p) => ({ ...p, assetName: "กรุณากรอกชื่อสินทรัพย์" }));
+                      return;
+                    }
                     const hit = findAssetCatalogItem(sym);
                     onChange({
                       assetName: sym,
@@ -717,6 +766,9 @@ export default function TransactionsPage() {
                     setTimeout(() => setAssetSuggestOpen(false), 0);
                   }}
                 />
+                {errors.assetName ? (
+                  <div className="mt-1 text-xs text-rose-700">{errors.assetName}</div>
+                ) : null}
                 {(() => {
                   if (!assetSuggestOpen) return null;
                   const q = form.assetName.trim();
@@ -792,8 +844,24 @@ export default function TransactionsPage() {
                 inputMode="decimal"
                 value={form.price}
                 placeholder="0"
-                onChange={(e) => onChange({ price: e.target.value })}
+                aria-invalid={Boolean(errors.price) || undefined}
+                className={errors.price ? "border-rose-300 focus:ring-rose-200" : undefined}
+                onChange={(e) => {
+                  const v = sanitizeDecimalInput(e.target.value);
+                  onChange({ price: v });
+                  if (errors.price) setErrors((p) => ({ ...p, price: undefined }));
+                }}
+                onBlur={() => {
+                  const p = parseStrictPositiveNumber(form.price);
+                  if (!p.ok) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      price: p.reason === "required" ? "กรุณากรอกราคา" : "กรุณากรอกราคาเป็นตัวเลขเท่านั้น"
+                    }));
+                  }
+                }}
               />
+              {errors.price ? <div className="mt-1 text-xs text-rose-700">{errors.price}</div> : null}
             </div>
 
             <div className="grid gap-1">
@@ -802,8 +870,25 @@ export default function TransactionsPage() {
                 inputMode="decimal"
                 value={form.amount}
                 placeholder="0"
-                onChange={(e) => onChange({ amount: e.target.value })}
+                aria-invalid={Boolean(errors.amount) || undefined}
+                className={errors.amount ? "border-rose-300 focus:ring-rose-200" : undefined}
+                onChange={(e) => {
+                  const v = sanitizeDecimalInput(e.target.value);
+                  onChange({ amount: v });
+                  if (errors.amount) setErrors((p) => ({ ...p, amount: undefined }));
+                }}
+                onBlur={() => {
+                  const a = parseStrictPositiveNumber(form.amount);
+                  if (!a.ok) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      amount:
+                        a.reason === "required" ? "กรุณากรอกจำนวน" : "กรุณากรอกจำนวนเป็นตัวเลขเท่านั้น"
+                    }));
+                  }
+                }}
               />
+              {errors.amount ? <div className="mt-1 text-xs text-rose-700">{errors.amount}</div> : null}
             </div>
 
             <div className="grid gap-1">

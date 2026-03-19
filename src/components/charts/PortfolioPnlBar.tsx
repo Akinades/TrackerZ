@@ -41,15 +41,25 @@ export function PortfolioPnlBar({ data, height = 320 }: { data: PnlRow[]; height
   return (
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={cleaned} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+        <BarChart
+          data={cleaned}
+          margin={{ top: 10, right: 16, left: 0, bottom: 10 }}
+          barGap={6}
+          barCategoryGap={cleaned.length <= 3 ? "60%" : "28%"}
+        >
           <CartesianGrid stroke="rgba(24,24,27,0.08)" strokeDasharray="4 6" />
           <XAxis
+            type="category"
             dataKey="name"
+            scale="band"
+            interval={0}
             tick={{ fill: "rgb(113,113,122)", fontSize: 12 }}
             axisLine={false}
             tickLine={false}
+            tickMargin={10}
           />
           <YAxis
+            type="number"
             tick={{ fill: "rgb(113,113,122)", fontSize: 12 }}
             axisLine={false}
             tickLine={false}
@@ -70,8 +80,8 @@ export function PortfolioPnlBar({ data, height = 320 }: { data: PnlRow[]; height
           <Legend
             formatter={(value: string) => <span className="text-xs text-zinc-600">{value}</span>}
           />
-          <Bar dataKey="realized" name="Realized" fill="#86efac" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="unrealized" name="Unrealized" fill="#c4b5fd" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="realized" name="Realized" fill="#86efac" radius={[6, 6, 0, 0]} barSize={14} />
+          <Bar dataKey="unrealized" name="Unrealized" fill="#c4b5fd" radius={[6, 6, 0, 0]} barSize={14} />
         </BarChart>
       </ResponsiveContainer>
     </div>

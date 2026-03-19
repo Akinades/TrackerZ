@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/store/useAuth";
+import { notify } from "@/lib/notify";
 
 export function LoginClient() {
   const router = useRouter();
@@ -30,9 +31,12 @@ export function LoginClient() {
     setPending(true);
     try {
       await login(email, password);
+      notify.success("เข้าสู่ระบบสำเร็จ");
       router.replace(next);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+      const msg = e instanceof Error ? e.message : "เกิดข้อผิดพลาด";
+      setError(msg);
+      notify.error(msg, "เข้าสู่ระบบไม่สำเร็จ");
       setPending(false);
     }
   };
