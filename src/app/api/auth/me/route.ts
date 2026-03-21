@@ -24,3 +24,33 @@ export async function GET() {
   return NextResponse.json({ user });
 }
 
+export async function PATCH(req: Request) {
+  const token = await getAccessTokenFromCookies();
+  if (!token) {
+    return NextResponse.json({ message: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
+  }
+
+  const body = await req.json().catch(() => null);
+
+  const upstream = await backendFetch("/api/auth/me", {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body ?? {})
+  });
+
+  const json = await upstream.json().catch(() => null);
+  if (!upstream.ok) {
+    const msg =
+      (json as { message?: string })?.message ??
+      (json as { error?: string })?.error ??
+      "อัปเดตโปรไฟล์ไม่สำเร็จ";
+    return NextResponse.json({ message: msg }, { status: upstream.status });
+  }
+
+  const user = (json as { user?: unknown })?.user ?? (json as { data?: { user?: unknown } })?.data?.user ?? json;
+  return NextResponse.json({ user });
+}
+

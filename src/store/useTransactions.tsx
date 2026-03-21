@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { ImportTransactionPayload } from "@/lib/transactionImport";
 import type { Transaction } from "@/types/transactions";
 import { findAssetCatalogItem } from "@/lib/assetsCatalog";
 import { notify } from "@/lib/notify";
@@ -44,7 +45,12 @@ export function mapTx(raw: any): Transaction | null {
   const assetLabel = raw.assetLabel ?? raw.asset_name;
   const amount = Number(raw.amount ?? raw.quantity);
   const price = Number(raw.price ?? raw.price_per_unit);
-  const createdAt = String(raw.createdAt ?? raw.created_at ?? new Date().toISOString());
+  const tradedAtRaw = raw.traded_at ?? raw.tradedAt;
+  const tradedAt =
+    typeof tradedAtRaw === "string" && tradedAtRaw.trim() ? String(tradedAtRaw).trim() : undefined;
+  const createdAt = String(
+    raw.createdAt ?? raw.created_at ?? tradedAt ?? new Date().toISOString()
+  );
   const currencyRaw = raw.currency;
   const currency =
     currencyRaw === "THB" || currencyRaw === "USD" ? (currencyRaw as Transaction["currency"]) : undefined;
@@ -77,6 +83,7 @@ export function mapTx(raw: any): Transaction | null {
     tax,
     currency,
     fxRateAtTrade,
+    tradedAt,
     createdAt,
     assetLabel: assetLabelStr
   };
@@ -130,8 +137,10 @@ export function useTransactions() {
     setTxs(mapped);
   }, []);
 
+  type CreatePayload = Omit<Transaction, "id" | "createdAt"> & { createdAt?: string };
+
   const add = React.useCallback(
-    async (tx: Omit<Transaction, "id" | "createdAt">) => {
+    async (tx: CreatePayload) => {
     setError(null);
     const res = await fetch("/api/transactions", {
       method: "POST",
@@ -149,6 +158,38 @@ export function useTransactions() {
     if (created) setTxs((prev) => [created, ...prev]);
     else await refresh();
     notify.success("เพิ่มรายการสำเร็จ");
+    },
+    [refresh]
+  );
+
+  const addMany = React.useCallback(
+    async (items: ImportTransactionPayload[]) => {
+      if (items.length === 0) return;
+      setError(null);
+      const res = await fetch("/api/transactions/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items })
+      }).catch(() => null);
+      const json = res ? await readJsonSafe(res) : null;
+      if (!res || !res.ok) {
+        const msg =
+          (json as { message?: string; error?: string })?.message ||
+          (json as { error?: string })?.error ||
+          "นำเข้ารายการไม่สำเร็จ";
+        setError(msg);
+        notify.error(msg, "นำเข้าไม่สำเร็จ");
+        return;
+      }
+      const created = (json as { created?: number }).created ?? 0;
+      const total = (json as { total?: number }).total ?? items.length;
+      const failed = (json as { failed?: { index: number; message: string }[] }).failed;
+      await refresh();
+      if (failed && failed.length > 0) {
+        notify.error(`นำเข้า ${created}/${total} รายการ (ล้มเหลว ${failed.length} แถว)`, "นำเข้าบางส่วน");
+      } else {
+        notify.success(`นำเข้า ${created} รายการ`);
+      }
     },
     [refresh]
   );
@@ -171,6 +212,27 @@ export function useTransactions() {
     },
     [txs]
   );
+
+  const removeAll = React.useCallback(async () => {
+    setError(null);
+    if (txs.length === 0) return;
+    const res = await fetch("/api/transactions", { method: "DELETE" }).catch(() => null);
+    const json = res ? await readJsonSafe(res) : null;
+    if (!res || !res.ok) {
+      setError("ลบรายการทั้งหมดไม่สำเร็จ");
+      notify.error(
+        (json as { message?: string })?.message || "ลบข้อมูลทั้งหมดไม่สำเร็จ — ลองใหม่หรือรีเฟรชหน้า"
+      );
+      await refresh();
+      return;
+    }
+    const deleted =
+      json != null && typeof json === "object" && typeof (json as { deleted?: unknown }).deleted === "number"
+        ? (json as { deleted: number }).deleted
+        : txs.length;
+    await refresh();
+    notify.success(`ลบรายการทั้งหมดแล้ว (${deleted} รายการ)`);
+  }, [txs.length, refresh]);
 
   const update = React.useCallback(
     async (id: string, patch: Partial<Omit<Transaction, "id">>) => {
@@ -197,6 +259,6 @@ export function useTransactions() {
     [txs]
   );
 
-  return { txs, hydrated, error, refresh, add, remove, update };
+  return { txs, hydrated, error, refresh, add, addMany, remove, removeAll, update };
 }
 

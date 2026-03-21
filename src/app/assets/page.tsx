@@ -1,120 +1,64 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/store/useAuth";
+import { useCurrency } from "@/store/useCurrency";
+import { useFxRate } from "@/store/useFxRate";
 import { mapTx, useTransactions } from "@/store/useTransactions";
-import {
-  AssetValueTimelineLine,
-  SERIES_COLORS,
-  type AssetSeries
-} from "@/components/charts/AssetValueTimelineLine";
 import type { Transaction } from "@/types/transactions";
-
-function toDateInputValue(d: Date) {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function startOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-function endOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-
-function daysAgo(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d;
-}
-
-function startOfYear(d: Date) {
-  const x = new Date(d);
-  x.setMonth(0, 1);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-type RangePreset = "" | "today" | "yesterday" | "last7" | "last30" | "last90" | "ytd" | "last365" | "all";
-
-/** Build timeline series for a single asset from its sorted transactions */
-function buildSeriesForAsset(
-  assetTxs: Transaction[],
-  assetName: string,
-  color: string
-): AssetSeries {
-  const sorted = assetTxs
-    .filter((t) => t.createdAt && Number.isFinite(t.amount) && Number.isFinite(t.price))
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-  let qty = 0;
-  const points: { ts: number; value: number }[] = [];
-  const buys: { ts: number; value: number }[] = [];
-  const sells: { ts: number; value: number }[] = [];
-
-  for (const t of sorted) {
-    qty = t.side === "buy" ? qty + t.amount : qty - t.amount;
-    const ts = new Date(t.createdAt).getTime();
-    const value = qty * t.price;
-    points.push({ ts, value });
-    if (t.side === "buy") buys.push({ ts, value });
-    else sells.push({ ts, value });
-  }
-
-  return { assetName, color, points, buys, sells };
-}
-
-/** Build all asset series from the filtered transaction list */
-function buildTimelines(txs: Transaction[], assetFilter: string): AssetSeries[] {
-  if (assetFilter !== "__all__") {
-    const assetTxs = txs.filter((t) => t.assetName === assetFilter);
-    return [buildSeriesForAsset(assetTxs, assetFilter, SERIES_COLORS[0])];
-  }
-
-  // Group transactions by assetName
-  const grouped = new Map<string, Transaction[]>();
-  for (const t of txs) {
-    if (!grouped.has(t.assetName)) grouped.set(t.assetName, []);
-    grouped.get(t.assetName)!.push(t);
-  }
-
-  const assetNames = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
-  return assetNames.map((name, i) =>
-    buildSeriesForAsset(grouped.get(name)!, name, SERIES_COLORS[i % SERIES_COLORS.length])
-  );
-}
+import { txExecutedAtIso, txExecutedAtMs } from "@/lib/transactionTime";
+import {
+  buildTimelines,
+  daysAgo,
+  endOfDay,
+  limitAllAssetSeriesForChart,
+  ALL_ASSETS_CHART_MAX_LINES,
+  startOfDay,
+  startOfYear,
+  toDateInputValue,
+  type RangePreset
+} from "@/lib/assetTimeline";
+import { AssetsPageGuestPrompt } from "@/components/assets/AssetsPageGuestPrompt";
+import { AssetsTimelineFilters } from "@/components/assets/AssetsTimelineFilters";
+import { AssetsTimelineChartBody } from "@/components/assets/AssetsTimelineChartBody";
+import { AssetsRangeSummary } from "@/components/assets/AssetsRangeSummary";
 
 export default function AssetsTimelinePage() {
   const { user, hydrated: authHydrated } = useAuth();
+  const { currency } = useCurrency();
+  const { usdThb } = useFxRate();
   const { txs, hydrated, error } = useTransactions();
+  const fx = React.useMemo(() => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36), [usdThb]);
+
+  const toDisplayMoney = React.useCallback(
+    (value: number, from?: "THB" | "USD", fxAtTrade?: number) => {
+      const src = from ?? currency;
+      const rate = Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0 ? (fxAtTrade as number) : fx;
+      if (src === currency) return value;
+      if (src === "USD" && currency === "THB") return value * rate;
+      if (src === "THB" && currency === "USD") return value / rate;
+      return value;
+    },
+    [currency, fx]
+  );
   const [assetTxs, setAssetTxs] = React.useState<Transaction[]>([]);
   const [assetLoading, setAssetLoading] = React.useState(false);
   const [assetError, setAssetError] = React.useState<string | null>(null);
+  const [showAssetsSummary, setShowAssetsSummary] = React.useState(true);
 
   const sortedAll = React.useMemo(
-    () => [...txs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    () => [...txs].sort((a, b) => txExecutedAtMs(a) - txExecutedAtMs(b)),
     [txs]
   );
   const oldest = React.useMemo(
-    () => (sortedAll[0]?.createdAt ? new Date(sortedAll[0].createdAt) : null),
+    () => (sortedAll[0] ? new Date(txExecutedAtIso(sortedAll[0])) : null),
     [sortedAll]
   );
   const newest = React.useMemo(
     () =>
-      sortedAll[sortedAll.length - 1]?.createdAt
-        ? new Date(sortedAll[sortedAll.length - 1].createdAt)
+      sortedAll[sortedAll.length - 1]
+        ? new Date(txExecutedAtIso(sortedAll[sortedAll.length - 1]))
         : null,
     [sortedAll]
   );
@@ -123,6 +67,11 @@ export default function AssetsTimelinePage() {
   const [to, setTo] = React.useState<string>("");
   const [rangePreset, setRangePreset] = React.useState<RangePreset>("");
   const [asset, setAsset] = React.useState<string>("__all__");
+  const [showAllChartLines, setShowAllChartLines] = React.useState(false);
+
+  React.useEffect(() => {
+    if (asset !== "__all__") setShowAllChartLines(false);
+  }, [asset]);
 
   React.useEffect(() => {
     if (!hydrated) return;
@@ -141,9 +90,7 @@ export default function AssetsTimelinePage() {
       const res = await fetch(`/api/transactions/asset/${encodeURIComponent(asset)}`, {
         method: "GET"
       }).catch(() => null);
-      const json = res
-        ? await res.json().catch(() => null)
-        : null;
+      const json = res ? await res.json().catch(() => null) : null;
       if (!mounted) return;
 
       if (!res || !res.ok) {
@@ -227,7 +174,7 @@ export default function AssetsTimelinePage() {
     const fromD = from ? startOfDay(new Date(from)) : null;
     const toD = to ? endOfDay(new Date(to)) : null;
     return sourceTxs.filter((t) => {
-      const d = new Date(t.createdAt);
+      const d = new Date(txExecutedAtIso(t));
       if (fromD && d < fromD) return false;
       if (toD && d > toD) return false;
       return true;
@@ -241,143 +188,102 @@ export default function AssetsTimelinePage() {
   }, [txs]);
 
   const series = React.useMemo(
-    () => buildTimelines(filteredTxs, asset),
-    [filteredTxs, asset]
+    () => buildTimelines(filteredTxs, asset, toDisplayMoney),
+    [filteredTxs, asset, toDisplayMoney]
+  );
+
+  const wouldSimplifyChart =
+    asset === "__all__" && series.length > ALL_ASSETS_CHART_MAX_LINES;
+
+  const chartSeries = React.useMemo(() => {
+    if (asset !== "__all__" || showAllChartLines) return series;
+    return limitAllAssetSeriesForChart(series).series;
+  }, [asset, showAllChartLines, series]);
+
+  const handleRangePresetChange = React.useCallback(
+    (v: RangePreset) => {
+      setRangePreset(v);
+      if (!v) return;
+      applyPreset(v);
+    },
+    [applyPreset]
   );
 
   if (authHydrated && !user) {
-    return (
-      <Card className="p-6">
-        <div className="grid gap-2">
-          <div className="text-lg font-semibold">เข้าสู่ระบบเพื่อดูกราฟสินทรัพย์</div>
-          <div className="text-sm text-zinc-600">ล็อกอินก่อน แล้วดูกราฟสินทรัพย์รวม/รายตัวได้</div>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <Link href="/login?next=/assets" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto">เข้าสู่ระบบ</Button>
-            </Link>
-            <Link href="/register?next=/assets" className="w-full sm:w-auto">
-              <Button variant="secondary" className="w-full sm:w-auto">
-                สมัครสมาชิก
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </Card>
-    );
+    return <AssetsPageGuestPrompt />;
   }
 
+  const chartBlocked =
+    !hydrated ||
+    (asset !== "__all__" && assetLoading) ||
+    Boolean(assetError) ||
+    Boolean(error) ||
+    filteredTxs.length === 0;
+
   return (
-    <div className="grid gap-6">
-      <div className="grid gap-2">
-        <h1 className="text-xl font-semibold">กราฟสินทรัพย์ (เส้น)</h1>
-        <p className="text-sm text-zinc-600">
-          มูลค่าที่แสดงเป็น{" "}
-          <span className="font-medium">proxy จากราคาล่าสุดที่มีในรายการซื้อ/ขาย</span>{" "}
-          &mdash; เลือก &ldquo;ทั้งหมด&rdquo; เพื่อดูทุกสินทรัพย์แยกเส้น หรือเลือกรายตัว
+    <div className="mx-auto grid max-w-6xl gap-5">
+      <div className="text-center sm:text-left">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">กราฟสินทรัพย์</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          แกนเงินและคำอธิบายตามสกุลที่เลือก ({currency}) · จุดเขียว = ซื้อ · จุดแดง = ขาย
         </p>
       </div>
 
-      <Card>
-        <div className="grid gap-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {/* Asset selector */}
-            <div className="grid gap-1">
-              <div className="text-sm font-medium">สินทรัพย์</div>
-              <Select
-                value={asset}
-                onChange={(e) => setAsset(e.target.value)}
-                disabled={!hydrated}
-                className="h-11 rounded-2xl px-3 text-xs shadow-none"
-                aria-label="Asset filter"
-              >
-                <option value="__all__">ทั้งหมด (แยกเส้นแต่ละสินทรัพย์)</option>
-                {assetOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </Select>
-            </div>
+      <Card className="overflow-hidden rounded-3xl border-zinc-200/80 p-0 shadow-sm">
+        <AssetsTimelineFilters
+          hydrated={hydrated}
+          asset={asset}
+          onAssetChange={setAsset}
+          assetOptions={assetOptions}
+          rangePreset={rangePreset}
+          onRangePresetChange={handleRangePresetChange}
+          from={from}
+          onFromChange={(v) => {
+            setRangePreset("");
+            setFrom(v);
+          }}
+          to={to}
+          onToChange={(v) => {
+            setRangePreset("");
+            setTo(v);
+          }}
+          oldest={oldest}
+          newest={newest}
+        />
+        <AssetsTimelineChartBody
+          hydrated={hydrated}
+          assetLoading={assetLoading}
+          assetNotAll={asset !== "__all__"}
+          assetError={assetError}
+          listError={error}
+          filteredEmpty={filteredTxs.length === 0}
+          series={chartSeries}
+          wouldSimplifyChart={wouldSimplifyChart}
+          showAllChartLines={showAllChartLines}
+          onToggleShowAllChartLines={() => setShowAllChartLines((x) => !x)}
+          showSummaryToggle={showAssetsSummary}
+          onToggleSummary={() => setShowAssetsSummary((x) => !x)}
+        />
+      </Card>
 
-            {/* Date range */}
-            <div className="grid gap-1 md:col-span-2">
-              <div className="text-sm font-medium">ช่วงวันที่</div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                <div className="w-full sm:w-[220px]">
-                  <div className="text-xs text-zinc-400">ช่วงเวลา</div>
-                  <Select
-                    value={rangePreset}
-                    onChange={(e) => {
-                      const v = e.target.value as RangePreset;
-                      setRangePreset(v);
-                      if (!v) return;
-                      applyPreset(v);
-                    }}
-                    disabled={!hydrated}
-                    className="h-11 rounded-2xl px-3 text-xs shadow-none"
-                    aria-label="Date range preset"
-                  >
-                    <option value="">เลือกช่วงวันที่…</option>
-                    <option value="today">วันนี้</option>
-                    <option value="yesterday">เมื่อวาน</option>
-                    <option value="last7">7 วันที่ผ่านมา</option>
-                    <option value="last30">30 วันที่ผ่านมา</option>
-                    <option value="last90">90 วันที่ผ่านมา</option>
-                    <option value="ytd">ปีนี้ (YTD)</option>
-                    <option value="last365">1 ปีที่ผ่านมา</option>
-                    <option value="all">ทั้งหมด</option>
-                  </Select>
-                </div>
-                <div className="w-full sm:w-[190px]">
-                  <div className="text-xs text-zinc-400">จาก</div>
-                  <Input
-                    type="date"
-                    className="h-11 rounded-2xl px-3 text-xs shadow-none"
-                    value={from}
-                    onChange={(e) => {
-                      setRangePreset("");
-                      setFrom(e.target.value);
-                    }}
-                    disabled={!hydrated}
-                  />
-                </div>
-                <div className="w-full sm:w-[190px]">
-                  <div className="text-xs text-zinc-400">ถึง</div>
-                  <Input
-                    type="date"
-                    className="h-11 rounded-2xl px-3 text-xs shadow-none"
-                    value={to}
-                    onChange={(e) => {
-                      setRangePreset("");
-                      setTo(e.target.value);
-                    }}
-                    disabled={!hydrated}
-                  />
-                </div>
-              </div>
-              <div className="text-xs text-zinc-500">
-                {oldest && newest
-                  ? `ข้อมูลมีตั้งแต่ ${oldest.toLocaleString()} ถึง ${newest.toLocaleString()}`
-                  : "ยังไม่มีข้อมูล"}
-              </div>
-            </div>
+      {!chartBlocked && showAssetsSummary ? (
+        <Card className="overflow-hidden rounded-3xl border-zinc-200/80 p-0 shadow-sm">
+          <div className="border-b border-zinc-100 bg-gradient-to-b from-zinc-50/60 to-white px-4 py-3 sm:px-6">
+            <h2 className="text-sm font-semibold text-zinc-800">สรุปในช่วงที่เลือก</h2>
+            <p className="mt-0.5 text-[11px] text-zinc-500">
+              ตัวเลขและรายการซื้อขาย — การ์ดแยกจากกราฟด้านบน
+            </p>
           </div>
-        </div>
-      </Card>
-
-      <Card className="p-5">
-        {!hydrated || (asset !== "__all__" && assetLoading) ? (
-          <div className="text-sm text-zinc-400">กำลังโหลดข้อมูล…</div>
-        ) : assetError ? (
-          <div className="text-sm text-rose-600">{assetError}</div>
-        ) : error ? (
-          <div className="text-sm text-rose-600">{error}</div>
-        ) : filteredTxs.length === 0 ? (
-          <div className="text-sm text-zinc-500">ไม่มีรายการในช่วงวันที่นี้</div>
-        ) : (
-          <AssetValueTimelineLine series={series} />
-        )}
-      </Card>
+          <div className="px-4 pb-6 pt-1 sm:px-6">
+            <AssetsRangeSummary
+              txs={filteredTxs}
+              assetFilter={asset}
+              currency={currency}
+              toDisplayMoney={toDisplayMoney}
+            />
+          </div>
+        </Card>
+      ) : null}
     </div>
   );
 }

@@ -20,11 +20,11 @@ export function Navbar() {
     <header className="sticky top-0 z-20 -mx-4 bg-transparent px-4 py-5">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight">
-          <span className="relative h-11 w-11 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-sm">
+          {/* <span className="relative h-11 w-11 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-sm">
             <Image src="/logo.png" alt="TrackerZ logo" fill className="object-cover" />
-          </span>
+          </span> */}
           <span className="flex items-center gap-2">
-            <span className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-zinc-900 bg-clip-text text-lg font-semibold text-transparent sm:text-xl">
+            <span className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-zinc-900 bg-clip-text text-2xl font-semibold text-transparent sm:text-xl">
               TrackerZ
             </span>
             <span className="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">

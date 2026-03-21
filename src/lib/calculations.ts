@@ -170,10 +170,28 @@ export function computePositionsAvgCost(txs: Transaction[]) {
   return [...map.values()].sort((a, b) => a.assetName.localeCompare(b.assetName));
 }
 
+/** ราคา/หน่วยใน USD จากแผนที่ quotes (ไม่สนตัวพิมพ์ใหญ่เล็กของชื่อสินทรัพย์) */
+export function marketPriceUsd(prices: Record<string, number>, assetName: string) {
+  const k = assetName.trim();
+  if (!k) return undefined;
+  const u = k.toUpperCase();
+  const v = prices[u] ?? prices[k];
+  if (!Number.isFinite(v) || v <= 0) return undefined;
+  return v;
+}
+
+/** กำไร/ขาดทุนที่ยังไม่รับรู้ของหนึ่งรายการ (USD) — ไม่มีราคาตลาดจะได้ null */
+export function positionUnrealizedPnlUsd(p: Position, prices: Record<string, number>) {
+  if (p.qty <= 0) return null;
+  const px = marketPriceUsd(prices, p.assetName);
+  if (px === undefined) return null;
+  return round2((px - p.avgCost) * p.qty);
+}
+
 export function currentValue(positions: Position[], prices: Record<string, number>) {
   const total = positions.reduce((sum, p) => {
-    const px = prices[p.assetName];
-    if (!Number.isFinite(px) || px <= 0) return sum;
+    const px = marketPriceUsd(prices, p.assetName);
+    if (px === undefined) return sum;
     return sum + p.qty * px;
   }, 0);
   return round2(total);
@@ -181,8 +199,8 @@ export function currentValue(positions: Position[], prices: Record<string, numbe
 
 export function unrealizedPnl(positions: Position[], prices: Record<string, number>) {
   const total = positions.reduce((sum, p) => {
-    const px = prices[p.assetName];
-    if (!Number.isFinite(px) || px <= 0) return sum;
+    const px = marketPriceUsd(prices, p.assetName);
+    if (px === undefined) return sum;
     return sum + (px - p.avgCost) * p.qty;
   }, 0);
   return round2(total);

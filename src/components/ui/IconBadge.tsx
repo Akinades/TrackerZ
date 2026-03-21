@@ -30,7 +30,7 @@ export function IconBadge({
       )}
       aria-hidden="true"
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-1/2 w-1/2 min-h-3.5 min-w-3.5 max-h-7 max-w-7" />
     </span>
   );
 }

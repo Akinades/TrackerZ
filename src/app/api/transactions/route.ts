@@ -1,44 +1,10 @@
 import { NextResponse } from "next/server";
 import { backendFetch, getAccessTokenFromCookies } from "@/lib/backendServer";
+import { toBackendCreate } from "@/lib/transactionBackendMap";
 
 async function authHeader() {
   const token = await getAccessTokenFromCookies();
   return token ? { Authorization: `Bearer ${token}` } : null;
-}
-
-function toBackendCreate(body: any) {
-  // Frontend legacy fields -> backend schema:
-  // side -> type, assetName -> asset_symbol, assetLabel -> asset_name, amount -> quantity, price -> price_per_unit
-  const side = body?.side;
-  const assetName = body?.assetName;
-  const assetLabel = body?.assetLabel;
-  const amount = body?.amount;
-  const price = body?.price;
-  const currency = body?.currency ?? "THB";
-
-  const fee = body?.fee;
-  const tax = body?.tax;
-  const assetType = body?.assetType;
-  const fxRateAtTrade = body?.fxRateAtTrade;
-  const notes =
-    fee != null || tax != null || assetType != null || fxRateAtTrade != null
-      ? JSON.stringify({
-          fee: fee ?? 0,
-          tax: tax ?? 0,
-          assetType: assetType ?? null,
-          fxRateAtTrade: fxRateAtTrade ?? null
-        })
-      : undefined;
-
-  return {
-    type: side,
-    asset_symbol: assetName,
-    asset_name: assetLabel || assetName,
-    quantity: amount,
-    price_per_unit: price,
-    currency,
-    notes
-  };
 }
 
 export async function GET() {
@@ -71,3 +37,35 @@ export async function POST(req: Request) {
   return NextResponse.json(json ?? null, { status: upstream.status });
 }
 
+/** ลบธุรกรรมทั้งหมดของ user ที่ล็อกอิน — ตอบ { deleted: number } */
+export async function DELETE() {
+  const auth = await authHeader();
+  if (!auth) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const upstream = await backendFetch("/api/transactions", {
+    method: "DELETE",
+    headers: auth
+  });
+
+  const json = await upstream.json().catch(() => null);
+
+  if (!upstream.ok) {
+    return NextResponse.json(
+      {
+        message:
+          (json as { error?: string; message?: string })?.error ||
+          (json as { message?: string })?.message ||
+          "ลบรายการทั้งหมดไม่สำเร็จ",
+        deleted: 0
+      },
+      { status: upstream.status }
+    );
+  }
+
+  const deleted =
+    json != null && typeof json === "object" && typeof (json as { deleted?: unknown }).deleted === "number"
+      ? (json as { deleted: number }).deleted
+      : 0;
+
+  return NextResponse.json({ deleted }, { status: upstream.status });
+}

@@ -71,13 +71,20 @@ export function AssetIcon({
   return (
     <span
       className={[
-        "inline-flex items-center justify-center overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_10px_25px_-22px_rgba(0,0,0,0.25)]",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_10px_25px_-22px_rgba(0,0,0,0.25)]",
         className ?? "h-8 w-8"
       ].join(" ")}
       aria-hidden="true"
       title={symbol}
     >
-      <Image src={src} alt="" width={20} height={20} unoptimized />
+      <Image
+        src={src}
+        alt=""
+        fill
+        className="object-contain p-[10%]"
+        sizes="48px"
+        unoptimized
+      />
     </span>
   );
 }

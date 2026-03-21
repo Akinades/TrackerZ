@@ -15,6 +15,8 @@ export type Transaction = {
   tax?: number; // in transaction currency (optional)
   currency?: AppCurrency; // currency of price/fee in this transaction
   fxRateAtTrade?: number; // USDTHB at trade time (optional, for consistent history)
-  createdAt: string; // ISO
+  /** เวลาซื้อ/ขายจริงจากระบบ (ISO) — ใช้เรียงลำดับ/วิเคราะห์จังหวะเมื่อมี */
+  tradedAt?: string;
+  createdAt: string; // ISO (เวลาบันทึก — fallback เมื่อไม่มี tradedAt)
 };
 

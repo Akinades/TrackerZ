@@ -18,6 +18,9 @@ function toBackendPatch(body: any) {
   if (body.amount != null) out.quantity = body.amount;
   if (body.price != null) out.price_per_unit = body.price;
   if (body.currency != null) out.currency = body.currency;
+  if (body.createdAt != null && String(body.createdAt).trim()) {
+    out.created_at = String(body.createdAt).trim();
+  }
 
   // Preserve optional metadata in notes (non-breaking for backend)
   if (body.fee != null || body.tax != null || body.assetType != null || body.fxRateAtTrade != null) {

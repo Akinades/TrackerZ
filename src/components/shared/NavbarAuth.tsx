@@ -38,16 +38,17 @@ export function AuthButtons() {
   if (!hydrated) return null;
   if (!user) return null;
 
+  const menuLabel = user.displayName.trim() || user.email;
+
   return (
     <div ref={wrapRef} className="relative flex items-center gap-2">
-     
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex max-w-[320px] items-center gap-2 rounded-2xl border border-zinc-200/70 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
         aria-label="User menu"
       >
-        <span className="max-w-[200px] truncate">{user.email}</span>
+        <span className="max-w-[200px] truncate">{menuLabel}</span>
         <span className="text-zinc-400">▾</span>
       </button>
       <CurrencyBadge
@@ -59,7 +60,10 @@ export function AuthButtons() {
         <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_30px_70px_-55px_rgba(0,0,0,0.55)]">
           <div className="border-b border-zinc-200/70 px-4 py-3">
             <div className="text-xs text-zinc-500">เข้าสู่ระบบด้วย</div>
-            <div className="mt-0.5 truncate text-sm font-medium text-zinc-900">{user.email}</div>
+            <div className="mt-0.5 truncate text-sm font-medium text-zinc-900">{menuLabel}</div>
+            {user.displayName.trim() ? (
+              <div className="mt-1 truncate text-xs text-zinc-500">{user.email}</div>
+            ) : null}
           </div>
 
           <Link
@@ -99,4 +103,3 @@ export function AuthButtons() {
     </div>
   );
 }
-

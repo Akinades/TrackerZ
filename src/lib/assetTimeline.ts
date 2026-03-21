@@ -1,0 +1,272 @@
+import { round2 } from "@/lib/calculations";
+import {
+  SERIES_COLORS,
+  type AssetSeries,
+  type PositionPoint
+} from "@/components/charts/AssetValueTimelineLine";
+import type { Transaction } from "@/types/transactions";
+import { txExecutedAtIso, txExecutedAtMs } from "@/lib/transactionTime";
+
+export type RangePreset =
+  | ""
+  | "today"
+  | "yesterday"
+  | "last7"
+  | "last30"
+  | "last90"
+  | "ytd"
+  | "last365"
+  | "all";
+
+export type ToDisplayMoneyFn = (
+  value: number,
+  from?: "THB" | "USD",
+  fxAtTrade?: number
+) => number;
+
+export function unitDisplayForTx(t: Transaction, toDisplayMoney: ToDisplayMoneyFn) {
+  const baseCur = (t.currency ?? "THB") as "THB" | "USD";
+  return round2(toDisplayMoney(t.price, baseCur, t.fxRateAtTrade));
+}
+
+export function txBase(t: Transaction) {
+  return (t.currency ?? "THB") as "THB" | "USD";
+}
+
+export function txBuyOutflowDisplay(t: Transaction, toDisplayMoney: ToDisplayMoneyFn) {
+  const base = txBase(t);
+  const fx = t.fxRateAtTrade;
+  const notional = round2(unitDisplayForTx(t, toDisplayMoney) * t.amount);
+  const fee = round2(toDisplayMoney(Number(t.fee ?? 0), base, fx));
+  const tax = round2(toDisplayMoney(Number(t.tax ?? 0), base, fx));
+  return round2(notional + fee + tax);
+}
+
+export function txSellGrossDisplay(t: Transaction, toDisplayMoney: ToDisplayMoneyFn) {
+  return round2(unitDisplayForTx(t, toDisplayMoney) * t.amount);
+}
+
+export function txFeeTaxDisplay(t: Transaction, toDisplayMoney: ToDisplayMoneyFn) {
+  const base = txBase(t);
+  const fx = t.fxRateAtTrade;
+  return round2(
+    toDisplayMoney(Number(t.fee ?? 0), base, fx) + toDisplayMoney(Number(t.tax ?? 0), base, fx)
+  );
+}
+
+export function formatHourSlot(h: number) {
+  const next = (h + 1) % 24;
+  return `${String(h).padStart(2, "0")}:00–${String(next).padStart(2, "0")}:00 น.`;
+}
+
+export function topHourPhrases(txs: Transaction[], maxSlots: number): string[] {
+  const map = new Map<number, number>();
+  for (const t of txs) {
+    const h = new Date(txExecutedAtIso(t)).getHours();
+    map.set(h, (map.get(h) ?? 0) + 1);
+  }
+  const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, maxSlots);
+  return sorted.map(([h, c]) => `${formatHourSlot(h)} (${c} ครั้ง)`);
+}
+
+export function toDateInputValue(d: Date) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+export function endOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+export function daysAgo(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
+export function startOfYear(d: Date) {
+  const x = new Date(d);
+  x.setMonth(0, 1);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+export function buildSeriesForAsset(
+  assetTxs: Transaction[],
+  assetName: string,
+  color: string,
+  toDisplayMoney: ToDisplayMoneyFn
+): AssetSeries {
+  const sorted = assetTxs
+    .filter((t) => txExecutedAtIso(t) && Number.isFinite(t.amount) && Number.isFinite(t.price))
+    .sort((a, b) => txExecutedAtMs(a) - txExecutedAtMs(b));
+
+  let qty = 0;
+  const points: AssetSeries["points"] = [];
+  const buys: AssetSeries["buys"] = [];
+  const sells: AssetSeries["sells"] = [];
+
+  for (const t of sorted) {
+    const baseCur = (t.currency ?? "THB") as "THB" | "USD";
+    const fx = t.fxRateAtTrade;
+    const unitDisplay = round2(toDisplayMoney(t.price, baseCur, fx));
+    qty = t.side === "buy" ? qty + t.amount : qty - t.amount;
+    const ts = txExecutedAtMs(t);
+    const value = round2(qty * unitDisplay);
+
+    points.push({
+      ts,
+      value,
+      tipKind: "position",
+      tipAsset: assetName,
+      tipQty: round2(qty)
+    });
+
+    const marker = {
+      ts,
+      value,
+      tipKind: t.side === "buy" ? ("buy" as const) : ("sell" as const),
+      tipAsset: assetName,
+      tipAmount: t.amount,
+      tipUnitPrice: unitDisplay
+    };
+    if (t.side === "buy") buys.push(marker);
+    else sells.push(marker);
+  }
+
+  return { assetName, color, points, buys, sells };
+}
+
+export function buildTimelines(
+  txs: Transaction[],
+  assetFilter: string,
+  toDisplayMoney: ToDisplayMoneyFn
+): AssetSeries[] {
+  if (assetFilter !== "__all__") {
+    const assetTxs = txs.filter((t) => t.assetName === assetFilter);
+    return [buildSeriesForAsset(assetTxs, assetFilter, SERIES_COLORS[0], toDisplayMoney)];
+  }
+
+  const grouped = new Map<string, Transaction[]>();
+  for (const t of txs) {
+    if (!grouped.has(t.assetName)) grouped.set(t.assetName, []);
+    grouped.get(t.assetName)!.push(t);
+  }
+
+  const assetNames = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
+  return assetNames.map((name, i) =>
+    buildSeriesForAsset(
+      grouped.get(name)!,
+      name,
+      SERIES_COLORS[i % SERIES_COLORS.length],
+      toDisplayMoney
+    )
+  );
+}
+
+/** จำนวนเส้นสูงสุดบนกราฟโหมด “ทั้งหมด” ก่อนรวมที่เหลือเป็นเส้น “อื่นๆ” */
+export const ALL_ASSETS_CHART_MAX_LINES = 6;
+const ALL_ASSETS_TOP_LINES = 5;
+
+function latestPositionValue(s: AssetSeries): number {
+  const n = s.points.length;
+  return n > 0 ? s.points[n - 1]!.value : 0;
+}
+
+/** รวมหลายสินทรัพย์เป็นเส้นเดียว (มูลค่า + จำนวนคงเหลือรวม) — จุดซื้อ/ขายยังแยกตามเหรียญ */
+export function buildAggregatedOthersSeries(
+  parts: AssetSeries[],
+  label: string,
+  color: string
+): AssetSeries {
+  if (parts.length === 0) {
+    return { assetName: label, color, points: [], buys: [], sells: [] };
+  }
+
+  const tsSet = new Set<number>();
+  for (const s of parts) {
+    for (const p of s.points) tsSet.add(p.ts);
+    for (const p of s.buys) tsSet.add(p.ts);
+    for (const p of s.sells) tsSet.add(p.ts);
+  }
+  const allTs = Array.from(tsSet).sort((a, b) => a - b);
+  const indices = parts.map(() => -1);
+  const points: PositionPoint[] = [];
+
+  for (const ts of allTs) {
+    let sumVal = 0;
+    let sumQty = 0;
+    let any = false;
+    parts.forEach((s, si) => {
+      const pts = s.points;
+      let j = indices[si]!;
+      while (j + 1 < pts.length && pts[j + 1]!.ts <= ts) {
+        j += 1;
+      }
+      indices[si] = j;
+      if (j >= 0) {
+        const pt = pts[j]!;
+        sumVal += pt.value;
+        sumQty += pt.tipQty;
+        any = true;
+      }
+    });
+    if (any) {
+      points.push({
+        ts,
+        value: round2(sumVal),
+        tipKind: "position",
+        tipAsset: label,
+        tipQty: round2(sumQty)
+      });
+    }
+  }
+
+  return {
+    assetName: label,
+    color,
+    points,
+    buys: parts.flatMap((s) => s.buys),
+    sells: parts.flatMap((s) => s.sells)
+  };
+}
+
+export function limitAllAssetSeriesForChart(series: AssetSeries[]): {
+  series: AssetSeries[];
+  usedAggregation: boolean;
+  othersCount: number;
+} {
+  if (series.length <= ALL_ASSETS_CHART_MAX_LINES) {
+    return { series, usedAggregation: false, othersCount: 0 };
+  }
+
+  const sorted = [...series].sort((a, b) => latestPositionValue(b) - latestPositionValue(a));
+  const top = sorted.slice(0, ALL_ASSETS_TOP_LINES);
+  const rest = sorted.slice(ALL_ASSETS_TOP_LINES);
+  const othersLabel = `อื่นๆ (${rest.length})`;
+  const others = buildAggregatedOthersSeries(rest, othersLabel, "#64748b");
+
+  const recoloredTop = top.map((s, i) => ({
+    ...s,
+    color: SERIES_COLORS[i % SERIES_COLORS.length]
+  }));
+
+  return {
+    series: [
+      ...recoloredTop,
+      { ...others, color: SERIES_COLORS[ALL_ASSETS_TOP_LINES % SERIES_COLORS.length] }
+    ],
+    usedAggregation: true,
+    othersCount: rest.length
+  };
+}
