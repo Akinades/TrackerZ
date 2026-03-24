@@ -14,7 +14,7 @@ import {
   assertImportHasRequiredKeys,
   mapFlatRecordToImportPayload,
   normImportKey,
-  parseTransactionsJson
+  parseTransactionsJson,
 } from "@/lib/transactionImport";
 import {
   daysAgo,
@@ -22,7 +22,7 @@ import {
   RangePreset,
   startOfDay,
   startOfYear,
-  toDateInputValue
+  toDateInputValue,
 } from "@/lib/assetTimeline";
 import {
   defaultTransactionForm,
@@ -31,14 +31,21 @@ import {
   localDateTimeToIso,
   parseCsvLine,
   parseStrictPositiveNumber,
-  visiblePageNumbers
+  visiblePageNumbers,
 } from "@/lib/transactionPageUtils";
-import type { TransactionFormErrors, TransactionFormState } from "@/types/transactionForm";
+import type {
+  TransactionFormErrors,
+  TransactionFormState,
+} from "@/types/transactionForm";
 import type { Transaction } from "@/types/transactions";
 
 export type TransactionsPageModel = {
   authHydrated: boolean;
   user: ReturnType<typeof useAuth>["user"];
+  isFreePlan: boolean;
+  todayCreatedCount: number;
+  freeDailyLimit: number;
+  freeLimitReached: boolean;
   hydrated: boolean;
   txs: Transaction[];
   currency: AppCurrency;
@@ -60,7 +67,7 @@ export type TransactionsPageModel = {
     cta: string;
     onConfirm: () => void;
   }) => void;
-  removeAll: () => Promise<void>;
+  removeAll: (assetSymbol?: string) => Promise<void>;
   exportCsv: () => void;
   pickImportFile: () => void;
   open: boolean;
@@ -97,7 +104,11 @@ export type TransactionsPageModel = {
   startIdx: number;
   endIdx: number;
   pageButtons: (number | "gap")[];
-  toDisplayMoney: (value: number, from?: "THB" | "USD", fxAtTrade?: number) => number;
+  toDisplayMoney: (
+    value: number,
+    from?: "THB" | "USD",
+    fxAtTrade?: number,
+  ) => number;
   startEdit: (id: string) => void;
   remove: (id: string) => Promise<void>;
 };
@@ -106,8 +117,11 @@ export function useTransactionsPage(): TransactionsPageModel {
   const { user, hydrated: authHydrated } = useAuth();
   const { currency } = useCurrency();
   const { usdThb } = useFxRate();
-  const { txs, hydrated, add, addMany, remove, removeAll, update } = useTransactions();
-  const [form, setForm] = React.useState<TransactionFormState>(() => defaultTransactionForm());
+  const { txs, hydrated, add, addMany, remove, removeAll, update } =
+    useTransactions();
+  const [form, setForm] = React.useState<TransactionFormState>(() =>
+    defaultTransactionForm(),
+  );
   const [errors, setErrors] = React.useState<TransactionFormErrors>({});
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -127,36 +141,49 @@ export function useTransactionsPage(): TransactionsPageModel {
   const confirmActionRef = React.useRef<null | (() => void)>(null);
   const [importing, setImporting] = React.useState(false);
   const [importError, setImportError] = React.useState<string | null>(null);
-  const [pageSize, setPageSize] = React.useState<10 | 25 | 50 | 100 | "all">(10);
+  const [pageSize, setPageSize] = React.useState<10 | 25 | 50 | 100 | "all">(
+    10,
+  );
   const [page, setPage] = React.useState(1);
   const [rowMenuOpenId, setRowMenuOpenId] = React.useState<string | null>(null);
   const rowMenuWrapRef = React.useRef<HTMLDivElement | null>(null);
+  const FREE_DAILY_LIMIT = 10;
+  const [freeCreatedTodayCount, setFreeCreatedTodayCount] = React.useState<number | null>(null);
 
   const isEditing = editingId !== null;
-  const fx = React.useMemo(() => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36), [usdThb]);
+  const fx = React.useMemo(
+    () => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36),
+    [usdThb],
+  );
 
   const toDisplayMoney = React.useCallback(
     (value: number, from?: "THB" | "USD", fxAtTrade?: number) => {
       const src = from ?? currency;
-      const rate = Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0 ? (fxAtTrade as number) : fx;
+      const rate =
+        Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0
+          ? (fxAtTrade as number)
+          : fx;
       if (src === currency) return value;
       if (src === "USD" && currency === "THB") return value * rate;
       if (src === "THB" && currency === "USD") return value / rate;
       return value;
     },
-    [currency, fx]
+    [currency, fx],
   );
 
   const fromDisplayMoney = React.useCallback(
     (value: number, to?: "THB" | "USD", fxAtTrade?: number) => {
       const dst = to ?? currency;
-      const rate = Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0 ? (fxAtTrade as number) : fx;
+      const rate =
+        Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0
+          ? (fxAtTrade as number)
+          : fx;
       if (dst === currency) return value;
       if (currency === "USD" && dst === "THB") return value * rate;
       if (currency === "THB" && dst === "USD") return value / rate;
       return value;
     },
-    [currency, fx]
+    [currency, fx],
   );
 
   const onChange = (patch: Partial<TransactionFormState>) =>
@@ -182,7 +209,7 @@ export function useTransactionsPage(): TransactionsPageModel {
       "fee",
       "tax",
       "currency",
-      "fxRateAtTrade"
+      "fxRateAtTrade",
     ];
     const esc = (v: unknown) => {
       const s = v == null ? "" : String(v);
@@ -201,10 +228,10 @@ export function useTransactionsPage(): TransactionsPageModel {
         t.fee ?? 0,
         t.tax ?? 0,
         t.currency ?? "",
-        t.fxRateAtTrade ?? ""
+        t.fxRateAtTrade ?? "",
       ]
         .map(esc)
-        .join(",")
+        .join(","),
     );
     const csv = [header.join(","), ...rows].join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -233,7 +260,8 @@ export function useTransactionsPage(): TransactionsPageModel {
           const payloads = rows
             .map((row) => mapFlatRecordToImportPayload(row, defaults))
             .filter((p): p is NonNullable<typeof p> => p != null);
-          if (payloads.length === 0) throw new Error("ไม่มีแถวข้อมูลที่ถูกต้อง");
+          if (payloads.length === 0)
+            throw new Error("ไม่มีแถวข้อมูลที่ถูกต้อง");
           await addMany(payloads);
           return;
         }
@@ -244,10 +272,13 @@ export function useTransactionsPage(): TransactionsPageModel {
           const wb = XLSX.read(buf, { type: "array" });
           const sn = wb.SheetNames[0];
           if (!sn) throw new Error("Excel ไม่มีข้อมูล");
-          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[sn], {
-            defval: "",
-            raw: false
-          });
+          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+            wb.Sheets[sn],
+            {
+              defval: "",
+              raw: false,
+            },
+          );
           if (!Array.isArray(rows) || rows.length === 0) {
             throw new Error("Excel ไม่มีแถวข้อมูล");
           }
@@ -256,7 +287,8 @@ export function useTransactionsPage(): TransactionsPageModel {
           const payloads = rows
             .map((row) => mapFlatRecordToImportPayload(row, defaults))
             .filter((p): p is NonNullable<typeof p> => p != null);
-          if (payloads.length === 0) throw new Error("ไม่มีแถวข้อมูลที่ถูกต้อง");
+          if (payloads.length === 0)
+            throw new Error("ไม่มีแถวข้อมูลที่ถูกต้อง");
           await addMany(payloads);
           return;
         }
@@ -272,7 +304,9 @@ export function useTransactionsPage(): TransactionsPageModel {
         });
         assertCsvHasRequiredColumns(colByNorm);
 
-        const payloads: NonNullable<ReturnType<typeof mapFlatRecordToImportPayload>>[] = [];
+        const payloads: NonNullable<
+          ReturnType<typeof mapFlatRecordToImportPayload>
+        >[] = [];
         for (let r = 1; r < lines.length; r++) {
           const cols = parseCsvLine(lines[r]);
           const record: Record<string, unknown> = {};
@@ -290,7 +324,7 @@ export function useTransactionsPage(): TransactionsPageModel {
         setImporting(false);
       }
     },
-    [addMany, currency, fx]
+    [addMany, currency, fx],
   );
 
   const pickImportFile = React.useCallback(() => {
@@ -305,7 +339,7 @@ export function useTransactionsPage(): TransactionsPageModel {
     input.click();
   }, [importTransactionsFile]);
 
-  const submitImpl = () => {
+  const submitImpl = async () => {
     const assetName = form.assetName.trim().toUpperCase();
     const priceParsed = parseStrictPositiveNumber(form.price);
     const amountParsed = parseStrictPositiveNumber(form.amount);
@@ -314,14 +348,16 @@ export function useTransactionsPage(): TransactionsPageModel {
 
     const nextErrors: TransactionFormErrors = {};
     if (!assetName) nextErrors.assetName = "กรุณากรอกชื่อสินทรัพย์";
-    if (!form.tradeDate?.trim()) nextErrors.tradeDate = "กรุณาเลือกวันที่ทำรายการ";
+    if (!form.tradeDate?.trim())
+      nextErrors.tradeDate = "กรุณาเลือกวันที่ทำรายการ";
     if (!priceParsed.ok) {
       nextErrors.price =
-        priceParsed.reason === "required" ? "กรุณากรอกราคา" : "กรุณากรอกราคาเป็นตัวเลขเท่านั้น";
+        priceParsed.reason === "required"
+          ? "กรุณากรอกราคา"
+          : "กรุณากรอกราคาเป็นตัวเลขเท่านั้น";
     }
     if (!amountParsed.ok) {
-      nextErrors.amount =
-        amountParsed.reason === "required" ? "กรุณากรอกจำนวน" : "กรุณากรอกจำนวนเป็นตัวเลขเท่านั้น";
+      nextErrors.amount = "กรุณากรอกจำนวน";
     }
     setErrors(nextErrors);
     if (
@@ -346,24 +382,49 @@ export function useTransactionsPage(): TransactionsPageModel {
     const isEditWithBase = isEditing && editingBaseRef.current;
     const base = editingBaseRef.current;
 
-    const createdAtIso = localDateTimeToIso(form.tradeDate.trim(), form.tradeTime);
+    const createdAtIso = localDateTimeToIso(
+      form.tradeDate.trim(),
+      form.tradeTime,
+    );
 
     const payload = {
       assetName,
       assetLabel: assetLabel || undefined,
       assetType: form.assetType,
       side: form.side,
-      price: round2(isEditWithBase ? fromDisplayMoney(price, base!.currency, base!.fxRateAtTrade) : price),
+      price: round2(
+        isEditWithBase
+          ? fromDisplayMoney(price, base!.currency, base!.fxRateAtTrade)
+          : price,
+      ),
       amount: round2(amount),
-      fee: isEditWithBase ? fromDisplayMoney(fee, base!.currency, base!.fxRateAtTrade) : fee,
-      tax: isEditWithBase ? fromDisplayMoney(tax, base!.currency, base!.fxRateAtTrade) : tax,
+      fee: isEditWithBase
+        ? fromDisplayMoney(fee, base!.currency, base!.fxRateAtTrade)
+        : fee,
+      tax: isEditWithBase
+        ? fromDisplayMoney(tax, base!.currency, base!.fxRateAtTrade)
+        : tax,
       currency: isEditWithBase ? base!.currency : currency,
-      fxRateAtTrade: isEditWithBase ? base!.fxRateAtTrade ?? fx : fx,
-      createdAt: createdAtIso
+      fxRateAtTrade: isEditWithBase ? (base!.fxRateAtTrade ?? fx) : fx,
+      createdAt: createdAtIso,
     } as const;
 
-    if (isEditing) update(editingId!, payload);
-    else add(payload);
+    if (isEditing) {
+      await update(editingId!, payload);
+      reset();
+      return;
+    }
+
+    const result = await add(payload);
+    if (!result.ok) return;
+
+    if (isFreePlan) {
+      if (typeof result.dailyLimit === "number" && typeof result.remainingToday === "number") {
+        setFreeCreatedTodayCount(result.dailyLimit - result.remainingToday);
+      } else {
+        setFreeCreatedTodayCount((prev) => (prev ?? 0) + 1);
+      }
+    }
     reset();
   };
 
@@ -372,7 +433,7 @@ export function useTransactionsPage(): TransactionsPageModel {
       title,
       body,
       cta,
-      onConfirm
+      onConfirm,
     }: {
       title: string;
       body: React.ReactNode;
@@ -385,25 +446,34 @@ export function useTransactionsPage(): TransactionsPageModel {
       confirmActionRef.current = onConfirm;
       setConfirmOpen(true);
     },
-    []
+    [],
   );
 
   const submit = () => {
-    if (!isEditing) return submitImpl();
+    if (!isEditing) {
+      void submitImpl();
+      return;
+    }
 
     openConfirm({
       title: "ยืนยันบันทึกการแก้ไข?",
       body: (
         <div className="grid gap-2">
-          <div className="text-sm text-zinc-700">ระบบจะบันทึกการแก้ไขรายการนี้</div>
+          <div className="text-sm text-zinc-700">
+            ระบบจะบันทึกการแก้ไขรายการนี้
+          </div>
         </div>
       ),
       cta: "ยืนยันแก้ไข",
-      onConfirm: () => submitImpl()
+      onConfirm: () => void submitImpl(),
     });
   };
 
   const startEdit = (id: string) => {
+    if (user?.plan === "free") {
+      notify.info("แพ็กเกจ Free ไม่รองรับการแก้ไขรายการ");
+      return;
+    }
     const tx = txs.find((t) => t.id === id);
     if (!tx) return;
     const baseCurrency = (tx.currency ?? currency) as "THB" | "USD";
@@ -413,7 +483,7 @@ export function useTransactionsPage(): TransactionsPageModel {
       fxRateAtTrade: baseFx,
       price: tx.price,
       fee: tx.fee ?? 0,
-      tax: tx.tax ?? 0
+      tax: tx.tax ?? 0,
     };
     setEditingId(tx.id);
     setErrors({});
@@ -428,7 +498,7 @@ export function useTransactionsPage(): TransactionsPageModel {
       fee: fmtMaxDp(toDisplayMoney(tx.fee ?? 0, baseCurrency, baseFx), 3),
       tax: fmtMaxDp(toDisplayMoney(tx.tax ?? 0, baseCurrency, baseFx), 3),
       tradeDate: td,
-      tradeTime: tt
+      tradeTime: tt,
     });
     setOpen(true);
     setAssetSuggestOpen(false);
@@ -450,9 +520,18 @@ export function useTransactionsPage(): TransactionsPageModel {
     if (!base) return;
     setForm((prev) => ({
       ...prev,
-      price: fmtMaxDp(toDisplayMoney(base.price, base.currency, base.fxRateAtTrade), 3),
-      fee: fmtMaxDp(toDisplayMoney(base.fee, base.currency, base.fxRateAtTrade), 3),
-      tax: fmtMaxDp(toDisplayMoney(base.tax, base.currency, base.fxRateAtTrade), 3)
+      price: fmtMaxDp(
+        toDisplayMoney(base.price, base.currency, base.fxRateAtTrade),
+        3,
+      ),
+      fee: fmtMaxDp(
+        toDisplayMoney(base.fee, base.currency, base.fxRateAtTrade),
+        3,
+      ),
+      tax: fmtMaxDp(
+        toDisplayMoney(base.tax, base.currency, base.fxRateAtTrade),
+        3,
+      ),
     }));
   }, [currency, open, isEditing, toDisplayMoney]);
 
@@ -464,7 +543,8 @@ export function useTransactionsPage(): TransactionsPageModel {
     const onPointerDown = (e: PointerEvent) => {
       const el = assetSuggestWrapRef.current;
       if (!el) return;
-      if (e.target instanceof Node && !el.contains(e.target)) setAssetSuggestOpen(false);
+      if (e.target instanceof Node && !el.contains(e.target))
+        setAssetSuggestOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("pointerdown", onPointerDown);
@@ -482,7 +562,8 @@ export function useTransactionsPage(): TransactionsPageModel {
     const onPointerDown = (e: PointerEvent) => {
       const el = rowMenuWrapRef.current;
       if (!el) return;
-      if (e.target instanceof Node && !el.contains(e.target)) setRowMenuOpenId(null);
+      if (e.target instanceof Node && !el.contains(e.target))
+        setRowMenuOpenId(null);
     };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("pointerdown", onPointerDown);
@@ -493,16 +574,50 @@ export function useTransactionsPage(): TransactionsPageModel {
   }, [rowMenuOpenId]);
 
   const sorted = React.useMemo(() => {
-    return [...txs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return [...txs].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
   }, [txs]);
+
+  const isFreePlan = user?.plan === "free";
+  const todayCreatedCountFromTxs = React.useMemo(() => {
+    if (!isFreePlan) return 0;
+    const start = startOfDay(new Date());
+    const end = endOfDay(new Date());
+    return txs.filter((t) => {
+      const d = new Date(t.createdAt);
+      return d >= start && d <= end;
+    }).length;
+  }, [isFreePlan, txs]);
+  React.useEffect(() => {
+    if (!isFreePlan) {
+      setFreeCreatedTodayCount(null);
+      return;
+    }
+    setFreeCreatedTodayCount((prev) => {
+      const backendCount =
+        typeof user?.freePlanDailyCount === "number" && Number.isFinite(user.freePlanDailyCount)
+          ? Math.max(0, Math.floor(user.freePlanDailyCount))
+          : null;
+      const initial = Math.max(todayCreatedCountFromTxs, backendCount ?? 0);
+      if (prev == null) return initial;
+      return Math.max(prev, initial);
+    });
+  }, [isFreePlan, todayCreatedCountFromTxs, user?.freePlanDailyCount]);
+  const todayCreatedCount = isFreePlan ? freeCreatedTodayCount ?? todayCreatedCountFromTxs : 0;
+  const freeLimitReached = isFreePlan && todayCreatedCount >= FREE_DAILY_LIMIT;
 
   const oldest = React.useMemo(
     () => (sorted[0]?.createdAt ? new Date(sorted[0].createdAt) : null),
-    [sorted]
+    [sorted],
   );
   const newest = React.useMemo(
-    () => (sorted[sorted.length - 1]?.createdAt ? new Date(sorted[sorted.length - 1].createdAt) : null),
-    [sorted]
+    () =>
+      sorted[sorted.length - 1]?.createdAt
+        ? new Date(sorted[sorted.length - 1].createdAt)
+        : null,
+    [sorted],
   );
 
   const [from, setFrom] = React.useState<string>("");
@@ -562,7 +677,7 @@ export function useTransactionsPage(): TransactionsPageModel {
         setTo(toDateInputValue(now));
       }
     },
-    [newest, oldest]
+    [newest, oldest],
   );
 
   const filteredTxs = React.useMemo(() => {
@@ -580,7 +695,10 @@ export function useTransactionsPage(): TransactionsPageModel {
   const sortedFilteredTxs = React.useMemo(() => {
     return filteredTxs
       .slice()
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
   }, [filteredTxs]);
 
   React.useEffect(() => {
@@ -593,7 +711,10 @@ export function useTransactionsPage(): TransactionsPageModel {
   const safePage = Math.min(page, totalPages);
   const startIdx = (safePage - 1) * perPage;
   const endIdx = Math.min(totalItems, startIdx + perPage);
-  const pageItems = pageSize === "all" ? sortedFilteredTxs : sortedFilteredTxs.slice(startIdx, endIdx);
+  const pageItems =
+    pageSize === "all"
+      ? sortedFilteredTxs
+      : sortedFilteredTxs.slice(startIdx, endIdx);
 
   React.useEffect(() => {
     setPage((p) => Math.min(p, totalPages));
@@ -601,12 +722,16 @@ export function useTransactionsPage(): TransactionsPageModel {
 
   const pageButtons = React.useMemo(
     () => (pageSize === "all" ? [] : visiblePageNumbers(safePage, totalPages)),
-    [pageSize, safePage, totalPages]
+    [pageSize, safePage, totalPages],
   );
 
   return {
     authHydrated,
     user,
+    isFreePlan,
+    todayCreatedCount,
+    freeDailyLimit: FREE_DAILY_LIMIT,
+    freeLimitReached,
     hydrated,
     txs,
     currency,
@@ -662,6 +787,6 @@ export function useTransactionsPage(): TransactionsPageModel {
     pageButtons,
     toDisplayMoney,
     startEdit,
-    remove
+    remove,
   };
 }

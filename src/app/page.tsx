@@ -73,7 +73,7 @@ export default function HomePage() {
                   Pie + P/L Bar
                 </span>
                 <span className="rounded-full border border-zinc-200/70 bg-white px-3 py-1">
-                  localStorage (MVP)
+                  Cloud Database (MongoDB)
                 </span>
               </div>
             </div>
@@ -89,7 +89,7 @@ export default function HomePage() {
                 />
               </div>
               <div className="mt-4 text-center text-xs text-zinc-500">
-                MVP: ข้อมูลถูกเก็บในเครื่องของคุณ (localStorage)
+                ข้อมูลพอร์ตถูกจัดเก็บบนระบบฐานข้อมูลกลาง (MongoDB)
               </div>
             </div>
           </div>
@@ -178,13 +178,12 @@ export default function HomePage() {
             <div className="rounded-3xl border border-zinc-200/70 bg-white p-5">
               <div className="text-sm font-semibold text-zinc-900">ข้อมูลอยู่กับคุณ</div>
               <div className="mt-2 text-sm text-zinc-600">
-                เก็บข้อมูลในเครื่อง (localStorage) เริ่มใช้งานได้ทันที ไม่ต้องตั้งค่าอะไรเยอะ
+                ข้อมูลถูกบันทึกอย่างปลอดภัยบน MongoDB พร้อมใช้งานต่อเนื่องข้ามอุปกรณ์
               </div>
             </div>
           </div>
         </Card>
       </section>
-
 
       {/* HOW IT WORKS */}
       <section className="grid gap-4 sm:grid-cols-2">

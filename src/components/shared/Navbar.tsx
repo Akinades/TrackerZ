@@ -9,17 +9,21 @@ import { AuthButtons } from "@/components/shared/NavbarAuth";
 const nav = [
   { href: "/dashboard", label: "พอร์ตภาพรวม" },
   { href: "/transactions", label: "บันทึกรายการ" },
-  { href: "/assets", label: "กราฟสินทรัพย์" }
+  { href: "/assets", label: "กราฟสินทรัพย์" },
 ] as const;
 
 export function Navbar() {
   const pathname = usePathname();
-  if (pathname === "/" || pathname === "/login" || pathname === "/register") return null;
+  if (pathname === "/" || pathname === "/login" || pathname === "/register")
+    return null;
 
   return (
     <header className="sticky top-0 z-20 -mx-4 bg-transparent px-4 py-5">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight">
+        <Link
+          href="/"
+          className="flex items-center gap-3 font-semibold tracking-tight"
+        >
           {/* <span className="relative h-11 w-11 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-sm">
             <Image src="/logo.png" alt="TrackerZ logo" fill className="object-cover" />
           </span> */}
@@ -54,4 +58,3 @@ export function Navbar() {
     </header>
   );
 }
-

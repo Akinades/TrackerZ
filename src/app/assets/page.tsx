@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/store/useAuth";
 import { useCurrency } from "@/store/useCurrency";
 import { useFxRate } from "@/store/useFxRate";
@@ -17,7 +19,7 @@ import {
   startOfDay,
   startOfYear,
   toDateInputValue,
-  type RangePreset
+  type RangePreset,
 } from "@/lib/assetTimeline";
 import { AssetsPageGuestPrompt } from "@/components/assets/AssetsPageGuestPrompt";
 import { AssetsTimelineFilters } from "@/components/assets/AssetsTimelineFilters";
@@ -29,18 +31,24 @@ export default function AssetsTimelinePage() {
   const { currency } = useCurrency();
   const { usdThb } = useFxRate();
   const { txs, hydrated, error } = useTransactions();
-  const fx = React.useMemo(() => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36), [usdThb]);
+  const fx = React.useMemo(
+    () => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36),
+    [usdThb],
+  );
 
   const toDisplayMoney = React.useCallback(
     (value: number, from?: "THB" | "USD", fxAtTrade?: number) => {
       const src = from ?? currency;
-      const rate = Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0 ? (fxAtTrade as number) : fx;
+      const rate =
+        Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0
+          ? (fxAtTrade as number)
+          : fx;
       if (src === currency) return value;
       if (src === "USD" && currency === "THB") return value * rate;
       if (src === "THB" && currency === "USD") return value / rate;
       return value;
     },
-    [currency, fx]
+    [currency, fx],
   );
   const [assetTxs, setAssetTxs] = React.useState<Transaction[]>([]);
   const [assetLoading, setAssetLoading] = React.useState(false);
@@ -49,18 +57,18 @@ export default function AssetsTimelinePage() {
 
   const sortedAll = React.useMemo(
     () => [...txs].sort((a, b) => txExecutedAtMs(a) - txExecutedAtMs(b)),
-    [txs]
+    [txs],
   );
   const oldest = React.useMemo(
     () => (sortedAll[0] ? new Date(txExecutedAtIso(sortedAll[0])) : null),
-    [sortedAll]
+    [sortedAll],
   );
   const newest = React.useMemo(
     () =>
       sortedAll[sortedAll.length - 1]
         ? new Date(txExecutedAtIso(sortedAll[sortedAll.length - 1]))
         : null,
-    [sortedAll]
+    [sortedAll],
   );
 
   const [from, setFrom] = React.useState<string>("");
@@ -87,21 +95,30 @@ export default function AssetsTimelinePage() {
     setAssetError(null);
 
     (async () => {
-      const res = await fetch(`/api/transactions/asset/${encodeURIComponent(asset)}`, {
-        method: "GET"
-      }).catch(() => null);
+      const res = await fetch(
+        `/api/transactions/asset/${encodeURIComponent(asset)}`,
+        {
+          method: "GET",
+        },
+      ).catch(() => null);
       const json = res ? await res.json().catch(() => null) : null;
       if (!mounted) return;
 
       if (!res || !res.ok) {
-        setAssetError((json as any)?.message || (json as any)?.error || "โหลดรายการสินทรัพย์ไม่สำเร็จ");
+        setAssetError(
+          (json as any)?.message ||
+            (json as any)?.error ||
+            "โหลดรายการสินทรัพย์ไม่สำเร็จ",
+        );
         setAssetTxs([]);
         setAssetLoading(false);
         return;
       }
 
       const list = (json as any)?.transactions ?? json;
-      const mapped = Array.isArray(list) ? (list.map(mapTx).filter(Boolean) as Transaction[]) : [];
+      const mapped = Array.isArray(list)
+        ? (list.map(mapTx).filter(Boolean) as Transaction[])
+        : [];
       setAssetTxs(mapped);
       setAssetLoading(false);
     })();
@@ -164,7 +181,7 @@ export default function AssetsTimelinePage() {
         setTo(toDateInputValue(now));
       }
     },
-    [newest, oldest]
+    [newest, oldest],
   );
 
   const sourceTxs = asset === "__all__" ? txs : assetTxs;
@@ -189,7 +206,7 @@ export default function AssetsTimelinePage() {
 
   const series = React.useMemo(
     () => buildTimelines(filteredTxs, asset, toDisplayMoney),
-    [filteredTxs, asset, toDisplayMoney]
+    [filteredTxs, asset, toDisplayMoney],
   );
 
   const wouldSimplifyChart =
@@ -206,11 +223,29 @@ export default function AssetsTimelinePage() {
       if (!v) return;
       applyPreset(v);
     },
-    [applyPreset]
+    [applyPreset],
   );
 
   if (authHydrated && !user) {
     return <AssetsPageGuestPrompt />;
+  }
+
+  if (authHydrated && user?.plan === "free") {
+    return (
+      <Card className="p-6">
+        <div className="grid gap-2">
+          <div className="text-lg font-semibold">กราฟสินทรัพย์สำหรับแพ็กเกจ Pro</div>
+          <div className="text-sm text-zinc-600">
+            แพ็กเกจ Free ยังไม่สามารถใช้งานหน้า /assets ได้ กรุณาอัปเกรดแพ็กเกจเพื่อใช้งาน
+          </div>
+          <div className="mt-3">
+            <Link href="/settings/plan">
+              <Button>เปลี่ยนแพ็กเกจ</Button>
+            </Link>
+          </div>
+        </div>
+      </Card>
+    );
   }
 
   const chartBlocked =
@@ -223,9 +258,12 @@ export default function AssetsTimelinePage() {
   return (
     <div className="mx-auto grid max-w-6xl gap-5">
       <div className="text-center sm:text-left">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">กราฟสินทรัพย์</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          กราฟสินทรัพย์
+        </h1>
         <p className="mt-1 text-sm text-zinc-500">
-          แกนเงินและคำอธิบายตามสกุลที่เลือก ({currency}) · จุดเขียว = ซื้อ · จุดแดง = ขาย
+          แกนเงินและคำอธิบายตามสกุลที่เลือก ({currency}) · จุดเขียว = ซื้อ ·
+          จุดแดง = ขาย
         </p>
       </div>
 
@@ -269,7 +307,9 @@ export default function AssetsTimelinePage() {
       {!chartBlocked && showAssetsSummary ? (
         <Card className="overflow-hidden rounded-3xl border-zinc-200/80 p-0 shadow-sm">
           <div className="border-b border-zinc-100 bg-gradient-to-b from-zinc-50/60 to-white px-4 py-3 sm:px-6">
-            <h2 className="text-sm font-semibold text-zinc-800">สรุปในช่วงที่เลือก</h2>
+            <h2 className="text-sm font-semibold text-zinc-800">
+              สรุปในช่วงที่เลือก
+            </h2>
             <p className="mt-0.5 text-[11px] text-zinc-500">
               ตัวเลขและรายการซื้อขาย — การ์ดแยกจากกราฟด้านบน
             </p>

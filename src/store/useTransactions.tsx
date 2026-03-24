@@ -138,9 +138,14 @@ export function useTransactions() {
   }, []);
 
   type CreatePayload = Omit<Transaction, "id" | "createdAt"> & { createdAt?: string };
+  type AddResult = {
+    ok: boolean;
+    remainingToday?: number;
+    dailyLimit?: number;
+  };
 
   const add = React.useCallback(
-    async (tx: CreatePayload) => {
+    async (tx: CreatePayload): Promise<AddResult> => {
     setError(null);
     const res = await fetch("/api/transactions", {
       method: "POST",
@@ -152,12 +157,19 @@ export function useTransactions() {
       const msg = (json as any)?.message || (json as any)?.error || "เพิ่มรายการไม่สำเร็จ";
       setError(msg);
       notify.error(msg, "เพิ่มรายการไม่สำเร็จ");
-      return;
+      return { ok: false };
     }
     const created = mapTx((json as any)?.transaction ?? json);
     if (created) setTxs((prev) => [created, ...prev]);
     else await refresh();
     notify.success("เพิ่มรายการสำเร็จ");
+    const remainingTodayRaw = (json as { remainingToday?: unknown } | null)?.remainingToday;
+    const dailyLimitRaw = (json as { dailyLimit?: unknown } | null)?.dailyLimit;
+    return {
+      ok: true,
+      remainingToday: typeof remainingTodayRaw === "number" ? remainingTodayRaw : undefined,
+      dailyLimit: typeof dailyLimitRaw === "number" ? dailyLimitRaw : undefined
+    };
     },
     [refresh]
   );
@@ -213,15 +225,19 @@ export function useTransactions() {
     [txs]
   );
 
-  const removeAll = React.useCallback(async () => {
+  const removeAll = React.useCallback(async (assetSymbol?: string) => {
     setError(null);
     if (txs.length === 0) return;
-    const res = await fetch("/api/transactions", { method: "DELETE" }).catch(() => null);
+    const q =
+      assetSymbol && assetSymbol.trim()
+        ? `?asset_symbol=${encodeURIComponent(assetSymbol.trim().toUpperCase())}`
+        : "";
+    const res = await fetch(`/api/transactions${q}`, { method: "DELETE" }).catch(() => null);
     const json = res ? await readJsonSafe(res) : null;
     if (!res || !res.ok) {
       setError("ลบรายการทั้งหมดไม่สำเร็จ");
       notify.error(
-        (json as { message?: string })?.message || "ลบข้อมูลทั้งหมดไม่สำเร็จ — ลองใหม่หรือรีเฟรชหน้า"
+        (json as { message?: string })?.message || "ลบข้อมูลไม่สำเร็จ — ลองใหม่หรือรีเฟรชหน้า"
       );
       await refresh();
       return;
@@ -231,7 +247,11 @@ export function useTransactions() {
         ? (json as { deleted: number }).deleted
         : txs.length;
     await refresh();
-    notify.success(`ลบรายการทั้งหมดแล้ว (${deleted} รายการ)`);
+    notify.success(
+      assetSymbol
+        ? `ลบข้อมูล ${assetSymbol.toUpperCase()} แล้ว (${deleted} รายการ)`
+        : `ลบข้อมูลทั้งหมดแล้ว (${deleted} รายการ)`
+    );
   }, [txs.length, refresh]);
 
   const update = React.useCallback(

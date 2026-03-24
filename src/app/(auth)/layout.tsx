@@ -1,8 +1,12 @@
 import Link from "next/link";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="mx-auto grid min-h-full w-full max-w-4xl place-items-center py-4">
+    <div className="mx-auto grid min-h-full w-full max-w-6xl place-items-center py-4">
       <div className="grid w-full gap-6">
         <div className="grid gap-2 text-center">
           <div className="flex items-center justify-center gap-2">
@@ -20,19 +24,17 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             บันทึกรายการซื้อ/ขาย → ดูพอร์ตภาพรวม → เห็นกำไร/ขาดทุน + กราฟสัดส่วน
           </div>
           <div className="text-sm">
-            <Link href="/" className="text-zinc-700 underline underline-offset-4 hover:text-zinc-900">
+            <Link
+              href="/"
+              className="text-zinc-700 underline underline-offset-4 hover:text-zinc-900"
+            >
               กลับหน้าแรก
             </Link>
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-3xl">{children}</div>
-
-        <div className="text-center text-xs text-zinc-500">
-          MVP: บัญชี/ข้อมูลถูกเก็บในเครื่องคุณ (localStorage)
-        </div>
+        <div className="mx-auto w-full max-w-5xl">{children}</div>
       </div>
     </div>
   );
 }
-

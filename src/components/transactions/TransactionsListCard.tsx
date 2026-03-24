@@ -12,6 +12,7 @@ export function TransactionsListCard({ m }: Props) {
   const {
     hydrated,
     txs,
+    isFreePlan,
     filteredTxs,
     pageItems,
     currency,
@@ -34,7 +35,7 @@ export function TransactionsListCard({ m }: Props) {
     safePage,
     startIdx,
     endIdx,
-    pageButtons
+    pageButtons,
   } = m;
 
   return (
@@ -47,24 +48,26 @@ export function TransactionsListCard({ m }: Props) {
               แสดง {filteredTxs.length} / ทั้งหมด {txs.length} รายการ
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              variant="secondary"
-              onClick={exportCsv}
-              disabled={!hydrated || txs.length === 0}
-              className="h-9 rounded-2xl px-4 py-0"
-            >
-              Export CSV
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={pickImportFile}
-              disabled={!hydrated || importing}
-              className="h-9 rounded-2xl px-4 py-0"
-            >
-              Import Files
-            </Button>
-          </div>
+          {!isFreePlan ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={exportCsv}
+                disabled={!hydrated || txs.length === 0}
+                className="h-9 rounded-2xl px-4 py-0"
+              >
+                Export CSV
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={pickImportFile}
+                disabled={!hydrated || importing}
+                className="h-9 rounded-2xl px-4 py-0"
+              >
+                Import Files
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -72,7 +75,9 @@ export function TransactionsListCard({ m }: Props) {
         {!hydrated ? (
           <div className="p-5 text-sm text-zinc-400">กำลังโหลดข้อมูล…</div>
         ) : filteredTxs.length === 0 ? (
-          <div className="p-5 text-sm text-zinc-400">ยังไม่มีรายการ ลองเพิ่มรายการแรกได้เลย</div>
+          <div className="p-5 text-sm text-zinc-400">
+            ยังไม่มีรายการ ลองเพิ่มรายการแรกได้เลย
+          </div>
         ) : (
           <div ref={rowMenuWrapRef}>
             <div className="hidden gap-3 bg-zinc-50/60 px-5 py-3 text-xs font-medium text-zinc-600 sm:grid sm:grid-cols-[minmax(200px,2.4fr)_minmax(120px,1fr)_minmax(86px,0.85fr)_minmax(130px,1.1fr)_minmax(100px,1fr)_minmax(92px,1fr)_minmax(92px,1fr)_minmax(124px,1.1fr)_minmax(72px,0.6fr)]">
@@ -95,7 +100,11 @@ export function TransactionsListCard({ m }: Props) {
                   <div className="font-medium text-zinc-900">
                     {t.assetLabel ? (
                       <span className="flex flex-wrap items-center gap-2">
-                        <AssetIcon symbol={t.assetName} type={t.assetType} className="h-7 w-7 rounded-xl" />
+                        <AssetIcon
+                          symbol={t.assetName}
+                          type={t.assetType}
+                          className="h-7 w-7 rounded-xl"
+                        />
                         <span className="truncate">{t.assetLabel}</span>
                         <span className="rounded-full border border-zinc-200/70 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
                           {t.assetName}
@@ -103,24 +112,32 @@ export function TransactionsListCard({ m }: Props) {
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
-                        <AssetIcon symbol={t.assetName} type={t.assetType} className="h-7 w-7 rounded-xl" />
+                        <AssetIcon
+                          symbol={t.assetName}
+                          type={t.assetType}
+                          className="h-7 w-7 rounded-xl"
+                        />
                         <span>{t.assetName}</span>
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-zinc-500">{t.assetType.toUpperCase()}</div>
+                  <div className="text-xs text-zinc-500">
+                    {t.assetType.toUpperCase()}
+                  </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between gap-2 sm:block">
-                    <span className="text-xs text-zinc-500 sm:hidden">วันที่ทำรายการ</span>
+                    <span className="text-xs text-zinc-500 sm:hidden">
+                      วันที่ทำรายการ
+                    </span>
                     <span className="text-sm tabular-nums text-zinc-800">
                       {new Date(t.createdAt).toLocaleString("th-TH", {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
                         hour: "2-digit",
-                        minute: "2-digit"
+                        minute: "2-digit",
                       })}
                     </span>
                   </div>
@@ -140,11 +157,19 @@ export function TransactionsListCard({ m }: Props) {
 
                 <div className="sm:text-right">
                   <div className="flex items-center justify-between text-sm sm:block">
-                    <span className="text-xs text-zinc-500 sm:hidden">มูลค่า</span>
+                    <span className="text-xs text-zinc-500 sm:hidden">
+                      มูลค่า
+                    </span>
                     <span className="tabular-nums font-medium text-zinc-900">
                       {formatMoney(
-                        round2(toDisplayMoney(txValue(t), t.currency, t.fxRateAtTrade)),
-                        currency
+                        round2(
+                          toDisplayMoney(
+                            txValue(t),
+                            t.currency,
+                            t.fxRateAtTrade,
+                          ),
+                        ),
+                        currency,
                       )}
                     </span>
                   </div>
@@ -152,8 +177,12 @@ export function TransactionsListCard({ m }: Props) {
 
                 <div className="sm:text-right">
                   <div className="flex items-center justify-between text-sm sm:block">
-                    <span className="text-xs text-zinc-500 sm:hidden">จำนวน</span>
-                    <span className="tabular-nums text-zinc-700">{t.amount}</span>
+                    <span className="text-xs text-zinc-500 sm:hidden">
+                      จำนวน
+                    </span>
+                    <span className="tabular-nums text-zinc-700">
+                      {t.amount}
+                    </span>
                   </div>
                 </div>
 
@@ -162,9 +191,15 @@ export function TransactionsListCard({ m }: Props) {
                     <span className="text-xs text-zinc-500 sm:hidden">Fee</span>
                     <span className="tabular-nums text-zinc-700">
                       {formatMoneyMax(
-                        round2(toDisplayMoney(t.fee ?? 0, t.currency, t.fxRateAtTrade)),
+                        round2(
+                          toDisplayMoney(
+                            t.fee ?? 0,
+                            t.currency,
+                            t.fxRateAtTrade,
+                          ),
+                        ),
                         currency,
-                        3
+                        3,
                       )}
                     </span>
                   </div>
@@ -175,9 +210,15 @@ export function TransactionsListCard({ m }: Props) {
                     <span className="text-xs text-zinc-500 sm:hidden">Tax</span>
                     <span className="tabular-nums text-zinc-700">
                       {formatMoneyMax(
-                        round2(toDisplayMoney(t.tax ?? 0, t.currency, t.fxRateAtTrade)),
+                        round2(
+                          toDisplayMoney(
+                            t.tax ?? 0,
+                            t.currency,
+                            t.fxRateAtTrade,
+                          ),
+                        ),
                         currency,
-                        3
+                        3,
                       )}
                     </span>
                   </div>
@@ -185,9 +226,16 @@ export function TransactionsListCard({ m }: Props) {
 
                 <div className="sm:text-right">
                   <div className="flex items-center justify-between text-sm sm:block">
-                    <span className="text-xs text-zinc-500 sm:hidden">ราคา</span>
+                    <span className="text-xs text-zinc-500 sm:hidden">
+                      ราคา
+                    </span>
                     <span className="tabular-nums text-zinc-700">
-                      {formatMoney(round2(toDisplayMoney(t.price, t.currency, t.fxRateAtTrade)), currency)}
+                      {formatMoney(
+                        round2(
+                          toDisplayMoney(t.price, t.currency, t.fxRateAtTrade),
+                        ),
+                        currency,
+                      )}
                     </span>
                   </div>
                 </div>
@@ -198,23 +246,29 @@ export function TransactionsListCard({ m }: Props) {
                       type="button"
                       aria-label="Row actions"
                       className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                      onClick={() => setRowMenuOpenId((prev) => (prev === t.id ? null : t.id))}
+                      onClick={() =>
+                        setRowMenuOpenId((prev) =>
+                          prev === t.id ? null : t.id,
+                        )
+                      }
                     >
                       ⋯
                     </button>
                     {rowMenuOpenId === t.id ? (
                       <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-40 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_30px_70px_-55px_rgba(0,0,0,0.55)]">
-                        <button
-                          type="button"
-                          className="w-full px-4 py-3 text-left text-sm text-zinc-800 hover:bg-zinc-50"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setRowMenuOpenId(null);
-                            startEdit(t.id);
-                          }}
-                        >
-                          แก้ไขรายการ
-                        </button>
+                        {!isFreePlan ? (
+                          <button
+                            type="button"
+                            className="w-full px-4 py-3 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setRowMenuOpenId(null);
+                              startEdit(t.id);
+                            }}
+                          >
+                            แก้ไขรายการ
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           className="w-full px-4 py-3 text-left text-sm text-rose-700 hover:bg-rose-50"
@@ -226,18 +280,29 @@ export function TransactionsListCard({ m }: Props) {
                               body: (
                                 <div className="grid gap-2">
                                   <div className="text-sm text-zinc-700">
-                                    คุณกำลังจะลบ <span className="font-medium">{t.assetName}</span> (
-                                    {t.side.toUpperCase()}) มูลค่า{" "}
+                                    คุณกำลังจะลบ{" "}
+                                    <span className="font-medium">
+                                      {t.assetName}
+                                    </span>{" "}
+                                    ({t.side.toUpperCase()}) มูลค่า{" "}
                                     {formatMoney(
-                                      round2(toDisplayMoney(txValue(t), t.currency, t.fxRateAtTrade)),
-                                      currency
+                                      round2(
+                                        toDisplayMoney(
+                                          txValue(t),
+                                          t.currency,
+                                          t.fxRateAtTrade,
+                                        ),
+                                      ),
+                                      currency,
                                     )}
                                   </div>
-                                  <div className="text-xs text-zinc-500">การลบไม่สามารถกู้คืนได้</div>
+                                  <div className="text-xs text-zinc-500">
+                                    การลบไม่สามารถกู้คืนได้
+                                  </div>
                                 </div>
                               ),
                               cta: "ลบรายการ",
-                              onConfirm: () => remove(t.id)
+                              onConfirm: () => remove(t.id),
                             });
                           }}
                         >
@@ -260,7 +325,8 @@ export function TransactionsListCard({ m }: Props) {
               <>แสดงทั้งหมด {totalItems} รายการ</>
             ) : (
               <>
-                {startIdx + 1}-{endIdx} / {totalItems} (หน้า {safePage}/{totalPages})
+                {startIdx + 1}-{endIdx} / {totalItems} (หน้า {safePage}/
+                {totalPages})
               </>
             )}
           </div>
@@ -270,7 +336,9 @@ export function TransactionsListCard({ m }: Props) {
                 value={String(pageSize)}
                 onChange={(e) => {
                   const v = e.target.value;
-                  setPageSize(v === "all" ? "all" : (Number(v) as 10 | 25 | 50 | 100));
+                  setPageSize(
+                    v === "all" ? "all" : (Number(v) as 10 | 25 | 50 | 100),
+                  );
                 }}
                 className="h-9 rounded-2xl px-3 text-xs shadow-none"
                 aria-label="Page size"
@@ -293,7 +361,11 @@ export function TransactionsListCard({ m }: Props) {
             <div className="flex flex-wrap items-center justify-center gap-1">
               {pageButtons.map((item, idx) =>
                 item === "gap" ? (
-                  <span key={`gap-${idx}`} className="px-1 text-xs text-zinc-400" aria-hidden>
+                  <span
+                    key={`gap-${idx}`}
+                    className="px-1 text-xs text-zinc-400"
+                    aria-hidden
+                  >
                     …
                   </span>
                 ) : (
@@ -309,7 +381,7 @@ export function TransactionsListCard({ m }: Props) {
                   >
                     {item}
                   </button>
-                )
+                ),
               )}
             </div>
             <button

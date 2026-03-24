@@ -189,11 +189,14 @@ export function TransactionFormModal({ m }: Props) {
                 }
               }}
             />
-            {errors.price ? <div className="mt-1 text-xs text-rose-700">{errors.price}</div> : null}
+            <div className="mt-1 min-h-[18px] text-xs text-rose-700">{errors.price ?? ""}</div>
           </div>
 
           <div className="grid gap-1">
-            <label className="text-sm text-zinc-700 dark:text-zinc-200">จำนวน</label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm text-zinc-700 dark:text-zinc-200">จำนวน</label>
+              <span className="invisible text-[11px] font-medium">USD</span>
+            </div>
             <Input
               inputMode="decimal"
               value={form.amount}
@@ -210,13 +213,12 @@ export function TransactionFormModal({ m }: Props) {
                 if (!a.ok) {
                   setErrors((prev) => ({
                     ...prev,
-                    amount:
-                      a.reason === "required" ? "กรุณากรอกจำนวน" : "กรุณากรอกจำนวนเป็นตัวเลขเท่านั้น"
+                    amount: "กรุณากรอกจำนวน"
                   }));
                 }
               }}
             />
-            {errors.amount ? <div className="mt-1 text-xs text-rose-700">{errors.amount}</div> : null}
+            <div className="mt-1 min-h-[18px] text-xs text-rose-700">{errors.amount ?? ""}</div>
           </div>
 
           <div className="grid gap-1">

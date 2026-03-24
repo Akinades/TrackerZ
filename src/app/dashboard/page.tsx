@@ -39,7 +39,7 @@ export default function DashboardPage() {
       <DashboardHoldingsTableCard d={d} />
       <DashboardAllocationPieCard d={d} />
       <DashboardPnlBarCard d={d} />
-      <DashboardAllocationTargetsCard d={d} />
+      {user?.plan !== "free" ? <DashboardAllocationTargetsCard d={d} /> : null}
     </div>
   );
 }
