@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/store/useAuth";
-import { useCurrency } from "@/store/useCurrency";
+import { DEFAULT_TX_CURRENCY, useCurrency } from "@/store/useCurrency";
 import { useFxRate } from "@/store/useFxRate";
 import { mapTx, useTransactions } from "@/store/useTransactions";
 import type { Transaction } from "@/types/transactions";
@@ -37,12 +37,9 @@ export default function AssetsTimelinePage() {
   );
 
   const toDisplayMoney = React.useCallback(
-    (value: number, from?: "THB" | "USD", fxAtTrade?: number) => {
-      const src = from ?? currency;
-      const rate =
-        Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0
-          ? (fxAtTrade as number)
-          : fx;
+    (value: number, from?: "THB" | "USD", _fxAtTrade?: number) => {
+      const src = from ?? DEFAULT_TX_CURRENCY;
+      const rate = fx;
       if (src === currency) return value;
       if (src === "USD" && currency === "THB") return value * rate;
       if (src === "THB" && currency === "USD") return value / rate;

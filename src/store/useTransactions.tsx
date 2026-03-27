@@ -51,7 +51,7 @@ export function mapTx(raw: any): Transaction | null {
   const createdAt = String(
     raw.createdAt ?? raw.created_at ?? tradedAt ?? new Date().toISOString()
   );
-  const currencyRaw = raw.currency;
+  const currencyRaw = typeof raw.currency === "string" ? raw.currency.trim().toUpperCase() : raw.currency;
   const currency =
     currencyRaw === "THB" || currencyRaw === "USD" ? (currencyRaw as Transaction["currency"]) : undefined;
 

@@ -4,7 +4,7 @@ import * as React from "react";
 import type { AppCurrency } from "@/store/useCurrency";
 import { useTransactions } from "@/store/useTransactions";
 import { useAuth } from "@/store/useAuth";
-import { useCurrency } from "@/store/useCurrency";
+import { DEFAULT_TX_CURRENCY, useCurrency } from "@/store/useCurrency";
 import { useFxRate } from "@/store/useFxRate";
 import { round2 } from "@/lib/calculations";
 import { ASSETS_CATALOG, findAssetCatalogItem } from "@/lib/assetsCatalog";
@@ -155,13 +155,11 @@ export function useTransactionsPage(): TransactionsPageModel {
     [usdThb],
   );
 
+  /** แปลงเป็นสกุลแสดงผล — ใช้อัตรา spot เหมือน `/dashboard` (ไม่ใช้ fxRateAtTrade ซึ่งอาจเป็น 1/ค่าผิด) */
   const toDisplayMoney = React.useCallback(
-    (value: number, from?: "THB" | "USD", fxAtTrade?: number) => {
-      const src = from ?? currency;
-      const rate =
-        Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0
-          ? (fxAtTrade as number)
-          : fx;
+    (value: number, from?: "THB" | "USD", _fxAtTrade?: number) => {
+      const src = from ?? DEFAULT_TX_CURRENCY;
+      const rate = fx;
       if (src === currency) return value;
       if (src === "USD" && currency === "THB") return value * rate;
       if (src === "THB" && currency === "USD") return value / rate;
@@ -171,12 +169,9 @@ export function useTransactionsPage(): TransactionsPageModel {
   );
 
   const fromDisplayMoney = React.useCallback(
-    (value: number, to?: "THB" | "USD", fxAtTrade?: number) => {
+    (value: number, to?: "THB" | "USD", _fxAtTrade?: number) => {
       const dst = to ?? currency;
-      const rate =
-        Number.isFinite(fxAtTrade) && (fxAtTrade as number) > 0
-          ? (fxAtTrade as number)
-          : fx;
+      const rate = fx;
       if (dst === currency) return value;
       if (currency === "USD" && dst === "THB") return value * rate;
       if (currency === "THB" && dst === "USD") return value / rate;
@@ -471,7 +466,7 @@ export function useTransactionsPage(): TransactionsPageModel {
     }
     const tx = txs.find((t) => t.id === id);
     if (!tx) return;
-    const baseCurrency = (tx.currency ?? currency) as "THB" | "USD";
+    const baseCurrency = (tx.currency ?? DEFAULT_TX_CURRENCY) as "THB" | "USD";
     const baseFx = tx.fxRateAtTrade;
     editingBaseRef.current = {
       currency: baseCurrency,

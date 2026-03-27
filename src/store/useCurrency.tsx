@@ -4,6 +4,9 @@ import * as React from "react";
 
 export type AppCurrency = "THB" | "USD";
 
+/** สกุลที่บันทึกในฐานข้อมูลเมื่อรายการไม่มีฟิลด์ `currency` (ข้อมูลเก่า) */
+export const DEFAULT_TX_CURRENCY: AppCurrency = "THB";
+
 const KEY = "trackerz.currency.v1";
 const EVT = "trackerz:currency";
 
