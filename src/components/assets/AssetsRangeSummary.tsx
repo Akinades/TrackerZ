@@ -156,64 +156,80 @@ export function AssetsRangeSummary({
         </span>
       </div>
 
-      <div className="mt-4 rounded-3xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50/70 via-white to-zinc-50/40 p-3 sm:p-4">
+      <div className="mt-4 rounded-3xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50/80 via-white to-zinc-50/60 p-4 sm:p-5">
         <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr] lg:items-stretch">
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 md:p-6">
-            <div className="text-sm font-semibold text-zinc-500">
+          <div className="p-1 md:pr-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               ผลลัพธ์รวมช่วงนี้ (ประมาณการ)
             </div>
             <div
-              className={`mt-2 text-3xl font-extrabold tabular-nums md:text-4xl ${
-                simplePnl >= 0 ? "text-emerald-700" : "text-rose-700"
+              className={`mt-2 text-3xl font-extrabold tabular-nums tracking-tight md:text-4xl ${
+                simplePnl >= 0 ? "text-emerald-700" : "text-rose-600"
               }`}
             >
               {simplePnl >= 0 ? "กำไร " : "ขาดทุน "}
               {formatMoney(Math.abs(simplePnl), currency)}
             </div>
-            <p className="mt-2 text-lg font-semibold text-zinc-600">
+            <p className="mt-2 text-sm font-semibold text-zinc-600 md:text-base">
               {simplePnlPct == null
                 ? "คำนวณจาก เงินขายสุทธิ + มูลค่าหน่วยที่เหลือ - มูลค่าซื้อรวม"
                 : `คิดเป็น ${simplePnl >= 0 ? "+" : ""}${simplePnlPct.toFixed(2)}% ของทุนซื้อรวม`}
             </p>
-            <p className="mt-3 text-xl font-bold tabular-nums leading-tight text-zinc-600 md:text-2xl">
-              {formatMoney(sellNetTotal, currency)} +{" "}
-              {formatMoney(remaining.value, currency)} -{" "}
-              {formatMoney(buyTotalOutflow, currency)} ={" "}
-              {simplePnl >= 0 ? "+" : "-"}
-              {formatMoney(Math.abs(simplePnl), currency)}
-            </p>
-            <p className="mt-3 text-base font-medium text-zinc-500">
-              มูลค่าหน่วยที่เหลือ {formatMoney(remaining.value, currency)} (
-              {remaining.qty} หน่วย)
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm font-semibold tabular-nums text-zinc-600 md:text-base">
+              <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1">
+                {formatMoney(sellNetTotal, currency)}
+              </span>
+              <span className="text-zinc-400">+</span>
+              <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1">
+                {formatMoney(remaining.value, currency)}
+              </span>
+              <span className="text-zinc-400">-</span>
+              <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1">
+                {formatMoney(buyTotalOutflow, currency)}
+              </span>
+              <span className="text-zinc-400">=</span>
+              <span
+                className={`rounded-lg px-2.5 py-1 ${
+                  simplePnl >= 0
+                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80"
+                    : "bg-rose-50 text-rose-600 ring-1 ring-rose-200/80"
+                }`}
+              >
+                {simplePnl >= 0 ? "+" : "-"}
+                {formatMoney(Math.abs(simplePnl), currency)}
+              </span>
+            </div>
+            <p className="mt-4 text-sm font-medium text-zinc-500 md:text-base">
+              มูลค่าหน่วยที่เหลือ {formatMoney(remaining.value, currency)} ({remaining.qty} หน่วย)
             </p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-3">
-            <div className="grid gap-3">
-              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-3">
-                <div className="text-[11px] font-medium text-zinc-500">
+          <div className="rounded-2xl border border-zinc-200/70 bg-white/70 p-3 sm:p-4">
+            <div className="grid divide-y divide-zinc-200/70">
+              <div className="pb-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                   เงินขายสุทธิ
                 </div>
-                <div className="mt-1 text-xl font-bold tabular-nums text-zinc-900">
+                <div className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
                   {formatMoney(sellNetTotal, currency)}
                 </div>
               </div>
-              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-3">
-                <div className="text-[11px] font-medium text-zinc-500">
+              <div className="py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                   มูลค่าที่เหลืออยู่ (ราคาตลาด)
                 </div>
-                <div className="mt-1 text-xl font-bold tabular-nums text-zinc-900">
+                <div className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
                   {formatMoney(remaining.value, currency)}
                 </div>
                 <p className="mt-1 text-[10px] text-zinc-500">
                   คงเหลือ {remaining.qty} หน่วย
                 </p>
               </div>
-              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-3">
-                <div className="text-[11px] font-medium text-zinc-500">
+              <div className="pt-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                   มูลค่าซื้อรวม
                 </div>
-                <div className="mt-1 text-xl font-bold tabular-nums text-zinc-900">
+                <div className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
                   {formatMoney(buyTotalOutflow, currency)}
                 </div>
               </div>
