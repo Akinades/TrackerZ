@@ -114,7 +114,7 @@ export type TransactionsPageModel = {
 };
 
 export function useTransactionsPage(): TransactionsPageModel {
-  const { user, hydrated: authHydrated } = useAuth();
+  const { user, hydrated: authHydrated, refreshUser } = useAuth();
   const { currency } = useCurrency();
   const { usdThb } = useFxRate();
   const { txs, hydrated, add, addMany, remove, removeAll, update } =
@@ -148,7 +148,6 @@ export function useTransactionsPage(): TransactionsPageModel {
   const [rowMenuOpenId, setRowMenuOpenId] = React.useState<string | null>(null);
   const rowMenuWrapRef = React.useRef<HTMLDivElement | null>(null);
   const FREE_DAILY_LIMIT = 10;
-  const [freeCreatedTodayCount, setFreeCreatedTodayCount] = React.useState<number | null>(null);
 
   const isEditing = editingId !== null;
   const fx = React.useMemo(
@@ -419,11 +418,7 @@ export function useTransactionsPage(): TransactionsPageModel {
     if (!result.ok) return;
 
     if (isFreePlan) {
-      if (typeof result.dailyLimit === "number" && typeof result.remainingToday === "number") {
-        setFreeCreatedTodayCount(result.dailyLimit - result.remainingToday);
-      } else {
-        setFreeCreatedTodayCount((prev) => (prev ?? 0) + 1);
-      }
+      await refreshUser().catch(() => null);
     }
     reset();
   };
@@ -590,22 +585,13 @@ export function useTransactionsPage(): TransactionsPageModel {
       return d >= start && d <= end;
     }).length;
   }, [isFreePlan, txs]);
-  React.useEffect(() => {
-    if (!isFreePlan) {
-      setFreeCreatedTodayCount(null);
-      return;
+  const todayCreatedCount = React.useMemo(() => {
+    if (!isFreePlan) return 0;
+    if (typeof user?.freePlanDailyCount === "number" && Number.isFinite(user.freePlanDailyCount)) {
+      return Math.max(0, Math.floor(user.freePlanDailyCount));
     }
-    setFreeCreatedTodayCount((prev) => {
-      const backendCount =
-        typeof user?.freePlanDailyCount === "number" && Number.isFinite(user.freePlanDailyCount)
-          ? Math.max(0, Math.floor(user.freePlanDailyCount))
-          : null;
-      const initial = Math.max(todayCreatedCountFromTxs, backendCount ?? 0);
-      if (prev == null) return initial;
-      return Math.max(prev, initial);
-    });
-  }, [isFreePlan, todayCreatedCountFromTxs, user?.freePlanDailyCount]);
-  const todayCreatedCount = isFreePlan ? freeCreatedTodayCount ?? todayCreatedCountFromTxs : 0;
+    return todayCreatedCountFromTxs;
+  }, [isFreePlan, user?.freePlanDailyCount, todayCreatedCountFromTxs]);
   const freeLimitReached = isFreePlan && todayCreatedCount >= FREE_DAILY_LIMIT;
 
   const oldest = React.useMemo(

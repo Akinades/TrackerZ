@@ -35,7 +35,7 @@ function userFromResponse(json: unknown): PublicUser | null {
 
 export async function getCurrentUser(): Promise<PublicUser | null> {
   try {
-    const res = await fetch("/api/auth/me", { method: "GET" });
+    const res = await fetch("/api/auth/me", { method: "GET", cache: "no-store" });
     if (!res.ok) return null;
     const json = (await readJsonSafe(res)) as MeResponse | null;
     const u = json?.user;

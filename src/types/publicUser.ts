@@ -32,6 +32,15 @@ function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
 }
 
+function nonNegativeInt(v: unknown): number | undefined {
+  if (typeof v === "number" && Number.isFinite(v)) return Math.max(0, Math.floor(v));
+  if (typeof v === "string" && v.trim()) {
+    const n = Number(v);
+    if (Number.isFinite(n)) return Math.max(0, Math.floor(n));
+  }
+  return undefined;
+}
+
 function nullableIso(v: unknown): string | null {
   if (typeof v !== "string") return null;
   const s = v.trim();
@@ -61,9 +70,6 @@ export function normalizePublicUser(input: unknown): PublicUser | null {
     updatedAt: str(o.updatedAt),
     freePlanDailyCountDate:
       typeof o.freePlanDailyCountDate === "string" ? o.freePlanDailyCountDate : null,
-    freePlanDailyCount:
-      typeof o.freePlanDailyCount === "number" && Number.isFinite(o.freePlanDailyCount)
-        ? Math.max(0, Math.floor(o.freePlanDailyCount))
-        : undefined
+    freePlanDailyCount: nonNegativeInt(o.freePlanDailyCount)
   };
 }

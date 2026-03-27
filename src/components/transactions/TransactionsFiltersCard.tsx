@@ -2,11 +2,15 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import type { TransactionsPageModel } from "@/hooks/useTransactionsPage";
+import * as React from "react";
 
 type Props = { m: TransactionsPageModel };
 
 export function TransactionsFiltersCard({ m }: Props) {
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [selectedAsset, setSelectedAsset] = React.useState("__all__");
   const {
     hydrated,
     rangePreset,
@@ -19,7 +23,6 @@ export function TransactionsFiltersCard({ m }: Props) {
     oldest,
     newest,
     startAdd,
-    openConfirm,
     removeAll,
     txs,
     isFreePlan,
@@ -27,6 +30,10 @@ export function TransactionsFiltersCard({ m }: Props) {
     freeDailyLimit,
     freeLimitReached
   } = m;
+  const assetOptions = React.useMemo(
+    () => Array.from(new Set(txs.map((t) => t.assetName))).sort((a, b) => a.localeCompare(b)),
+    [txs]
+  );
 
   return (
     <Card>
@@ -104,37 +111,8 @@ export function TransactionsFiltersCard({ m }: Props) {
           <Button
             variant="secondary"
             onClick={() => {
-              let selectedAsset = "__all__";
-              const assetOptions = Array.from(new Set(txs.map((t) => t.assetName))).sort((a, b) =>
-                a.localeCompare(b)
-              );
-              openConfirm({
-                title: "ลบข้อมูล",
-                body: (
-                  <div className="grid gap-3">
-                    <div className="text-sm text-zinc-700">เลือกว่าจะลบข้อมูลทั้งหมด หรือเฉพาะสินทรัพย์</div>
-                    <Select
-                      defaultValue="__all__"
-                      onChange={(e) => {
-                        selectedAsset = e.target.value;
-                      }}
-                    >
-                      <option value="__all__">ลบข้อมูลทั้งหมด ({txs.length} รายการ)</option>
-                      {assetOptions.map((symbol) => {
-                        const count = txs.filter((t) => t.assetName === symbol).length;
-                        return (
-                          <option key={symbol} value={symbol}>
-                            ลบเฉพาะ {symbol} ({count} รายการ)
-                          </option>
-                        );
-                      })}
-                    </Select>
-                    <div className="text-xs text-zinc-500">การลบไม่สามารถกู้คืนได้</div>
-                  </div>
-                ),
-                cta: "ยืนยันลบ",
-                onConfirm: () => void removeAll(selectedAsset === "__all__" ? undefined : selectedAsset)
-              });
+              setSelectedAsset("__all__");
+              setDeleteOpen(true);
             }}
             disabled={!hydrated || txs.length === 0}
             className="h-11 rounded-2xl border-rose-200/80 px-4 py-0 text-rose-800 hover:bg-rose-50"
@@ -149,6 +127,37 @@ export function TransactionsFiltersCard({ m }: Props) {
           {freeDailyLimit})
         </div>
       ) : null}
+
+      <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="ลบข้อมูล" className="max-w-lg">
+        <div className="grid gap-4">
+          <div className="text-sm text-zinc-700">เลือกว่าจะลบข้อมูลทั้งหมด หรือเฉพาะสินทรัพย์</div>
+          <Select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)}>
+            <option value="__all__">ลบข้อมูลทั้งหมด ({txs.length} รายการ)</option>
+            {assetOptions.map((symbol) => {
+              const count = txs.filter((t) => t.assetName === symbol).length;
+              return (
+                <option key={symbol} value={symbol}>
+                  ลบเฉพาะ {symbol} ({count} รายการ)
+                </option>
+              );
+            })}
+          </Select>
+          <div className="text-xs text-zinc-500">การลบไม่สามารถกู้คืนได้</div>
+          <div className="flex gap-2 sm:justify-end">
+            <Button variant="secondary" onClick={() => setDeleteOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={() => {
+                setDeleteOpen(false);
+                void removeAll(selectedAsset === "__all__" ? undefined : selectedAsset);
+              }}
+            >
+              ยืนยันลบ
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Card>
   );
 }

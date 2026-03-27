@@ -7,7 +7,8 @@ export async function GET() {
 
   const upstream = await backendFetch("/api/auth/me", {
     method: "GET",
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store"
   });
 
   const json = await upstream.json().catch(() => null);

@@ -161,6 +161,7 @@ export function TransactionFormModal({ m }: Props) {
               <option value="buy">Buy</option>
               <option value="sell">Sell</option>
             </Select>
+            <div className="mt-1 min-h-[18px]" />
           </div>
 
           <div className="grid gap-1">
@@ -232,6 +233,7 @@ export function TransactionFormModal({ m }: Props) {
               placeholder="0"
               onChange={(e) => onChange({ fee: e.target.value })}
             />
+            <div className="mt-1 min-h-[18px]" />
           </div>
 
           <div className="grid gap-1">
@@ -245,6 +247,7 @@ export function TransactionFormModal({ m }: Props) {
               placeholder="0"
               onChange={(e) => onChange({ tax: e.target.value })}
             />
+            <div className="mt-1 min-h-[18px]" />
           </div>
         </div>
 
