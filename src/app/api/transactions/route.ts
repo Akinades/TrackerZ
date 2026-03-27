@@ -47,13 +47,17 @@ export async function POST(req: Request) {
   return NextResponse.json(json ?? null, { status: upstream.status });
 }
 
-/** ลบธุรกรรมทั้งหมดของ user ที่ล็อกอิน — ตอบ { deleted: number } */
-export async function DELETE() {
+/** ลบธุรกรรมทั้งหมดของ user ที่ล็อกอิน — รองรับ filter ด้วย query asset_symbol */
+export async function DELETE(req: Request) {
   const auth = await authHeader();
   if (!auth)
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const upstream = await backendFetch("/api/transactions", {
+  const url = new URL(req.url);
+  const qs = url.searchParams.toString();
+  const upstreamPath = qs ? `/api/transactions?${qs}` : "/api/transactions";
+
+  const upstream = await backendFetch(upstreamPath, {
     method: "DELETE",
     headers: auth,
   });
