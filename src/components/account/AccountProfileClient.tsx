@@ -207,7 +207,7 @@ export function AccountProfileClient({ user }: Props) {
                 </p>
               </div>
             </div>
-            <div className="w-full rounded-2xl border border-emerald-200/80 bg-white/75 p-3 sm:w-[260px]">
+            <div className="w-full rounded-2xl  bg-white/75 p-3 sm:w-[260px]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-medium tracking-wide text-zinc-500">
