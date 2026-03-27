@@ -9,7 +9,20 @@ import { useAuth } from "@/store/useAuth";
 import { useCurrency } from "@/store/useCurrency";
 import { notify } from "@/lib/notify";
 
-export function AuthButtons() {
+type MobileNavItem = {
+  href: string;
+  label: string;
+};
+
+type AuthButtonsProps = {
+  mobileNavItems?: readonly MobileNavItem[];
+  currentPath?: string;
+};
+
+export function AuthButtons({
+  mobileNavItems = [],
+  currentPath,
+}: AuthButtonsProps) {
   const router = useRouter();
   const { user, hydrated, logout } = useAuth();
   const { currency, setCurrency } = useCurrency();
@@ -40,7 +53,11 @@ export function AuthButtons() {
 
   const menuLabel = user.displayName.trim() || user.email;
   const currentPlanLabel =
-    user.plan === "monthly" ? "Pro Monthly" : user.plan === "yearly" ? "Pro Yearly" : "Free";
+    user.plan === "monthly"
+      ? "Pro Monthly"
+      : user.plan === "yearly"
+        ? "Pro Yearly"
+        : "Free";
 
   return (
     <div ref={wrapRef} className="relative flex items-center gap-2">
@@ -56,15 +73,19 @@ export function AuthButtons() {
       <CurrencyBadge
         currency={currency}
         onToggle={() => setCurrency(currency === "USD" ? "THB" : "USD")}
-        className="shadow-none"
+        className="hidden shadow-none md:inline-flex"
       />
       {open ? (
         <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_30px_70px_-55px_rgba(0,0,0,0.55)]">
           <div className="border-b border-zinc-200/70 px-4 py-3">
             <div className="text-xs text-zinc-500">เข้าสู่ระบบด้วย</div>
-            <div className="mt-0.5 truncate text-sm font-medium text-zinc-900">{menuLabel}</div>
+            <div className="mt-0.5 truncate text-sm font-medium text-zinc-900">
+              {menuLabel}
+            </div>
             {user.displayName.trim() ? (
-              <div className="mt-1 truncate text-xs text-zinc-500">{user.email}</div>
+              <div className="mt-1 truncate text-xs text-zinc-500">
+                {user.email}
+              </div>
             ) : null}
           </div>
 
@@ -92,6 +113,36 @@ export function AuthButtons() {
               {currentPlanLabel}
             </span>
           </Link>
+
+          {mobileNavItems.length ? (
+            <div className="border-t border-zinc-200/70 md:hidden">
+              {mobileNavItems.map((item) => {
+                const isActive = currentPath === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={
+                      isActive
+                        ? "block bg-zinc-900 px-4 py-3 text-sm font-medium text-white"
+                        : "block px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+                    }
+                    onClick={() => setOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <div className="border-t border-zinc-200/70 p-2 md:hidden">
+            <CurrencyBadge
+              currency={currency}
+              onToggle={() => setCurrency(currency === "USD" ? "THB" : "USD")}
+              className="w-full justify-center shadow-none"
+            />
+          </div>
 
           <div className="border-t border-zinc-200/70 p-2">
             <Button

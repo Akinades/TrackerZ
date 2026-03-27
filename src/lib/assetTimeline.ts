@@ -2,7 +2,7 @@ import { round2 } from "@/lib/calculations";
 import {
   SERIES_COLORS,
   type AssetSeries,
-  type PositionPoint
+  type PositionPoint,
 } from "@/components/charts/AssetValueTimelineLine";
 import type { Transaction } from "@/types/transactions";
 import { txExecutedAtIso, txExecutedAtMs } from "@/lib/transactionTime";
@@ -21,10 +21,23 @@ export type RangePreset =
 export type ToDisplayMoneyFn = (
   value: number,
   from?: "THB" | "USD",
-  fxAtTrade?: number
+  fxAtTrade?: number,
 ) => number;
 
-export function unitDisplayForTx(t: Transaction, toDisplayMoney: ToDisplayMoneyFn) {
+export type RangeAnalytics = {
+  netCashflow: number;
+  realizedPnl: number;
+  unrealizedPnl: number;
+  totalPnl: number;
+  closedTrades: number;
+  winRatePct: number | null;
+  profitFactor: number | null;
+};
+
+export function unitDisplayForTx(
+  t: Transaction,
+  toDisplayMoney: ToDisplayMoneyFn,
+) {
   const baseCur = (t.currency ?? "THB") as "THB" | "USD";
   return round2(toDisplayMoney(t.price, baseCur, t.fxRateAtTrade));
 }
@@ -33,7 +46,10 @@ export function txBase(t: Transaction) {
   return (t.currency ?? "THB") as "THB" | "USD";
 }
 
-export function txBuyOutflowDisplay(t: Transaction, toDisplayMoney: ToDisplayMoneyFn) {
+export function txBuyOutflowDisplay(
+  t: Transaction,
+  toDisplayMoney: ToDisplayMoneyFn,
+) {
   const base = txBase(t);
   const fx = t.fxRateAtTrade;
   const notional = round2(unitDisplayForTx(t, toDisplayMoney) * t.amount);
@@ -42,15 +58,22 @@ export function txBuyOutflowDisplay(t: Transaction, toDisplayMoney: ToDisplayMon
   return round2(notional + fee + tax);
 }
 
-export function txSellGrossDisplay(t: Transaction, toDisplayMoney: ToDisplayMoneyFn) {
+export function txSellGrossDisplay(
+  t: Transaction,
+  toDisplayMoney: ToDisplayMoneyFn,
+) {
   return round2(unitDisplayForTx(t, toDisplayMoney) * t.amount);
 }
 
-export function txFeeTaxDisplay(t: Transaction, toDisplayMoney: ToDisplayMoneyFn) {
+export function txFeeTaxDisplay(
+  t: Transaction,
+  toDisplayMoney: ToDisplayMoneyFn,
+) {
   const base = txBase(t);
   const fx = t.fxRateAtTrade;
   return round2(
-    toDisplayMoney(Number(t.fee ?? 0), base, fx) + toDisplayMoney(Number(t.tax ?? 0), base, fx)
+    toDisplayMoney(Number(t.fee ?? 0), base, fx) +
+      toDisplayMoney(Number(t.tax ?? 0), base, fx),
   );
 }
 
@@ -65,8 +88,131 @@ export function topHourPhrases(txs: Transaction[], maxSlots: number): string[] {
     const h = new Date(txExecutedAtIso(t)).getHours();
     map.set(h, (map.get(h) ?? 0) + 1);
   }
-  const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, maxSlots);
+  const sorted = [...map.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, maxSlots);
   return sorted.map(([h, c]) => `${formatHourSlot(h)} (${c} ครั้ง)`);
+}
+
+export function computeRangeAnalytics(
+  txs: Transaction[],
+  toDisplayMoney: ToDisplayMoneyFn,
+  rangeStartMs?: number,
+  rangeEndMs?: number,
+): RangeAnalytics {
+  const sorted = [...txs].sort((a, b) => txExecutedAtMs(a) - txExecutedAtMs(b));
+  const lots = new Map<string, Array<{ qty: number; unitCost: number }>>();
+  const latestUnitByAsset = new Map<string, number>();
+
+  let netCashflow = 0;
+  let realizedPnl = 0;
+  let grossProfit = 0;
+  let grossLoss = 0;
+  let closedTrades = 0;
+  let winners = 0;
+
+  const hasStart = Number.isFinite(rangeStartMs);
+  const hasEnd = Number.isFinite(rangeEndMs);
+
+  const inRange = (ts: number) => {
+    if (hasStart && ts < (rangeStartMs as number)) return false;
+    if (hasEnd && ts > (rangeEndMs as number)) return false;
+    return true;
+  };
+
+  for (const t of sorted) {
+    const ts = txExecutedAtMs(t);
+    if (hasEnd && ts > (rangeEndMs as number)) break;
+
+    const asset = t.assetName?.trim().toUpperCase();
+    if (!asset) continue;
+
+    const unit = unitDisplayForTx(t, toDisplayMoney);
+    const feeTax = txFeeTaxDisplay(t, toDisplayMoney);
+    latestUnitByAsset.set(asset, unit);
+
+    const trackPeriodMetrics = inRange(ts);
+
+    if (t.side === "buy") {
+      const buyOutflow = txBuyOutflowDisplay(t, toDisplayMoney);
+      if (trackPeriodMetrics) netCashflow -= buyOutflow;
+      const buyLots = lots.get(asset) ?? [];
+      buyLots.push({
+        qty: t.amount,
+        unitCost: t.amount > 0 ? buyOutflow / t.amount : 0,
+      });
+      lots.set(asset, buyLots);
+      continue;
+    }
+
+    const sellGross = txSellGrossDisplay(t, toDisplayMoney);
+    const sellNet = round2(sellGross - feeTax);
+    if (trackPeriodMetrics) netCashflow += sellNet;
+
+    let remaining = t.amount;
+    let costOut = 0;
+    const sellLots = lots.get(asset) ?? [];
+
+    while (remaining > 0 && sellLots.length > 0) {
+      const lot = sellLots[0]!;
+      const used = Math.min(remaining, lot.qty);
+      costOut += used * lot.unitCost;
+      lot.qty -= used;
+      remaining -= used;
+      if (lot.qty <= 1e-12) sellLots.shift();
+    }
+
+    if (remaining > 0) {
+      costOut += remaining * unit;
+      remaining = 0;
+    }
+
+    if (trackPeriodMetrics) {
+      const thisPnl = round2(sellNet - costOut);
+      realizedPnl += thisPnl;
+      closedTrades += 1;
+      if (thisPnl > 0) {
+        winners += 1;
+        grossProfit += thisPnl;
+      } else if (thisPnl < 0) {
+        grossLoss += Math.abs(thisPnl);
+      }
+    }
+    lots.set(asset, sellLots);
+  }
+
+  let unrealizedPnl = 0;
+  lots.forEach((assetLots, asset) => {
+    const lastUnit = latestUnitByAsset.get(asset);
+    if (!Number.isFinite(lastUnit)) return;
+    for (const lot of assetLots) {
+      if (!Number.isFinite(lot.qty) || lot.qty <= 0) continue;
+      const lotPnl = (lastUnit! - lot.unitCost) * lot.qty;
+      unrealizedPnl += lotPnl;
+    }
+  });
+
+  const safeRealized = round2(realizedPnl);
+  const safeUnrealized = round2(unrealizedPnl);
+  const totalPnl = round2(safeRealized + safeUnrealized);
+  const winRatePct =
+    closedTrades > 0 ? round2((winners / closedTrades) * 100) : null;
+  const profitFactor =
+    grossLoss > 0
+      ? round2(grossProfit / grossLoss)
+      : grossProfit > 0
+        ? Number.POSITIVE_INFINITY
+        : null;
+
+  return {
+    netCashflow: round2(netCashflow),
+    realizedPnl: safeRealized,
+    unrealizedPnl: safeUnrealized,
+    totalPnl,
+    closedTrades,
+    winRatePct,
+    profitFactor,
+  };
 }
 
 export function toDateInputValue(d: Date) {
@@ -105,10 +251,15 @@ export function buildSeriesForAsset(
   assetTxs: Transaction[],
   assetName: string,
   color: string,
-  toDisplayMoney: ToDisplayMoneyFn
+  toDisplayMoney: ToDisplayMoneyFn,
 ): AssetSeries {
   const sorted = assetTxs
-    .filter((t) => txExecutedAtIso(t) && Number.isFinite(t.amount) && Number.isFinite(t.price))
+    .filter(
+      (t) =>
+        txExecutedAtIso(t) &&
+        Number.isFinite(t.amount) &&
+        Number.isFinite(t.price),
+    )
     .sort((a, b) => txExecutedAtMs(a) - txExecutedAtMs(b));
 
   let qty = 0;
@@ -129,7 +280,7 @@ export function buildSeriesForAsset(
       value,
       tipKind: "position",
       tipAsset: assetName,
-      tipQty: round2(qty)
+      tipQty: round2(qty),
     });
 
     const marker = {
@@ -138,7 +289,7 @@ export function buildSeriesForAsset(
       tipKind: t.side === "buy" ? ("buy" as const) : ("sell" as const),
       tipAsset: assetName,
       tipAmount: t.amount,
-      tipUnitPrice: unitDisplay
+      tipUnitPrice: unitDisplay,
     };
     if (t.side === "buy") buys.push(marker);
     else sells.push(marker);
@@ -150,11 +301,18 @@ export function buildSeriesForAsset(
 export function buildTimelines(
   txs: Transaction[],
   assetFilter: string,
-  toDisplayMoney: ToDisplayMoneyFn
+  toDisplayMoney: ToDisplayMoneyFn,
 ): AssetSeries[] {
   if (assetFilter !== "__all__") {
     const assetTxs = txs.filter((t) => t.assetName === assetFilter);
-    return [buildSeriesForAsset(assetTxs, assetFilter, SERIES_COLORS[0], toDisplayMoney)];
+    return [
+      buildSeriesForAsset(
+        assetTxs,
+        assetFilter,
+        SERIES_COLORS[0],
+        toDisplayMoney,
+      ),
+    ];
   }
 
   const grouped = new Map<string, Transaction[]>();
@@ -163,14 +321,16 @@ export function buildTimelines(
     grouped.get(t.assetName)!.push(t);
   }
 
-  const assetNames = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
+  const assetNames = Array.from(grouped.keys()).sort((a, b) =>
+    a.localeCompare(b),
+  );
   return assetNames.map((name, i) =>
     buildSeriesForAsset(
       grouped.get(name)!,
       name,
       SERIES_COLORS[i % SERIES_COLORS.length],
-      toDisplayMoney
-    )
+      toDisplayMoney,
+    ),
   );
 }
 
@@ -187,7 +347,7 @@ function latestPositionValue(s: AssetSeries): number {
 export function buildAggregatedOthersSeries(
   parts: AssetSeries[],
   label: string,
-  color: string
+  color: string,
 ): AssetSeries {
   if (parts.length === 0) {
     return { assetName: label, color, points: [], buys: [], sells: [] };
@@ -227,7 +387,7 @@ export function buildAggregatedOthersSeries(
         value: round2(sumVal),
         tipKind: "position",
         tipAsset: label,
-        tipQty: round2(sumQty)
+        tipQty: round2(sumQty),
       });
     }
   }
@@ -237,7 +397,7 @@ export function buildAggregatedOthersSeries(
     color,
     points,
     buys: parts.flatMap((s) => s.buys),
-    sells: parts.flatMap((s) => s.sells)
+    sells: parts.flatMap((s) => s.sells),
   };
 }
 
@@ -250,7 +410,9 @@ export function limitAllAssetSeriesForChart(series: AssetSeries[]): {
     return { series, usedAggregation: false, othersCount: 0 };
   }
 
-  const sorted = [...series].sort((a, b) => latestPositionValue(b) - latestPositionValue(a));
+  const sorted = [...series].sort(
+    (a, b) => latestPositionValue(b) - latestPositionValue(a),
+  );
   const top = sorted.slice(0, ALL_ASSETS_TOP_LINES);
   const rest = sorted.slice(ALL_ASSETS_TOP_LINES);
   const othersLabel = `อื่นๆ (${rest.length})`;
@@ -258,15 +420,18 @@ export function limitAllAssetSeriesForChart(series: AssetSeries[]): {
 
   const recoloredTop = top.map((s, i) => ({
     ...s,
-    color: SERIES_COLORS[i % SERIES_COLORS.length]
+    color: SERIES_COLORS[i % SERIES_COLORS.length],
   }));
 
   return {
     series: [
       ...recoloredTop,
-      { ...others, color: SERIES_COLORS[ALL_ASSETS_TOP_LINES % SERIES_COLORS.length] }
+      {
+        ...others,
+        color: SERIES_COLORS[ALL_ASSETS_TOP_LINES % SERIES_COLORS.length],
+      },
     ],
     usedAggregation: true,
-    othersCount: rest.length
+    othersCount: rest.length,
   };
 }

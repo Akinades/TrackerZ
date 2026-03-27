@@ -10,7 +10,7 @@ import {
   Scatter,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/Button";
 import type { AppCurrency } from "@/store/useCurrency";
@@ -25,7 +25,7 @@ export const SERIES_COLORS = [
   "#8b5cf6",
   "#14b8a6",
   "#f97316",
-  "#84cc16"
+  "#84cc16",
 ];
 
 export type PositionPoint = {
@@ -103,7 +103,7 @@ function buildMergedLineData(series: AssetSeries[]): Record<string, unknown>[] {
 }
 
 function tooltipRowsFromPayload(
-  payload?: ReadonlyArray<{ payload?: unknown; dataKey?: unknown }>
+  payload?: ReadonlyArray<{ payload?: unknown; dataKey?: unknown }>,
 ): ChartPointPayload[] {
   if (!payload?.length) return [];
   const out: ChartPointPayload[] = [];
@@ -138,25 +138,25 @@ function isChartPayload(x: unknown): x is ChartPointPayload {
 function tradeAtSameTs(
   pos: PositionPoint,
   buys: readonly TradePoint[],
-  sells: readonly TradePoint[]
+  sells: readonly TradePoint[],
 ): TradePoint | undefined {
-  const sell = sells.find((t) => t.tipAsset === pos.tipAsset && t.ts === pos.ts);
+  const sell = sells.find(
+    (t) => t.tipAsset === pos.tipAsset && t.ts === pos.ts,
+  );
   if (sell) return sell;
   return buys.find((t) => t.tipAsset === pos.tipAsset && t.ts === pos.ts);
 }
 
 /** จุดโฟกัสบนเส้น — ถ้า ณ เวลานั้นเป็นซื้อ/ขาย ให้ใช้สีจุดซื้อ/ขาย ไม่ใช่สีเส้นสินทรัพย์ */
-function LineActiveDot(
-  props: {
-    cx?: number;
-    cy?: number;
-    payload?: unknown;
-    dataKey?: unknown;
-    lineColor: string;
-    allBuys: readonly TradePoint[];
-    allSells: readonly TradePoint[];
-  }
-) {
+function LineActiveDot(props: {
+  cx?: number;
+  cy?: number;
+  payload?: unknown;
+  dataKey?: unknown;
+  lineColor: string;
+  allBuys: readonly TradePoint[];
+  allSells: readonly TradePoint[];
+}) {
   const { cx, cy, payload, dataKey, lineColor, allBuys, allSells } = props;
   if (cx == null || cy == null) return null;
 
@@ -168,7 +168,8 @@ function LineActiveDot(
     !Array.isArray(payload)
   ) {
     const row = payload as Record<string, unknown>;
-    const name = typeof dataKey === "number" ? String(dataKey) : String(dataKey);
+    const name =
+      typeof dataKey === "number" ? String(dataKey) : String(dataKey);
     const tip = row[tipStoreKey(name)];
     if (isChartPayload(tip) && tip.tipKind === "position") {
       const tr = tradeAtSameTs(tip, allBuys, allSells);
@@ -177,7 +178,9 @@ function LineActiveDot(
     }
   }
 
-  return <circle cx={cx} cy={cy} r={6} fill={fill} stroke="#fff" strokeWidth={2.5} />;
+  return (
+    <circle cx={cx} cy={cy} r={6} fill={fill} stroke="#fff" strokeWidth={2.5} />
+  );
 }
 
 function BuyDot(props: { cx?: number; cy?: number }) {
@@ -185,7 +188,14 @@ function BuyDot(props: { cx?: number; cy?: number }) {
   if (cx == null || cy == null) return null;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={7} fill={BUY_FILL} stroke="#ffffff" strokeWidth={2} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={7}
+        fill={BUY_FILL}
+        stroke="#ffffff"
+        strokeWidth={2}
+      />
       <circle
         cx={cx}
         cy={cy}
@@ -202,7 +212,14 @@ function SellDot(props: { cx?: number; cy?: number }) {
   if (cx == null || cy == null) return null;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={7} fill={SELL_FILL} stroke="#ffffff" strokeWidth={2} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={7}
+        fill={SELL_FILL}
+        stroke="#ffffff"
+        strokeWidth={2}
+      />
       <circle
         cx={cx}
         cy={cy}
@@ -220,8 +237,21 @@ function ActiveBuyDot(props: { cx?: number; cy?: number }) {
   if (cx == null || cy == null) return null;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={10} fill={BUY_FILL} stroke="#ffffff" strokeWidth={3} />
-      <circle cx={cx} cy={cy} r={20} fill="transparent" style={{ cursor: "pointer" }} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={10}
+        fill={BUY_FILL}
+        stroke="#ffffff"
+        strokeWidth={3}
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={20}
+        fill="transparent"
+        style={{ cursor: "pointer" }}
+      />
     </g>
   );
 }
@@ -231,8 +261,21 @@ function ActiveSellDot(props: { cx?: number; cy?: number }) {
   if (cx == null || cy == null) return null;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={10} fill={SELL_FILL} stroke="#ffffff" strokeWidth={3} />
-      <circle cx={cx} cy={cy} r={20} fill="transparent" style={{ cursor: "pointer" }} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={10}
+        fill={SELL_FILL}
+        stroke="#ffffff"
+        strokeWidth={3}
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={20}
+        fill="transparent"
+        style={{ cursor: "pointer" }}
+      />
     </g>
   );
 }
@@ -242,7 +285,7 @@ function TimelineTooltipBody({
   payload,
   currency,
   allBuys,
-  allSells
+  allSells,
 }: {
   active?: boolean;
   payload?: ReadonlyArray<{ payload?: unknown }> | undefined;
@@ -256,7 +299,9 @@ function TimelineTooltipBody({
 
   if (rows.length === 0) return null;
 
-  const trade = rows.find((r: ChartPointPayload) => r.tipKind === "buy" || r.tipKind === "sell");
+  const trade = rows.find(
+    (r: ChartPointPayload) => r.tipKind === "buy" || r.tipKind === "sell",
+  );
   const pos = rows.find((r: ChartPointPayload) => r.tipKind === "position");
   const sameTsTrade = pos ? tradeAtSameTs(pos, allBuys, allSells) : undefined;
   const d = trade ?? sameTsTrade ?? pos;
@@ -268,7 +313,7 @@ function TimelineTooltipBody({
     month: "short",
     year: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
   });
 
   if (d.tipKind === "buy" || d.tipKind === "sell") {
@@ -315,7 +360,9 @@ function TimelineTooltipBody({
       <div className="mt-2 space-y-1 border-t border-zinc-100 pt-2 tabular-nums">
         <div className="flex justify-between gap-4">
           <span className="text-zinc-500">มูลค่าถือ (โดยประมาณ)</span>
-          <span className="font-medium text-zinc-900">{formatMoney(d.value, currency)}</span>
+          <span className="font-medium text-zinc-900">
+            {formatMoney(d.value, currency)}
+          </span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-zinc-500">จำนวนคงเหลือ</span>
@@ -328,16 +375,18 @@ function TimelineTooltipBody({
 
 export function AssetValueTimelineLine({
   series,
-  height = 400
+  height = 400,
 }: {
   series: AssetSeries[];
   height?: number;
 }) {
   const { currency } = useCurrency();
-  const [tooltipTrigger, setTooltipTrigger] = React.useState<"hover" | "click">("hover");
+  const [tooltipTrigger, setTooltipTrigger] = React.useState<"hover" | "click">(
+    "hover",
+  );
 
   const hasData = series.some(
-    (s) => s.points.length > 0 || s.buys.length > 0 || s.sells.length > 0
+    (s) => s.points.length > 0 || s.buys.length > 0 || s.sells.length > 0,
   );
 
   const xDomain = React.useMemo<[number, number]>(() => {
@@ -372,12 +421,21 @@ export function AssetValueTimelineLine({
   }, [series]);
 
   const allBuys = React.useMemo(() => series.flatMap((s) => s.buys), [series]);
-  const allSells = React.useMemo(() => series.flatMap((s) => s.sells), [series]);
+  const allSells = React.useMemo(
+    () => series.flatMap((s) => s.sells),
+    [series],
+  );
 
-  const mergedLineData = React.useMemo(() => buildMergedLineData(series), [series]);
+  const mergedLineData = React.useMemo(
+    () => buildMergedLineData(series),
+    [series],
+  );
 
   const tooltipContent = React.useCallback(
-    (props: { active?: boolean; payload?: ReadonlyArray<{ payload?: unknown }> }) => (
+    (props: {
+      active?: boolean;
+      payload?: ReadonlyArray<{ payload?: unknown }>;
+    }) => (
       <TimelineTooltipBody
         active={props.active}
         payload={props.payload}
@@ -386,11 +444,13 @@ export function AssetValueTimelineLine({
         allSells={allSells}
       />
     ),
-    [currency, allBuys, allSells]
+    [currency, allBuys, allSells],
   );
 
   if (!hasData) {
-    return <div className="text-sm text-zinc-500">ยังไม่มีข้อมูลในช่วงเวลานี้</div>;
+    return (
+      <div className="text-sm text-zinc-500">ยังไม่มีข้อมูลในช่วงเวลานี้</div>
+    );
   }
 
   return (
@@ -436,13 +496,14 @@ export function AssetValueTimelineLine({
       </div>
       {tooltipTrigger === "click" ? (
         <p className="text-center text-[11px] text-zinc-500 sm:text-left">
-          คลิกบนเส้นหรือจุดซื้อ/ขายเพื่อเปิด — คลิกจุดอื่นเพื่อย้าย — คลิกพื้นที่ว่างของกราฟเพื่อปิด
+          คลิกบนเส้นหรือจุดซื้อ/ขายเพื่อเปิด — คลิกจุดอื่นเพื่อย้าย —
+          คลิกพื้นที่ว่างของกราฟเพื่อปิด
         </p>
       ) : null}
 
       <div
         style={{ height }}
-        className="outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-wrapper:focus]:outline-none [&_.recharts-wrapper:focus-visible]:outline-none [&_.recharts-surface]:outline-none [&_.recharts-surface:focus]:outline-none [&_.recharts-surface:focus-visible]:outline-none [&_.recharts-surface>svg]:outline-none [&_.recharts-surface>svg:focus]:outline-none"
+        className="outline-none [&_.recharts-wrapper]:overflow-visible [&_.recharts-wrapper]:outline-none [&_.recharts-wrapper:focus]:outline-none [&_.recharts-wrapper:focus-visible]:outline-none [&_.recharts-tooltip-wrapper]:overflow-visible [&_.recharts-surface]:outline-none [&_.recharts-surface:focus]:outline-none [&_.recharts-surface:focus-visible]:outline-none [&_.recharts-surface>svg]:outline-none [&_.recharts-surface>svg:focus]:outline-none"
         onMouseDown={(e) => {
           const t = e.target as HTMLElement | null;
           if (t?.closest(".recharts-wrapper")) {
@@ -456,7 +517,11 @@ export function AssetValueTimelineLine({
             data={mergedLineData}
             margin={{ top: 8, right: 12, left: 4, bottom: 8 }}
           >
-            <CartesianGrid stroke="rgba(24,24,27,0.06)" strokeDasharray="4 6" vertical={false} />
+            <CartesianGrid
+              stroke="rgba(24,24,27,0.06)"
+              strokeDasharray="4 6"
+              vertical={false}
+            />
             <XAxis
               type="number"
               dataKey="ts"
@@ -466,7 +531,9 @@ export function AssetValueTimelineLine({
               tick={{ fill: "rgb(113,113,122)", fontSize: 11 }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => new Date(Number(v)).toLocaleDateString("th-TH")}
+              tickFormatter={(v) =>
+                new Date(Number(v)).toLocaleDateString("th-TH")
+              }
               tickMargin={8}
               minTickGap={28}
             />
@@ -481,15 +548,19 @@ export function AssetValueTimelineLine({
             <Tooltip
               content={tooltipContent}
               trigger={tooltipTrigger}
-              cursor={{ stroke: "rgba(113,113,122,0.35)", strokeWidth: 1, strokeDasharray: "4 4" }}
+              cursor={{
+                stroke: "rgba(113,113,122,0.35)",
+                strokeWidth: 1,
+                strokeDasharray: "4 4",
+              }}
               isAnimationActive={false}
               animationDuration={0}
               offset={18}
-              allowEscapeViewBox={{ x: true, y: true }}
+              allowEscapeViewBox={{ x: false, y: true }}
               shared={false}
               wrapperStyle={{
                 pointerEvents: tooltipTrigger === "click" ? "auto" : "none",
-                zIndex: 20
+                zIndex: 20,
               }}
             />
             {series.length > 1 ? (
@@ -498,7 +569,9 @@ export function AssetValueTimelineLine({
                 align="right"
                 wrapperStyle={{ paddingBottom: 4 }}
                 formatter={(value: string) => (
-                  <span className="text-[11px] font-medium text-zinc-500">{value}</span>
+                  <span className="text-[11px] font-medium text-zinc-500">
+                    {value}
+                  </span>
                 )}
               />
             ) : null}

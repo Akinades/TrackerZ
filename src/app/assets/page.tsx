@@ -234,9 +234,12 @@ export default function AssetsTimelinePage() {
     return (
       <Card className="p-6">
         <div className="grid gap-2">
-          <div className="text-lg font-semibold">กราฟสินทรัพย์สำหรับแพ็กเกจ Pro</div>
+          <div className="text-lg font-semibold">
+            กราฟสินทรัพย์สำหรับแพ็กเกจ Pro
+          </div>
           <div className="text-sm text-zinc-600">
-            แพ็กเกจ Free ยังไม่สามารถใช้งานหน้า /assets ได้ กรุณาอัปเกรดแพ็กเกจเพื่อใช้งาน
+            แพ็กเกจ Free ยังไม่สามารถใช้งานหน้า /assets ได้
+            กรุณาอัปเกรดแพ็กเกจเพื่อใช้งาน
           </div>
           <div className="mt-3">
             <Link href="/settings/plan">

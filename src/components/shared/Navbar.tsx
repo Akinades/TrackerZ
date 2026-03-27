@@ -36,24 +36,24 @@ export function Navbar() {
             </span>
           </span>
         </Link>
-        <nav className="flex items-center gap-1">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={
-                pathname === item.href
-                  ? "rounded-2xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white"
-                  : "rounded-2xl px-4 py-2.5 text-sm text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-              }
-            >
-              {item.label}
-            </Link>
-          ))}
-          <div className="ml-2">
-            <AuthButtons />
-          </div>
-        </nav>
+        <div className="flex items-center gap-2">
+          <nav className="hidden items-center gap-1 md:flex">
+            {nav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={
+                  pathname === item.href
+                    ? "rounded-2xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white"
+                    : "rounded-2xl px-4 py-2.5 text-sm text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                }
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <AuthButtons mobileNavItems={nav} currentPath={pathname} />
+        </div>
       </div>
     </header>
   );

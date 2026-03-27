@@ -12,7 +12,7 @@ import {
   txFeeTaxDisplay,
   txSellGrossDisplay,
   unitDisplayForTx,
-  type ToDisplayMoneyFn
+  type ToDisplayMoneyFn,
 } from "@/lib/assetTimeline";
 import { round2 } from "@/lib/calculations";
 
@@ -25,36 +25,112 @@ type Props = {
   toDisplayMoney: ToDisplayMoneyFn;
 };
 
-export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney }: Props) {
+export function AssetsRangeSummary({
+  txs,
+  assetFilter,
+  currency,
+  toDisplayMoney,
+}: Props) {
   const buys = React.useMemo(
     () =>
       txs
         .filter((t) => t.side === "buy")
         .sort((a, b) => txExecutedAtMs(b) - txExecutedAtMs(a)),
-    [txs]
+    [txs],
   );
   const sells = React.useMemo(
     () =>
       txs
         .filter((t) => t.side === "sell")
         .sort((a, b) => txExecutedAtMs(b) - txExecutedAtMs(a)),
-    [txs]
+    [txs],
   );
 
   const showAsset = assetFilter === "__all__";
 
   const buyTotalOutflow = React.useMemo(
-    () => round2(buys.reduce((s, t) => s + txBuyOutflowDisplay(t, toDisplayMoney), 0)),
-    [buys, toDisplayMoney]
+    () =>
+      round2(
+        buys.reduce((s, t) => s + txBuyOutflowDisplay(t, toDisplayMoney), 0),
+      ),
+    [buys, toDisplayMoney],
   );
   const sellGrossTotal = React.useMemo(
-    () => round2(sells.reduce((s, t) => s + txSellGrossDisplay(t, toDisplayMoney), 0)),
-    [sells, toDisplayMoney]
+    () =>
+      round2(
+        sells.reduce((s, t) => s + txSellGrossDisplay(t, toDisplayMoney), 0),
+      ),
+    [sells, toDisplayMoney],
   );
   const sellChargesTotal = React.useMemo(
-    () => round2(sells.reduce((s, t) => s + txFeeTaxDisplay(t, toDisplayMoney), 0)),
-    [sells, toDisplayMoney]
+    () =>
+      round2(sells.reduce((s, t) => s + txFeeTaxDisplay(t, toDisplayMoney), 0)),
+    [sells, toDisplayMoney],
   );
+  const sellNetTotal = React.useMemo(
+    () => round2(sellGrossTotal - sellChargesTotal),
+    [sellGrossTotal, sellChargesTotal],
+  );
+
+  const remaining = React.useMemo(() => {
+    const sorted = [...txs].sort(
+      (a, b) => txExecutedAtMs(a) - txExecutedAtMs(b),
+    );
+    const map = new Map<string, { qty: number; lastUnit: number }>();
+
+    for (const t of sorted) {
+      const key = (t.assetName || "").trim().toUpperCase();
+      if (!key) continue;
+      const unit = unitDisplayForTx(t, toDisplayMoney);
+      const prev = map.get(key) ?? { qty: 0, lastUnit: unit };
+      prev.lastUnit = unit;
+      prev.qty += t.side === "buy" ? t.amount : -t.amount;
+      map.set(key, prev);
+    }
+
+    let qty = 0;
+    let value = 0;
+    map.forEach((p) => {
+      if (!Number.isFinite(p.qty) || p.qty <= 0) return;
+      qty += p.qty;
+      value += p.qty * p.lastUnit;
+    });
+
+    return {
+      qty: round2(qty),
+      value: round2(value),
+    };
+  }, [txs, toDisplayMoney]);
+
+  const equityNowApprox = React.useMemo(
+    () => round2(sellNetTotal + remaining.value),
+    [sellNetTotal, remaining.value],
+  );
+  const simplePnl = React.useMemo(
+    () => round2(equityNowApprox - buyTotalOutflow),
+    [equityNowApprox, buyTotalOutflow],
+  );
+  const simplePnlPct = React.useMemo(
+    () =>
+      buyTotalOutflow > 0 ? round2((simplePnl / buyTotalOutflow) * 100) : null,
+    [simplePnl, buyTotalOutflow],
+  );
+
+  const avgBuyPerTrade = React.useMemo(
+    () => (buys.length > 0 ? round2(buyTotalOutflow / buys.length) : null),
+    [buyTotalOutflow, buys.length],
+  );
+  const avgSellPerTrade = React.useMemo(
+    () => (sells.length > 0 ? round2(sellNetTotal / sells.length) : null),
+    [sellNetTotal, sells.length],
+  );
+  const buySellGap = React.useMemo(
+    () => round2(Math.abs(sellNetTotal - buyTotalOutflow)),
+    [sellNetTotal, buyTotalOutflow],
+  );
+  const flowMode =
+    sellNetTotal >= buyTotalOutflow ? "เน้นขาย/ลดพอร์ต" : "เน้นซื้อ/สะสมเพิ่ม";
+
   const buyHourHints = React.useMemo(() => topHourPhrases(buys, 2), [buys]);
   const sellHourHints = React.useMemo(() => topHourPhrases(sells, 2), [sells]);
 
@@ -62,10 +138,13 @@ export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney 
     <div>
       {showAsset ? (
         <p className="mb-3 text-[11px] text-zinc-400">
-          รวมทุกสินทรัพย์ในช่วงวันที่ — เลือกสินทรัพย์เดียวเพื่อโฟกัสกราฟหนึ่งเส้น
+          รวมทุกสินทรัพย์ในช่วงวันที่ —
+          เลือกสินทรัพย์เดียวเพื่อโฟกัสกราฟหนึ่งเส้น
         </p>
       ) : (
-        <p className="mb-3 text-[11px] text-zinc-400">เฉพาะ {assetFilter} ในช่วงวันที่เลือก</p>
+        <p className="mb-3 text-[11px] text-zinc-400">
+          เฉพาะ {assetFilter} ในช่วงวันที่เลือก
+        </p>
       )}
 
       <div className="flex flex-wrap gap-2">
@@ -77,9 +156,77 @@ export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney 
         </span>
       </div>
 
+      <div className="mt-4 rounded-3xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50/70 via-white to-zinc-50/40 p-3 sm:p-4">
+        <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr] lg:items-stretch">
+          <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 md:p-6">
+            <div className="text-sm font-semibold text-zinc-500">
+              ผลลัพธ์รวมช่วงนี้ (ประมาณการ)
+            </div>
+            <div
+              className={`mt-2 text-3xl font-extrabold tabular-nums md:text-4xl ${
+                simplePnl >= 0 ? "text-emerald-700" : "text-rose-700"
+              }`}
+            >
+              {simplePnl >= 0 ? "กำไร " : "ขาดทุน "}
+              {formatMoney(Math.abs(simplePnl), currency)}
+            </div>
+            <p className="mt-2 text-lg font-semibold text-zinc-600">
+              {simplePnlPct == null
+                ? "คำนวณจาก เงินขายสุทธิ + มูลค่าหน่วยที่เหลือ - มูลค่าซื้อรวม"
+                : `คิดเป็น ${simplePnl >= 0 ? "+" : ""}${simplePnlPct.toFixed(2)}% ของทุนซื้อรวม`}
+            </p>
+            <p className="mt-3 text-xl font-bold tabular-nums leading-tight text-zinc-600 md:text-2xl">
+              {formatMoney(sellNetTotal, currency)} +{" "}
+              {formatMoney(remaining.value, currency)} -{" "}
+              {formatMoney(buyTotalOutflow, currency)} ={" "}
+              {simplePnl >= 0 ? "+" : "-"}
+              {formatMoney(Math.abs(simplePnl), currency)}
+            </p>
+            <p className="mt-3 text-base font-medium text-zinc-500">
+              มูลค่าหน่วยที่เหลือ {formatMoney(remaining.value, currency)} (
+              {remaining.qty} หน่วย)
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200/80 bg-white p-3">
+            <div className="grid gap-3">
+              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-3">
+                <div className="text-[11px] font-medium text-zinc-500">
+                  เงินขายสุทธิ
+                </div>
+                <div className="mt-1 text-xl font-bold tabular-nums text-zinc-900">
+                  {formatMoney(sellNetTotal, currency)}
+                </div>
+              </div>
+              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-3">
+                <div className="text-[11px] font-medium text-zinc-500">
+                  มูลค่าที่เหลืออยู่ (ราคาตลาด)
+                </div>
+                <div className="mt-1 text-xl font-bold tabular-nums text-zinc-900">
+                  {formatMoney(remaining.value, currency)}
+                </div>
+                <p className="mt-1 text-[10px] text-zinc-500">
+                  คงเหลือ {remaining.qty} หน่วย
+                </p>
+              </div>
+              <div className="rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-3">
+                <div className="text-[11px] font-medium text-zinc-500">
+                  มูลค่าซื้อรวม
+                </div>
+                <div className="mt-1 text-xl font-bold tabular-nums text-zinc-900">
+                  {formatMoney(buyTotalOutflow, currency)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-2xl border border-emerald-100/80 bg-gradient-to-br from-emerald-50/90 to-white p-4">
-          <div className="text-[11px] font-medium text-emerald-700/90">มูลค่าซื้อรวม</div>
+          <div className="text-[11px] font-medium text-emerald-700/90">
+            มูลค่าซื้อรวม
+          </div>
           <div className="mt-1 text-lg font-semibold tracking-tight text-emerald-950 tabular-nums">
             {formatMoney(buyTotalOutflow, currency)}
           </div>
@@ -87,21 +234,30 @@ export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney 
             รวมราคา×จำนวน + fee + tax ของรายการซื้อในช่วงนี้
           </p>
         </div>
+
         <div className="rounded-2xl border border-rose-100/80 bg-gradient-to-br from-rose-50/90 to-white p-4">
-          <div className="text-[11px] font-medium text-rose-700/90">มูลค่าขายรวม (ราคา×จำนวน)</div>
+          <div className="text-[11px] font-medium text-rose-700/90">
+            มูลค่าขายสุทธิ
+          </div>
           <div className="mt-1 text-lg font-semibold tracking-tight text-rose-950 tabular-nums">
-            {formatMoney(sellGrossTotal, currency)}
+            {formatMoney(sellNetTotal, currency)}
           </div>
           {sellChargesTotal > 0 ? (
             <p className="mt-1 text-[10px] leading-snug text-rose-800/70">
-              fee + tax จากรายการขายรวม {formatMoney(sellChargesTotal, currency)}
+              ราคาขายรวม {formatMoney(sellGrossTotal, currency)} หัก fee + tax{" "}
+              {formatMoney(sellChargesTotal, currency)}
             </p>
           ) : (
-            <p className="mt-1 text-[10px] text-rose-800/60">ยังไม่มี fee/tax ในชุดขายนี้</p>
+            <p className="mt-1 text-[10px] text-rose-800/60">
+              ยังไม่มีค่า fee/tax ในรายการขายชุดนี้
+            </p>
           )}
         </div>
+
         <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 p-4 sm:col-span-2 lg:col-span-1">
-          <div className="text-[11px] font-medium text-zinc-600">จังหวะเวลา (ชั่วโมงที่ทำรายการบ่อย)</div>
+          <div className="text-[11px] font-medium text-zinc-600">
+            จังหวะเวลา (ชั่วโมงที่ทำรายการบ่อย)
+          </div>
           <div className="mt-3">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
               ซื้อ
@@ -109,7 +265,10 @@ export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney 
             {buyHourHints.length > 0 ? (
               <ul className="mt-1 space-y-1 text-xs font-medium text-zinc-800">
                 {buyHourHints.map((line, i) => (
-                  <li key={`b-${i}-${line}`} className="flex items-start gap-1.5">
+                  <li
+                    key={`b-${i}-${line}`}
+                    className="flex items-start gap-1.5"
+                  >
                     <span className="mt-1.5 size-1 shrink-0 rounded-full bg-emerald-500" />
                     <span>{line}</span>
                   </li>
@@ -126,7 +285,10 @@ export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney 
             {sellHourHints.length > 0 ? (
               <ul className="mt-1 space-y-1 text-xs font-medium text-zinc-800">
                 {sellHourHints.map((line, i) => (
-                  <li key={`s-${i}-${line}`} className="flex items-start gap-1.5">
+                  <li
+                    key={`s-${i}-${line}`}
+                    className="flex items-start gap-1.5"
+                  >
                     <span className="mt-1.5 size-1 shrink-0 rounded-full bg-rose-500" />
                     <span>{line}</span>
                   </li>
@@ -136,13 +298,49 @@ export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney 
               <p className="mt-1 text-xs text-zinc-400">ไม่มีรายการขาย</p>
             )}
           </div>
-          <p className="mt-3 text-[10px] text-zinc-400">อิงเวลาทำรายการ (traded_at ถ้ามี)</p>
+          <p className="mt-3 text-[10px] text-zinc-400">
+            อิงเวลาทำรายการ (traded_at ถ้ามี)
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 p-3">
+          <div className="text-[11px] font-medium text-zinc-500">
+            มูลค่าเฉลี่ยต่อดีล
+          </div>
+          <div className="mt-1 text-base font-semibold text-zinc-900">
+            ซื้อ{" "}
+            {avgBuyPerTrade == null
+              ? "-"
+              : formatMoney(avgBuyPerTrade, currency)}
+          </div>
+          <p className="mt-1 text-[10px] text-zinc-500">
+            ขาย{" "}
+            {avgSellPerTrade == null
+              ? "-"
+              : formatMoney(avgSellPerTrade, currency)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 p-3">
+          <div className="text-[11px] font-medium text-zinc-500">
+            สไตล์ช่วงนี้
+          </div>
+          <div className="mt-1 text-base font-semibold text-zinc-900">
+            {flowMode}
+          </div>
+          <p className="mt-1 text-[10px] text-zinc-500">
+            ต่างกัน {formatMoney(buySellGap, currency)}
+          </p>
         </div>
       </div>
 
       <div className="mt-5 grid gap-6 md:grid-cols-2">
         <div className="rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-100">
-          <div className="mb-3 text-xs font-semibold text-emerald-800">รายการซื้อ — ล่าสุดก่อน</div>
+          <div className="mb-3 text-xs font-semibold text-emerald-800">
+            รายการซื้อ — ล่าสุดก่อน
+          </div>
           {buys.length === 0 ? (
             <p className="text-xs text-zinc-400">ไม่มีรายการซื้อในช่วงนี้</p>
           ) : (
@@ -159,26 +357,33 @@ export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney 
                       month: "short",
                       year: "numeric",
                       hour: "2-digit",
-                      minute: "2-digit"
+                      minute: "2-digit",
                     })}
                   </span>
                   <span className="text-right font-medium tabular-nums text-zinc-800">
                     {showAsset ? (
-                      <span className="mr-1 font-normal text-zinc-500">{t.assetName}</span>
+                      <span className="mr-1 font-normal text-zinc-500">
+                        {t.assetName}
+                      </span>
                     ) : null}
-                    {t.amount} หน่วย @ {formatMoney(unitDisplayForTx(t, toDisplayMoney), currency)}
+                    {t.amount} หน่วย @{" "}
+                    {formatMoney(unitDisplayForTx(t, toDisplayMoney), currency)}
                   </span>
                 </li>
               ))}
             </ul>
           )}
           {buys.length > SUMMARY_LIST_MAX ? (
-            <p className="mt-2 text-[11px] text-zinc-400">และอีก {buys.length - SUMMARY_LIST_MAX} รายการซื้อ</p>
+            <p className="mt-2 text-[11px] text-zinc-400">
+              และอีก {buys.length - SUMMARY_LIST_MAX} รายการซื้อ
+            </p>
           ) : null}
         </div>
 
         <div className="rounded-2xl bg-zinc-50/80 p-4 ring-1 ring-zinc-100">
-          <div className="mb-3 text-xs font-semibold text-rose-800">รายการขาย — ล่าสุดก่อน</div>
+          <div className="mb-3 text-xs font-semibold text-rose-800">
+            รายการขาย — ล่าสุดก่อน
+          </div>
           {sells.length === 0 ? (
             <p className="text-xs text-zinc-400">ไม่มีรายการขายในช่วงนี้</p>
           ) : (
@@ -195,28 +400,36 @@ export function AssetsRangeSummary({ txs, assetFilter, currency, toDisplayMoney 
                       month: "short",
                       year: "numeric",
                       hour: "2-digit",
-                      minute: "2-digit"
+                      minute: "2-digit",
                     })}
                   </span>
                   <span className="text-right font-medium tabular-nums text-zinc-800">
                     {showAsset ? (
-                      <span className="mr-1 font-normal text-zinc-500">{t.assetName}</span>
+                      <span className="mr-1 font-normal text-zinc-500">
+                        {t.assetName}
+                      </span>
                     ) : null}
-                    {t.amount} หน่วย @ {formatMoney(unitDisplayForTx(t, toDisplayMoney), currency)}
+                    {t.amount} หน่วย @{" "}
+                    {formatMoney(unitDisplayForTx(t, toDisplayMoney), currency)}
                   </span>
                 </li>
               ))}
             </ul>
           )}
           {sells.length > SUMMARY_LIST_MAX ? (
-            <p className="mt-2 text-[11px] text-zinc-400">และอีก {sells.length - SUMMARY_LIST_MAX} รายการขาย</p>
+            <p className="mt-2 text-[11px] text-zinc-400">
+              และอีก {sells.length - SUMMARY_LIST_MAX} รายการขาย
+            </p>
           ) : null}
         </div>
       </div>
 
       <p className="mt-4 text-center text-[11px] text-zinc-400 md:text-left">
         เคล็ดลับ: ดูรายละเอียดเต็มและแก้ไขได้ที่{" "}
-        <Link href="/transactions" className="font-medium text-zinc-600 underline-offset-2 hover:underline">
+        <Link
+          href="/transactions"
+          className="font-medium text-zinc-600 underline-offset-2 hover:underline"
+        >
           หน้ารายการซื้อขาย
         </Link>
       </p>
