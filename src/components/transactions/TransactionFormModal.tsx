@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -26,6 +27,46 @@ export function TransactionFormModal({ m }: Props) {
     setAssetSuggestOpen,
     assetSuggestWrapRef
   } = m;
+  const [marketStatus, setMarketStatus] = React.useState<"idle" | "checking" | "ok" | "missing" | "error">("idle");
+  const [marketStatusSymbol, setMarketStatusSymbol] = React.useState("");
+
+  React.useEffect(() => {
+    const sym = form.assetName.trim().toUpperCase();
+    if (!sym || sym.length < 2) {
+      setMarketStatus("idle");
+      setMarketStatusSymbol("");
+      return;
+    }
+
+    const ctrl = new AbortController();
+    setMarketStatus("checking");
+    setMarketStatusSymbol(sym);
+    const timer = window.setTimeout(() => {
+      fetch(`/api/market-prices?symbols=${encodeURIComponent(sym)}`, {
+        method: "GET",
+        cache: "no-store",
+        signal: ctrl.signal
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error("market check failed");
+          const json = (await res.json().catch(() => null)) as
+            | { prices?: Record<string, number>; missing?: string[] }
+            | null;
+          const hasPrice = typeof json?.prices?.[sym] === "number";
+          const isMissing = Array.isArray(json?.missing) && json!.missing!.includes(sym);
+          setMarketStatus(hasPrice ? "ok" : isMissing ? "missing" : "missing");
+        })
+        .catch((e: unknown) => {
+          const isAbort = e instanceof DOMException && e.name === "AbortError";
+          if (!isAbort) setMarketStatus("error");
+        });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [form.assetName]);
 
   return (
     <Modal open={open} onClose={() => setOpen(false)} title={isEditing ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}>
@@ -67,6 +108,27 @@ export function TransactionFormModal({ m }: Props) {
                 }}
               />
               {errors.assetName ? <div className="mt-1 text-xs text-rose-700">{errors.assetName}</div> : null}
+              {!errors.assetName && marketStatusSymbol ? (
+                <div
+                  className={`mt-1 text-xs ${
+                    marketStatus === "ok"
+                      ? "text-emerald-700"
+                      : marketStatus === "missing"
+                        ? "text-amber-700"
+                        : "text-zinc-500"
+                  }`}
+                >
+                  {marketStatus === "checking"
+                    ? `กำลังเช็คราคาตลาดของ ${marketStatusSymbol}...`
+                    : marketStatus === "ok"
+                      ? `${marketStatusSymbol} มีราคาตลาดให้คำนวณ`
+                      : marketStatus === "missing"
+                        ? `${marketStatusSymbol} ยังไม่มีราคาตลาดจาก API ตอนนี้ (บันทึกรายการได้ แต่กำไรค้าง/มูลค่าปัจจุบันจะไม่ครบ)`
+                        : marketStatus === "error"
+                          ? "เช็คราคาตลาดไม่สำเร็จ (เครือข่าย/API)"
+                          : null}
+                </div>
+              ) : null}
               {(() => {
                 if (!assetSuggestOpen) return null;
                 const q = form.assetName.trim();

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendFetch, getAccessTokenFromCookies } from "@/lib/backendServer";
+import { shouldUseSecureAuthCookie } from "@/lib/authCookie";
 
 export async function GET() {
   const token = await getAccessTokenFromCookies();
@@ -16,7 +17,13 @@ export async function GET() {
   if (!upstream.ok) {
     const res = NextResponse.json({ user: null }, { status: upstream.status });
     if (upstream.status === 401 || upstream.status === 403) {
-      res.cookies.set("trackerz_token", "", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 0 });
+      res.cookies.set("trackerz_token", "", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: shouldUseSecureAuthCookie(),
+        path: "/",
+        maxAge: 0
+      });
     }
     return res;
   }

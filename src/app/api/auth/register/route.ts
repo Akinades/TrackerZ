@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backendServer";
+import { shouldUseSecureAuthCookie } from "@/lib/authCookie";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -20,10 +21,11 @@ export async function POST(req: Request) {
 
   const res = NextResponse.json({ user });
   if (token) {
+    const secureCookie = shouldUseSecureAuthCookie();
     res.cookies.set("trackerz_token", token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookie,
       path: "/"
     });
   }

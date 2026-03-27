@@ -8,7 +8,7 @@ import { useFxRate } from "@/store/useFxRate";
 import { usePreferences } from "@/store/usePreferences";
 import { usePrices } from "@/store/usePrices";
 import { ASSET_TYPES } from "@/lib/constants";
-import { demoPrices, demoTransactions } from "@/lib/demoData";
+import { demoTransactions } from "@/lib/demoData";
 import {
   computePositionsAvgCost,
   computePositionsFifo,
@@ -22,7 +22,6 @@ import {
   unrealizedPnl,
   type Position
 } from "@/lib/calculations";
-import { savePrices, saveTransactions } from "@/lib/storage";
 
 export type DashboardHoldingRow = {
   p: Position;
@@ -88,7 +87,7 @@ export type DashboardPortfolioModel = {
 };
 
 export function useDashboardPortfolio(): DashboardPortfolioModel {
-  const { txs, hydrated } = useTransactions();
+  const { txs, hydrated, addMany } = useTransactions();
   const { currency } = useCurrency();
   const { usdThb } = useFxRate();
   const { prefs } = usePreferences();
@@ -315,10 +314,22 @@ export function useDashboardPortfolio(): DashboardPortfolioModel {
   }, [positions, prices, toDisplay]);
 
   const seedDemo = React.useCallback(() => {
-    saveTransactions(demoTransactions());
-    savePrices(demoPrices());
-    window.location.reload();
-  }, []);
+    const items = demoTransactions().map((t) => ({
+      assetName: t.assetName,
+      assetLabel: t.assetLabel,
+      assetType: t.assetType,
+      side: t.side,
+      price: t.price,
+      amount: t.amount,
+      fee: t.fee,
+      tax: t.tax ?? 0,
+      currency: t.currency ?? ("USD" as AppCurrency),
+      fxRateAtTrade: t.fxRateAtTrade ?? 1,
+      tradedAt: t.tradedAt ?? t.createdAt,
+      createdAt: t.createdAt
+    }));
+    void addMany(items);
+  }, [addMany]);
 
   return {
     hydrated,

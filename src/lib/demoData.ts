@@ -112,22 +112,12 @@ export function demoTransactions(): Transaction[] {
     },
     {
       id: "demo-11",
-      assetName: "USDJPY",
-      assetType: "forex",
+      assetName: "GOOGL",
+      assetType: "stock",
       side: "buy",
-      price: 147.2,
-      amount: 1000,
-      fee: 1,
-      createdAt: isoDaysAgo(6)
-    },
-    {
-      id: "demo-12",
-      assetName: "XAGUSD",
-      assetType: "gold",
-      side: "buy",
-      price: 29.5,
-      amount: 50,
-      fee: 1,
+      price: 152.2,
+      amount: 5,
+      fee: 2,
       createdAt: isoDaysAgo(5)
     }
   ];
@@ -142,8 +132,7 @@ export function demoPrices(): PriceMap {
     MSFT: 415,
     NVDA: 905,
     ETH: 3600,
-    USDJPY: 148.3,
-    XAGUSD: 30.1
+    GOOGL: 173
   };
 }
 
