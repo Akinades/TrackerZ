@@ -59,3 +59,21 @@ body {
   border-color: rgb(224 242 254);
 }
 
+/* Desktop/FHD readability tuning for detail text on core pages */
+@media (min-width: 1280px) {
+  .fhd-text-tune .text-xs {
+    font-size: 0.8125rem; /* 13px */
+    line-height: 1.2rem;
+  }
+
+  .fhd-text-tune .text-\[11px\] {
+    font-size: 0.8125rem; /* 13px */
+    line-height: 1.2rem;
+  }
+
+  .fhd-text-tune .text-\[10px\] {
+    font-size: 0.75rem; /* 12px */
+    line-height: 1.05rem;
+  }
+}
+

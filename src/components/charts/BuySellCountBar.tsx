@@ -37,6 +37,7 @@ export function BuySellCountBar({
     <div style={{ height }} className="w-full min-w-0 max-w-xl">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
+          accessibilityLayer={false}
           layout="vertical"
           data={data}
           margin={{ top: 4, right: 20, left: 4, bottom: 4 }}

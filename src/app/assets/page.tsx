@@ -256,7 +256,7 @@ export default function AssetsTimelinePage() {
     filteredTxs.length === 0;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5">
+    <div className="fhd-text-tune mx-auto grid max-w-6xl gap-5">
       <div className="text-center sm:text-left">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
           กราฟสินทรัพย์

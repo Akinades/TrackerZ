@@ -16,7 +16,7 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="fhd-text-tune grid gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-2">
           <h1 className="text-xl font-semibold">บันทึกรายการซื้อ/ขาย</h1>

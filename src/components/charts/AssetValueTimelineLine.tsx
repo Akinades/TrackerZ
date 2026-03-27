@@ -451,7 +451,11 @@ export function AssetValueTimelineLine({
         }}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={mergedLineData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
+          <ComposedChart
+            accessibilityLayer={false}
+            data={mergedLineData}
+            margin={{ top: 8, right: 12, left: 4, bottom: 8 }}
+          >
             <CartesianGrid stroke="rgba(24,24,27,0.06)" strokeDasharray="4 6" vertical={false} />
             <XAxis
               type="number"

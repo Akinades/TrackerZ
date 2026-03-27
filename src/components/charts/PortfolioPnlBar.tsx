@@ -85,6 +85,7 @@ export function PortfolioPnlBar({ data, height }: { data: PnlRow[]; height?: num
       <div style={{ height: chartHeight }} className="w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            accessibilityLayer={false}
             data={cleaned}
             margin={{ top: 8, right: 12, left: 4, bottom: 8 }}
             barCategoryGap="14%"

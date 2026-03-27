@@ -45,7 +45,7 @@ export function PortfolioPie({
   return (
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart accessibilityLayer={false}>
           <Pie
             data={cleaned}
             dataKey="value"
