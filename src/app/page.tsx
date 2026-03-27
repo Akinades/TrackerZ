@@ -50,7 +50,7 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href="/register" className="w-full sm:w-auto">
+                <Link href="/pricing" className="w-full sm:w-auto">
                   <Button className="h-11 w-full px-6 text-base shadow-[0_16px_30px_-18px_rgba(0,0,0,0.45)] sm:w-auto">
                     เริ่มต้นใช้งาน (ฟรี)
                   </Button>

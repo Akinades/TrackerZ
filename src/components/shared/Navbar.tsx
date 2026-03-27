@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AuthButtons } from "@/components/shared/NavbarAuth";
 
@@ -14,8 +13,17 @@ const nav = [
 
 export function Navbar() {
   const pathname = usePathname();
-  if (pathname === "/" || pathname === "/login" || pathname === "/register")
+  if (
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname.startsWith("/register/") ||
+    pathname === "/pricing" ||
+    pathname.startsWith("/pricing/") ||
+    pathname.startsWith("/billing/")
+  ) {
     return null;
+  }
 
   return (
     <header className="sticky top-0 z-20 -mx-4 bg-transparent px-4 py-5">
