@@ -85,18 +85,19 @@ export function PlanSelectorCards({ selectedPlan, onSelect, className }: Props) 
                 <div className="text-left text-base font-semibold leading-snug text-zinc-900 sm:text-lg">
                   {plan.name}
                 </div>
-                <div className="mt-2 text-sm font-semibold leading-snug text-zinc-800 sm:text-base">
+                <div className="mt-2 text-sm mb-2 font-semibold leading-snug text-zinc-800 sm:text-base">
                   {plan.price}
                 </div>
-                <div className="mt-1 text-xs font-medium leading-normal text-zinc-500 sm:text-sm">
-                  {plan.billingCycle}
-                </div>
-              </div>
-              {plan.badge ? (
-                <span className="max-w-[46%] shrink-0 rounded-full border border-zinc-200/90 bg-white px-2 py-1 text-center text-[11px] font-medium leading-tight text-zinc-600 sm:max-w-none sm:px-2.5 sm:text-xs">
+                 {plan.badge ? (
+                <span className="max-w-[46%]  shrink-0 rounded-full border border-zinc-200/90 bg-white px-2 py-1 text-center text-[11px] font-medium leading-tight text-zinc-600 sm:max-w-none sm:px-2.5 sm:text-xs">
                   {plan.badge}
                 </span>
               ) : null}
+                <div className="mt-1 text-xs mt-2 font-medium leading-normal text-zinc-500 sm:text-sm">
+                  {plan.billingCycle}
+                </div>
+              </div>
+             
             </div>
             <p className="mt-3 text-sm leading-relaxed text-zinc-600">{plan.description}</p>
             <ul className="mt-3 flex flex-1 flex-col gap-2 border-t border-zinc-200/60 pt-3 text-left text-sm leading-relaxed text-zinc-700">

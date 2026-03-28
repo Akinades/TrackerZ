@@ -42,10 +42,6 @@ import type { Transaction } from "@/types/transactions";
 export type TransactionsPageModel = {
   authHydrated: boolean;
   user: ReturnType<typeof useAuth>["user"];
-  isFreePlan: boolean;
-  todayCreatedCount: number;
-  freeDailyLimit: number;
-  freeLimitReached: boolean;
   hydrated: boolean;
   txs: Transaction[];
   currency: AppCurrency;
@@ -114,7 +110,7 @@ export type TransactionsPageModel = {
 };
 
 export function useTransactionsPage(): TransactionsPageModel {
-  const { user, hydrated: authHydrated, refreshUser } = useAuth();
+  const { user, hydrated: authHydrated } = useAuth();
   const { currency } = useCurrency();
   const { usdThb } = useFxRate();
   const { txs, hydrated, add, addMany, remove, removeAll, update } =
@@ -147,8 +143,6 @@ export function useTransactionsPage(): TransactionsPageModel {
   const [page, setPage] = React.useState(1);
   const [rowMenuOpenId, setRowMenuOpenId] = React.useState<string | null>(null);
   const rowMenuWrapRef = React.useRef<HTMLDivElement | null>(null);
-  const FREE_DAILY_LIMIT = 10;
-
   const isEditing = editingId !== null;
   const fx = React.useMemo(
     () => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36),
@@ -412,9 +406,6 @@ export function useTransactionsPage(): TransactionsPageModel {
     const result = await add(payload);
     if (!result.ok) return;
 
-    if (isFreePlan) {
-      await refreshUser().catch(() => null);
-    }
     reset();
   };
 
@@ -460,10 +451,6 @@ export function useTransactionsPage(): TransactionsPageModel {
   };
 
   const startEdit = (id: string) => {
-    if (user?.plan === "free") {
-      notify.info("แพ็กเกจ Free ไม่รองรับการแก้ไขรายการ");
-      return;
-    }
     const tx = txs.find((t) => t.id === id);
     if (!tx) return;
     const baseCurrency = (tx.currency ?? DEFAULT_TX_CURRENCY) as "THB" | "USD";
@@ -569,25 +556,6 @@ export function useTransactionsPage(): TransactionsPageModel {
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }, [txs]);
-
-  const isFreePlan = user?.plan === "free";
-  const todayCreatedCountFromTxs = React.useMemo(() => {
-    if (!isFreePlan) return 0;
-    const start = startOfDay(new Date());
-    const end = endOfDay(new Date());
-    return txs.filter((t) => {
-      const d = new Date(t.createdAt);
-      return d >= start && d <= end;
-    }).length;
-  }, [isFreePlan, txs]);
-  const todayCreatedCount = React.useMemo(() => {
-    if (!isFreePlan) return 0;
-    if (typeof user?.freePlanDailyCount === "number" && Number.isFinite(user.freePlanDailyCount)) {
-      return Math.max(0, Math.floor(user.freePlanDailyCount));
-    }
-    return todayCreatedCountFromTxs;
-  }, [isFreePlan, user?.freePlanDailyCount, todayCreatedCountFromTxs]);
-  const freeLimitReached = isFreePlan && todayCreatedCount >= FREE_DAILY_LIMIT;
 
   const oldest = React.useMemo(
     () => (sorted[0]?.createdAt ? new Date(sorted[0].createdAt) : null),
@@ -709,10 +677,6 @@ export function useTransactionsPage(): TransactionsPageModel {
   return {
     authHydrated,
     user,
-    isFreePlan,
-    todayCreatedCount,
-    freeDailyLimit: FREE_DAILY_LIMIT,
-    freeLimitReached,
     hydrated,
     txs,
     currency,

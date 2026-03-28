@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { SupportBlurb } from "@/components/shared/SupportBlurb";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -37,26 +38,6 @@ function displayInitial(email: string, displayName: string) {
   const e = email.trim();
   if (e.length > 0) return e.slice(0, 1).toUpperCase();
   return "?";
-}
-
-function formatThaiDate(value: string | null): string {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("th-TH", {
-    dateStyle: "medium",
-  }).format(date);
-}
-
-function dayDiffCeil(from: string | null, to: string | null): number | null {
-  if (!from || !to) return null;
-  const fromDate = new Date(from);
-  const toDate = new Date(to);
-  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime()))
-    return null;
-  const diffMs = toDate.getTime() - fromDate.getTime();
-  if (diffMs <= 0) return 0;
-  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
 
 type Props = { user: NonNullable<AuthUser> };
@@ -137,17 +118,6 @@ export function AccountProfileClient({ user }: Props) {
   };
 
   const initial = displayInitial(user.email, profile.displayName);
-  const planLabel =
-    user.plan === "monthly"
-      ? "Pro Monthly"
-      : user.plan === "yearly"
-        ? "Pro Yearly"
-        : "Free";
-  const planDurationDays = dayDiffCeil(user.planStartedAt, user.planExpiresAt);
-  const planRemainingDays = dayDiffCeil(
-    new Date().toISOString(),
-    user.planExpiresAt,
-  );
   const currentLevel = getLevelByPerformance(d.totalReturnPct, d.txsLength);
   const [levelIconError, setLevelIconError] = React.useState(false);
 
@@ -251,50 +221,12 @@ export function AccountProfileClient({ user }: Props) {
 
         <div className="px-5 py-6 sm:px-8">
           <div className="mb-5 rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm font-semibold text-zinc-900">
-                แพ็กเกจสมาชิก
-              </div>
-              <span className="rounded-full border border-emerald-200/80 bg-white px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                {planLabel}
-              </span>
+            <div className="text-sm font-semibold text-zinc-900">
+              สายสัมพันธ์ TrackerZ
             </div>
-            {user.plan === "free" ? (
-              <div className="mt-2 text-sm text-zinc-600">
-                แผนฟรี (ไม่มีวันหมดอายุ)
-              </div>
-            ) : (
-              <div className="mt-3 grid gap-1 text-sm text-zinc-700 sm:grid-cols-2">
-                <div>
-                  เริ่มแพ็กเกจ:{" "}
-                  <span className="font-medium">
-                    {formatThaiDate(user.planStartedAt)}
-                  </span>
-                </div>
-                <div>
-                  หมดอายุ:{" "}
-                  <span className="font-medium">
-                    {formatThaiDate(user.planExpiresAt)}
-                  </span>
-                </div>
-                <div>
-                  ระยะแพ็กเกจ:{" "}
-                  <span className="font-medium">
-                    {typeof planDurationDays === "number"
-                      ? `${planDurationDays} วัน`
-                      : "-"}
-                  </span>
-                </div>
-                <div>
-                  วันคงเหลือ:{" "}
-                  <span className="font-medium">
-                    {typeof planRemainingDays === "number"
-                      ? `${planRemainingDays} วัน`
-                      : "-"}
-                  </span>
-                </div>
-              </div>
-            )}
+            <div className="mt-2">
+              <SupportBlurb />
+            </div>
           </div>
           <div className="mb-5 flex items-center gap-2 text-sm font-semibold text-zinc-800">
             <UserRound className="h-4 w-4 text-zinc-500" aria-hidden />

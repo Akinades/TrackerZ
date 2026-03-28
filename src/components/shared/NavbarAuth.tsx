@@ -52,12 +52,6 @@ export function AuthButtons({
   if (!user) return null;
 
   const menuLabel = user.displayName.trim() || user.email;
-  const currentPlanLabel =
-    user.plan === "monthly"
-      ? "Pro Monthly"
-      : user.plan === "yearly"
-        ? "Pro Yearly"
-        : "Free";
 
   return (
     <div ref={wrapRef} className="relative flex items-center gap-2">
@@ -104,14 +98,11 @@ export function AuthButtons({
             ตั้งค่า
           </Link>
           <Link
-            href="/settings/plan"
-            className="flex items-center justify-between gap-3 border-t border-zinc-200/70 px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+            href="/support"
+            className="block border-t border-zinc-200/70 px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
             onClick={() => setOpen(false)}
           >
-            <span>แพ็กเกจสมาชิก</span>
-            <span className="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-              {currentPlanLabel}
-            </span>
+            สนับสนุนสำนัก
           </Link>
 
           {mobileNavItems.length ? (

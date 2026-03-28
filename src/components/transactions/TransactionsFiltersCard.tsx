@@ -24,11 +24,7 @@ export function TransactionsFiltersCard({ m }: Props) {
     newest,
     startAdd,
     removeAll,
-    txs,
-    isFreePlan,
-    todayCreatedCount,
-    freeDailyLimit,
-    freeLimitReached
+    txs
   } = m;
   const assetOptions = React.useMemo(
     () => Array.from(new Set(txs.map((t) => t.assetName))).sort((a, b) => a.localeCompare(b)),
@@ -103,7 +99,7 @@ export function TransactionsFiltersCard({ m }: Props) {
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:self-center">
           <Button
             onClick={startAdd}
-            disabled={!hydrated || freeLimitReached}
+            disabled={!hydrated}
             className="h-11 rounded-2xl px-4 py-0"
           >
             เพิ่มรายการ
@@ -121,13 +117,6 @@ export function TransactionsFiltersCard({ m }: Props) {
           </Button>
         </div>
       </div>
-      {isFreePlan ? (
-        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-          Free plan: สร้างรายการได้สูงสุด {freeDailyLimit} ครั้ง/วัน (วันนี้ใช้ไป {todayCreatedCount}/
-          {freeDailyLimit})
-        </div>
-      ) : null}
-
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="ลบข้อมูล" className="max-w-lg">
         <div className="grid gap-4">
           <div className="text-sm text-zinc-700">เลือกว่าจะลบข้อมูลทั้งหมด หรือเฉพาะสินทรัพย์</div>

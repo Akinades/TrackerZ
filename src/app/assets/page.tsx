@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/store/useAuth";
 import { DEFAULT_TX_CURRENCY, useCurrency } from "@/store/useCurrency";
 import { useFxRate } from "@/store/useFxRate";
@@ -225,27 +223,6 @@ export default function AssetsTimelinePage() {
 
   if (authHydrated && !user) {
     return <AssetsPageGuestPrompt />;
-  }
-
-  if (authHydrated && user?.plan === "free") {
-    return (
-      <Card className="p-6">
-        <div className="grid gap-2">
-          <div className="text-lg font-semibold">
-            กราฟสินทรัพย์สำหรับแพ็กเกจ Pro
-          </div>
-          <div className="text-sm text-zinc-600">
-            แพ็กเกจ Free ยังไม่สามารถใช้งานหน้า /assets ได้
-            กรุณาอัปเกรดแพ็กเกจเพื่อใช้งาน
-          </div>
-          <div className="mt-3">
-            <Link href="/settings/plan">
-              <Button>เปลี่ยนแพ็กเกจ</Button>
-            </Link>
-          </div>
-        </div>
-      </Card>
-    );
   }
 
   const chartBlocked =

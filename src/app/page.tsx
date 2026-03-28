@@ -50,7 +50,7 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href="/pricing" className="w-full sm:w-auto">
+                <Link href="/register" className="w-full sm:w-auto">
                   <Button className="h-11 w-full px-6 text-base shadow-[0_16px_30px_-18px_rgba(0,0,0,0.45)] sm:w-auto">
                     เริ่มต้นใช้งาน (ฟรี)
                   </Button>
@@ -273,7 +273,12 @@ export default function HomePage() {
             <div className="rounded-2xl border border-zinc-200/70 bg-white p-4">
               <div className="font-medium text-zinc-900">ใช้ฟรีได้ไหม?</div>
               <div className="mt-1">
-                ได้ เริ่มบันทึกและดูภาพรวมพอร์ตได้ทันทีโดยไม่ต้องจ่ายก่อน
+                ได้เต็มยุทธภพ — บันทึก วิเคราะห์ และ Import ได้ครบ ไม่มีแพ็กแบ่งชั้น
+                ถ้าอยากช่วยค่าน้ำชาให้ผู้พัฒนา แวะหน้า{" "}
+                <Link href="/support" className="font-medium text-emerald-700 underline underline-offset-2">
+                  สนับสนุนสำนัก
+                </Link>{" "}
+                ได้ตามใจศรัทธา
               </div>
             </div>
             <div className="rounded-2xl border border-zinc-200/70 bg-white p-4">

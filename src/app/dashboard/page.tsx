@@ -1,5 +1,7 @@
 "use client";
 
+import { Card } from "@/components/ui/Card";
+import { SupportBlurb } from "@/components/shared/SupportBlurb";
 import { useAuth } from "@/store/useAuth";
 import { useDashboardPortfolio } from "@/hooks/useDashboardPortfolio";
 import { DashboardGuestPrompt } from "@/components/dashboard/DashboardGuestPrompt";
@@ -11,8 +13,6 @@ import { DashboardAllocationPieCard } from "@/components/dashboard/DashboardAllo
 import { DashboardPnlBarCard } from "@/components/dashboard/DashboardPnlBarCard";
 import { DashboardAllocationTargetsCard } from "@/components/dashboard/DashboardAllocationTargetsCard";
 import { getLevelByPerformance } from "@/lib/levels";
-import Link from "next/link";
-
 export default function DashboardPage() {
   const { user, hydrated: authHydrated } = useAuth();
   const d = useDashboardPortfolio();
@@ -62,6 +62,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <Card className="rounded-2xl border-emerald-200/70 bg-emerald-50/40 px-4 py-3 sm:px-5">
+        <SupportBlurb />
+      </Card>
+
       {d.hydrated && d.txsLength === 0 ? (
         <DashboardDemoEmptyCard onSeedDemo={d.seedDemo} />
       ) : null}
@@ -71,7 +75,7 @@ export default function DashboardPage() {
       <DashboardHoldingsTableCard d={d} />
       <DashboardAllocationPieCard d={d} />
       <DashboardPnlBarCard d={d} />
-      {user?.plan !== "free" ? <DashboardAllocationTargetsCard d={d} /> : null}
+      <DashboardAllocationTargetsCard d={d} />
     </div>
   );
 }

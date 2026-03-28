@@ -8,6 +8,8 @@ services:
     environment:
       NODE_ENV: "production"
       PORT: "3000"
+      # อีเมลรับแจ้งปัญหา/feedback (ลิงก์ใน footer, หน้า support, ตั้งค่า)
+      NEXT_PUBLIC_FEEDBACK_EMAIL: "admintrackerz@gmail.com"
       NEXT_PUBLIC_BACKEND_URL: "http://103.208.26.38:4000"
       BACKEND_URL: "http://103.208.26.38:4000"
     ports:

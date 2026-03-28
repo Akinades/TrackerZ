@@ -12,7 +12,6 @@ export function TransactionsListCard({ m }: Props) {
   const {
     hydrated,
     txs,
-    isFreePlan,
     filteredTxs,
     pageItems,
     currency,
@@ -48,26 +47,24 @@ export function TransactionsListCard({ m }: Props) {
               แสดง {filteredTxs.length} / ทั้งหมด {txs.length} รายการ
             </div>
           </div>
-          {!isFreePlan ? (
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button
-                variant="secondary"
-                onClick={exportCsv}
-                disabled={!hydrated || txs.length === 0}
-                className="h-9 rounded-2xl px-4 py-0"
-              >
-                Export CSV
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={pickImportFile}
-                disabled={!hydrated || importing}
-                className="h-9 rounded-2xl px-4 py-0"
-              >
-                Import Files
-              </Button>
-            </div>
-          ) : null}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={exportCsv}
+              disabled={!hydrated || txs.length === 0}
+              className="h-9 rounded-2xl px-4 py-0"
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={pickImportFile}
+              disabled={!hydrated || importing}
+              className="h-9 rounded-2xl px-4 py-0"
+            >
+              Import Files
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -256,19 +253,17 @@ export function TransactionsListCard({ m }: Props) {
                     </button>
                     {rowMenuOpenId === t.id ? (
                       <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-40 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_30px_70px_-55px_rgba(0,0,0,0.55)]">
-                        {!isFreePlan ? (
-                          <button
-                            type="button"
-                            className="w-full px-4 py-3 text-left text-sm text-zinc-800 hover:bg-zinc-50"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setRowMenuOpenId(null);
-                              startEdit(t.id);
-                            }}
-                          >
-                            แก้ไขรายการ
-                          </button>
-                        ) : null}
+                        <button
+                          type="button"
+                          className="w-full px-4 py-3 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setRowMenuOpenId(null);
+                            startEdit(t.id);
+                          }}
+                        >
+                          แก้ไขรายการ
+                        </button>
                         <button
                           type="button"
                           className="w-full px-4 py-3 text-left text-sm text-rose-700 hover:bg-rose-50"

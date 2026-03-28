@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useAuth } from "@/store/useAuth";
 import { forgotPassword, resetPasswordWithOtp } from "@/lib/authStorage";
 import { notify } from "@/lib/notify";
@@ -133,11 +134,11 @@ export function LoginClient() {
             </div>
             <div className="grid gap-1">
               <label className="text-sm text-zinc-700">รหัสผ่าน</label>
-              <Input
+              <PasswordInput
                 value={password}
-                type="password"
                 placeholder="อย่างน้อย 6 ตัวอักษร"
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
               />
             </div>
           </div>
@@ -223,11 +224,11 @@ export function LoginClient() {
               </div>
               <div className="grid gap-1">
                 <label className="text-sm text-zinc-700">รหัสผ่านใหม่</label>
-                <Input
+                <PasswordInput
                   value={newPassword}
-                  type="password"
                   placeholder="อย่างน้อย 6 ตัวอักษร"
                   onChange={(e) => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
                 />
               </div>
             </>
