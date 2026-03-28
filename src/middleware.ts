@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+function isPublicPath(pathname: string) {
+  return pathname === "/" || pathname === "/login" || pathname === "/register";
+}
 function isProtectedPath(pathname: string) {
   return (
     pathname === "/dashboard" ||
@@ -15,8 +18,13 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get("trackerz_token")?.value;
   const authed = Boolean(token);
 
-  // ไม่รีไดเร็กต์จาก /login /register เมื่อมี cookie — cookie อาจหมดอายุ/เพี้ยน แต่ client ยังไม่มี user
-  // หน้า login/register จะ router.replace ไป dashboard เองเมื่อ /api/auth/me สำเร็จ
+  // If logged in, keep auth pages and home out of the way
+  if (authed && isPublicPath(pathname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/dashboard";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
   // If not logged in, protect private pages
   if (!authed && isProtectedPath(pathname)) {
@@ -31,6 +39,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/register", "/dashboard", "/transactions", "/settings", "/account"]
+  matcher: ["/", "/login", "/register", "/dashboard", "/transactions", "/settings", "/account"]
 };
 

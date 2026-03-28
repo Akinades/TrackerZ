@@ -17,10 +17,10 @@ export function SupportPageClient() {
     <div className="mx-auto grid max-w-4xl gap-8 py-2">
       <div>
         <Link
-          href="/dashboard"
+          href="/"
           className="text-sm font-medium text-emerald-700 underline-offset-2 hover:underline"
         >
-          ← กลับหน้า Dashboard
+          ← กลับหน้าก่อนหน้า
         </Link>
       </div>
 

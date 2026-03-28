@@ -21,7 +21,7 @@ export function Footer() {
 
   return (
     <footer className="flex flex-col items-center gap-2 py-8 text-center text-sm text-zinc-500">
-      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+      {/* <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
         <Link href="/support" className="text-emerald-700 hover:underline">
           สนับสนุนสำนัก
         </Link>
@@ -35,7 +35,7 @@ export function Footer() {
             </a>
           </>
         ) : null}
-      </div>
+      </div> */}
       <div>© 2026 TrackerZ</div>
     </footer>
   );
