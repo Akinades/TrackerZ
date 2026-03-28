@@ -173,7 +173,7 @@ export function AccountProfileClient({ user }: Props) {
                   <span className="truncate">{user.email}</span>
                 </div>
                 <p className="mt-2 text-[11px] text-zinc-500">
-                  อีเมลผูกกับบัญชี — แก้ไขได้เฉพาะฝั่งเซิร์ฟเวอร์
+                  อีเมลผูกกับบัญชี
                 </p>
               </div>
             </div>
@@ -322,40 +322,7 @@ export function AccountProfileClient({ user }: Props) {
                 placeholder="เช่น พนักงาน · เทรดเดอร์"
               />
             </div>
-            <div className="grid gap-1.5 sm:col-span-2">
-              <label
-                className="text-xs font-medium text-zinc-500"
-                htmlFor="bio"
-              >
-                แนะนำตัวสั้น ๆ
-              </label>
-              <Textarea
-                id="bio"
-                value={profile.bio}
-                onChange={(e) =>
-                  setProfile((p) => ({ ...p, bio: e.target.value }))
-                }
-                placeholder="เล่าสั้น ๆ เกี่ยวกับเป้าหมายการลงทุนของคุณ"
-                rows={3}
-              />
-            </div>
-            <div className="grid gap-1.5 sm:col-span-2">
-              <label
-                className="text-xs font-medium text-zinc-500"
-                htmlFor="notes"
-              >
-                โน้ตส่วนตัว
-              </label>
-              <Textarea
-                id="notes"
-                value={profile.notes}
-                onChange={(e) =>
-                  setProfile((p) => ({ ...p, notes: e.target.value }))
-                }
-                placeholder="บันทึกสั้น ๆ (ซิงก์กับบัญชี)"
-                rows={2}
-              />
-            </div>
+           
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <Button
