@@ -88,6 +88,11 @@ export function parseStrictPositiveNumber(raw: string) {
   return { ok: true as const, value: n };
 }
 
+/** Tab-separated values (no embedded-tab quoting — matches typical broker exports). */
+export function parseTsvLine(line: string) {
+  return line.split("\t").map((cell) => cell.replace(/\r$/, "").trim());
+}
+
 export function parseCsvLine(line: string) {
   const out: string[] = [];
   let cur = "";

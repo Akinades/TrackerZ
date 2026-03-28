@@ -32,6 +32,26 @@ export default function TransactionsPage() {
         </Card>
       ) : null}
 
+      {m.importSummary ? (
+        <Card
+          className={
+            m.importSummary.includes("ข้าม")
+              ? "border-amber-200 bg-amber-50/90 p-4 dark:border-amber-900/50 dark:bg-amber-950/40"
+              : "border-emerald-200 bg-emerald-50/90 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/40"
+          }
+        >
+          <div
+            className={
+              m.importSummary.includes("ข้าม")
+                ? "text-sm text-amber-950 dark:text-amber-100"
+                : "text-sm text-emerald-950 dark:text-emerald-100"
+            }
+          >
+            {m.importSummary}
+          </div>
+        </Card>
+      ) : null}
+
       <TransactionFormModal m={m} />
       <TransactionConfirmModal m={m} />
       <TransactionsListCard m={m} />

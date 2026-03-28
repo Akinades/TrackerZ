@@ -12,9 +12,12 @@ import { notify } from "@/lib/notify";
 import {
   assertCsvHasRequiredColumns,
   assertImportHasRequiredKeys,
-  mapFlatRecordToImportPayload,
+  formatImportOutcomeMessage,
   normImportKey,
   parseTransactionsJson,
+  partitionImportRows,
+  type ImportSkipDetail,
+  type ImportTransactionPayload,
 } from "@/lib/transactionImport";
 import {
   daysAgo,
@@ -30,6 +33,7 @@ import {
   isoToDateAndTime,
   localDateTimeToIso,
   parseCsvLine,
+  parseTsvLine,
   parseStrictPositiveNumber,
   visiblePageNumbers,
 } from "@/lib/transactionPageUtils";
@@ -46,6 +50,8 @@ export type TransactionsPageModel = {
   txs: Transaction[];
   currency: AppCurrency;
   importError: string | null;
+  /** สรุปหลังนำเข้าสำเร็จ (รวมจำนวนที่ข้าม) */
+  importSummary: string | null;
   importing: boolean;
   from: string;
   setFrom: React.Dispatch<React.SetStateAction<string>>;
@@ -137,6 +143,7 @@ export function useTransactionsPage(): TransactionsPageModel {
   const confirmActionRef = React.useRef<null | (() => void)>(null);
   const [importing, setImporting] = React.useState(false);
   const [importError, setImportError] = React.useState<string | null>(null);
+  const [importSummary, setImportSummary] = React.useState<string | null>(null);
   const [pageSize, setPageSize] = React.useState<10 | 25 | 50 | 100 | "all">(
     10,
   );
@@ -234,10 +241,25 @@ export function useTransactionsPage(): TransactionsPageModel {
   const importTransactionsFile = React.useCallback(
     async (file: File) => {
       setImportError(null);
+      setImportSummary(null);
       setImporting(true);
       try {
         const lower = file.name.toLowerCase();
         const defaults = { currency, fx };
+
+        const finishImport = async (
+          payloads: ImportTransactionPayload[],
+          skips: ImportSkipDetail[],
+        ) => {
+          if (payloads.length === 0) {
+            throw new Error(formatImportOutcomeMessage(0, skips));
+          }
+          await addMany(payloads);
+          const msg = formatImportOutcomeMessage(payloads.length, skips);
+          setImportSummary(msg);
+          if (skips.length > 0) notify.warning(msg);
+          else notify.success(msg);
+        };
 
         if (lower.endsWith(".json")) {
           const text = await file.text();
@@ -245,12 +267,8 @@ export function useTransactionsPage(): TransactionsPageModel {
           if (rows.length === 0) throw new Error("JSON ไม่มีรายการ");
           const keySet = new Set(Object.keys(rows[0]).map(normImportKey));
           assertImportHasRequiredKeys(keySet);
-          const payloads = rows
-            .map((row) => mapFlatRecordToImportPayload(row, defaults))
-            .filter((p): p is NonNullable<typeof p> => p != null);
-          if (payloads.length === 0)
-            throw new Error("ไม่มีแถวข้อมูลที่ถูกต้อง");
-          await addMany(payloads);
+          const { payloads, skips } = partitionImportRows(rows, defaults);
+          await finishImport(payloads, skips);
           return;
         }
 
@@ -272,19 +290,16 @@ export function useTransactionsPage(): TransactionsPageModel {
           }
           const keySet = new Set(Object.keys(rows[0]).map(normImportKey));
           assertImportHasRequiredKeys(keySet);
-          const payloads = rows
-            .map((row) => mapFlatRecordToImportPayload(row, defaults))
-            .filter((p): p is NonNullable<typeof p> => p != null);
-          if (payloads.length === 0)
-            throw new Error("ไม่มีแถวข้อมูลที่ถูกต้อง");
-          await addMany(payloads);
+          const { payloads, skips } = partitionImportRows(rows, defaults);
+          await finishImport(payloads, skips);
           return;
         }
 
         const text = await file.text();
         const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
         if (lines.length < 2) throw new Error("ไฟล์ CSV ว่าง หรือไม่มีข้อมูล");
-        const headerLine = parseCsvLine(lines[0]).map((h) => h.trim());
+        const parseLine = lower.endsWith(".tsv") ? parseTsvLine : parseCsvLine;
+        const headerLine = parseLine(lines[0]).map((h) => h.trim());
         const colByNorm = new Map<string, number>();
         headerLine.forEach((h, i) => {
           const k = normImportKey(h);
@@ -292,21 +307,19 @@ export function useTransactionsPage(): TransactionsPageModel {
         });
         assertCsvHasRequiredColumns(colByNorm);
 
-        const payloads: NonNullable<
-          ReturnType<typeof mapFlatRecordToImportPayload>
-        >[] = [];
+        const dataRows: Record<string, unknown>[] = [];
         for (let r = 1; r < lines.length; r++) {
-          const cols = parseCsvLine(lines[r]);
+          const cols = parseLine(lines[r]);
           const record: Record<string, unknown> = {};
           headerLine.forEach((h, i) => {
             record[h] = cols[i] ?? "";
           });
-          const payload = mapFlatRecordToImportPayload(record, defaults);
-          if (payload) payloads.push(payload);
+          dataRows.push(record);
         }
-        if (payloads.length === 0) throw new Error("ไม่มีแถวข้อมูลที่ถูกต้อง");
-        await addMany(payloads);
+        const { payloads, skips } = partitionImportRows(dataRows, defaults);
+        await finishImport(payloads, skips);
       } catch (e) {
+        setImportSummary(null);
         setImportError(e instanceof Error ? e.message : "นำเข้าไม่สำเร็จ");
       } finally {
         setImporting(false);
@@ -681,6 +694,7 @@ export function useTransactionsPage(): TransactionsPageModel {
     txs,
     currency,
     importError,
+    importSummary,
     importing,
     from,
     setFrom,
