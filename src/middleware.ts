@@ -5,8 +5,6 @@ import type { NextRequest } from "next/server";
 function isPublicGuestPath(pathname: string) {
   if (pathname === "/" || pathname === "/login" || pathname === "/register") return true;
   if (pathname === "/register/complete") return true;
-  if (pathname === "/pricing" || pathname === "/pricing/success") return true;
-  if (pathname === "/billing/omise") return true;
   if (pathname === "/support") return true;
   return false;
 }

@@ -11,10 +11,7 @@ export function Footer() {
     pathname === "/login" ||
     pathname === "/register" ||
     pathname.startsWith("/register/") ||
-    pathname === "/support" ||
-    pathname === "/pricing" ||
-    pathname.startsWith("/pricing/") ||
-    pathname.startsWith("/billing/")
+    pathname === "/support"
   ) {
     return null;
   }
