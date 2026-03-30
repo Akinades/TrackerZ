@@ -1,37 +1,50 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-function isPublicPath(pathname: string) {
+/** หน้าที่ยอมให้ guest เข้าได้โดยไม่มี cookie */
+function isPublicGuestPath(pathname: string) {
+  if (pathname === "/" || pathname === "/login" || pathname === "/register") return true;
+  if (pathname === "/register/complete") return true;
+  if (pathname === "/pricing" || pathname === "/pricing/success") return true;
+  if (pathname === "/billing/omise") return true;
+  if (pathname === "/support") return true;
+  return false;
+}
+
+/** หน้า landing / auth ที่ถ้า login แล้วจะส่งไปแดชบอร์ด */
+function isAuthEntryPath(pathname: string) {
   return pathname === "/" || pathname === "/login" || pathname === "/register";
 }
-function isProtectedPath(pathname: string) {
+
+function isStaticAssetPath(pathname: string) {
   return (
-    pathname === "/dashboard" ||
-    pathname === "/transactions" ||
-    pathname === "/settings" ||
-    pathname === "/account"
+    pathname.startsWith("/asset-icons/") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/site.webmanifest"
   );
 }
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
-  const token = req.cookies.get("trackerz_token")?.value;
-  const authed = Boolean(token);
 
-  // If logged in, keep auth pages and home out of the way
-  if (authed && isPublicPath(pathname)) {
+  if (isStaticAssetPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  const token = req.cookies.get("trackerz_token")?.value;
+  const authed = Boolean(token?.trim());
+
+  if (authed && isAuthEntryPath(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";
     return NextResponse.redirect(url);
   }
 
-  // If not logged in, protect private pages
-  if (!authed && isProtectedPath(pathname)) {
+  if (!authed && !isPublicGuestPath(pathname)) {
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    const next = `${pathname}${search || ""}`;
-    url.search = `?next=${encodeURIComponent(next)}`;
+    url.pathname = "/";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
@@ -39,6 +52,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/register", "/dashboard", "/transactions", "/settings", "/account"]
+  matcher: [
+    "/((?!api/|_next/static|_next/image|.*\\.(?:ico|png|jpg|jpeg|gif|svg|webp|webmanifest)$).*)"
+  ]
 };
-

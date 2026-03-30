@@ -6,21 +6,26 @@ import { Mail, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { feedbackMailtoHref, getFeedbackEmail } from "@/lib/siteContact";
+import { useAuth } from "@/store/useAuth";
 
 export function SupportPageClient() {
+  const { user, hydrated } = useAuth();
   const [qrBroken, setQrBroken] = React.useState(false);
   const feedbackEmail = getFeedbackEmail();
   const feedbackMailHref =
     feedbackMailtoHref("TrackerZ — แจ้งปัญหา / ข้อเสนอแนะ") ?? `mailto:${feedbackEmail}`;
 
+  const backHref = hydrated && user ? "/dashboard" : "/";
+  const backLabel = hydrated && user ? "← กลับแดชบอร์ด" : "← กลับหน้าแรก";
+
   return (
     <div className="mx-auto grid max-w-4xl gap-8 py-2">
       <div>
         <Link
-          href="/"
+          href={backHref}
           className="text-sm font-medium text-emerald-700 underline-offset-2 hover:underline"
         >
-          ← กลับหน้าก่อนหน้า
+          {backLabel}
         </Link>
       </div>
 

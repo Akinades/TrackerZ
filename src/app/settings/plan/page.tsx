@@ -2,31 +2,26 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/store/useAuth";
 
 export default function PlanSettingsPage() {
+  const router = useRouter();
   const { user, hydrated } = useAuth();
+
+  React.useEffect(() => {
+    if (!hydrated) return;
+    if (!user) router.replace("/");
+  }, [hydrated, user, router]);
 
   if (!hydrated) {
     return <Card className="p-6">กำลังโหลด…</Card>;
   }
 
   if (!user) {
-    return (
-      <Card className="p-6">
-        <div className="grid gap-2">
-          <div className="text-lg font-semibold">ต้องเข้าสู่ระบบก่อน</div>
-          <div className="text-sm text-zinc-600">เข้าสู่ระบบแล้วแวะสนับสนุนสำนักได้ตามใจศรัทธา</div>
-          <div className="mt-2">
-            <Link href="/login?next=/settings/plan">
-              <Button>เข้าสู่ระบบ</Button>
-            </Link>
-          </div>
-        </div>
-      </Card>
-    );
+    return null;
   }
 
   return (

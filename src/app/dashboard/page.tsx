@@ -1,10 +1,11 @@
 "use client";
 
+import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { SupportBlurb } from "@/components/shared/SupportBlurb";
 import { useAuth } from "@/store/useAuth";
 import { useDashboardPortfolio } from "@/hooks/useDashboardPortfolio";
-import { DashboardGuestPrompt } from "@/components/dashboard/DashboardGuestPrompt";
 import { DashboardDemoEmptyCard } from "@/components/dashboard/DashboardDemoEmptyCard";
 import { DashboardPortfolioSummaryCard } from "@/components/dashboard/DashboardPortfolioSummaryCard";
 import { DashboardTopFiveCard } from "@/components/dashboard/DashboardTopFiveCard";
@@ -14,12 +15,18 @@ import { DashboardPnlBarCard } from "@/components/dashboard/DashboardPnlBarCard"
 import { DashboardAllocationTargetsCard } from "@/components/dashboard/DashboardAllocationTargetsCard";
 import { getLevelByPerformance } from "@/lib/levels";
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, hydrated: authHydrated } = useAuth();
   const d = useDashboardPortfolio();
   const currentLevel = getLevelByPerformance(d.totalReturnPct, d.txsLength);
 
+  React.useEffect(() => {
+    if (!authHydrated) return;
+    if (!user) router.replace("/");
+  }, [authHydrated, user, router]);
+
   if (authHydrated && !user) {
-    return <DashboardGuestPrompt />;
+    return null;
   }
 
   return (

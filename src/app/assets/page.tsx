@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/store/useAuth";
 import { DEFAULT_TX_CURRENCY, useCurrency } from "@/store/useCurrency";
@@ -19,13 +20,18 @@ import {
   toDateInputValue,
   type RangePreset,
 } from "@/lib/assetTimeline";
-import { AssetsPageGuestPrompt } from "@/components/assets/AssetsPageGuestPrompt";
 import { AssetsTimelineFilters } from "@/components/assets/AssetsTimelineFilters";
 import { AssetsTimelineChartBody } from "@/components/assets/AssetsTimelineChartBody";
 import { AssetsRangeSummary } from "@/components/assets/AssetsRangeSummary";
 
 export default function AssetsTimelinePage() {
+  const router = useRouter();
   const { user, hydrated: authHydrated } = useAuth();
+
+  React.useEffect(() => {
+    if (!authHydrated) return;
+    if (!user) router.replace("/");
+  }, [authHydrated, user, router]);
   const { currency } = useCurrency();
   const { usdThb } = useFxRate();
   const { txs, hydrated, error } = useTransactions();
@@ -222,7 +228,7 @@ export default function AssetsTimelinePage() {
   );
 
   if (authHydrated && !user) {
-    return <AssetsPageGuestPrompt />;
+    return null;
   }
 
   const chartBlocked =

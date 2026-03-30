@@ -1,18 +1,25 @@
 "use client";
 
+import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { useTransactionsPage } from "@/hooks/useTransactionsPage";
-import { TransactionsGuestPrompt } from "@/components/transactions/TransactionsGuestPrompt";
 import { TransactionsFiltersCard } from "@/components/transactions/TransactionsFiltersCard";
 import { TransactionFormModal } from "@/components/transactions/TransactionFormModal";
 import { TransactionConfirmModal } from "@/components/transactions/TransactionConfirmModal";
 import { TransactionsListCard } from "@/components/transactions/TransactionsListCard";
 
 export default function TransactionsPage() {
+  const router = useRouter();
   const m = useTransactionsPage();
 
+  React.useEffect(() => {
+    if (!m.authHydrated) return;
+    if (!m.user) router.replace("/");
+  }, [m.authHydrated, m.user, router]);
+
   if (m.authHydrated && !m.user) {
-    return <TransactionsGuestPrompt />;
+    return null;
   }
 
   return (
