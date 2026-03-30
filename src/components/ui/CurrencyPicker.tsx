@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { CurrencyBadge } from "@/components/ui/CurrencyBadge";
-import { useCurrency, type AppCurrency } from "@/store/useCurrency";
+import { useCurrency, type DisplayCurrency } from "@/store/useCurrency";
 
 export function CurrencyPicker({ compact = false }: { compact?: boolean }) {
   const { currency, setCurrency, hydrated } = useCurrency();
 
-  const options: AppCurrency[] = ["THB", "USD"];
+  const options: DisplayCurrency[] = ["THB", "USD"];
 
   if (!hydrated) return null;
 

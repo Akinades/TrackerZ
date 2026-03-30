@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 type QuoteResponse = {
   prices: Record<string, number>;
+  /** Quote currency (only when known/supported in-app) */
+  currencies?: Record<string, "THB" | "USD">;
   partial: boolean;
   missing: string[];
 };
@@ -22,7 +24,12 @@ function isCrypto(sym: string) {
 }
 
 function isFx(sym: string) {
-  return /^[A-Z]{6}$/.test(sym) && !isCrypto(sym) && sym !== "XAUUSD" && sym !== "XAGUSD";
+  return (
+    /^[A-Z]{6}$/.test(sym) &&
+    !isCrypto(sym) &&
+    sym !== "XAUUSD" &&
+    sym !== "XAGUSD"
+  );
 }
 
 function isMetal(sym: string) {
@@ -30,16 +37,41 @@ function isMetal(sym: string) {
 }
 
 function isUsStock(sym: string) {
-  return /^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) && !isCrypto(sym) && !isFx(sym) && !isMetal(sym);
+  return (
+    /^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) &&
+    !isCrypto(sym) &&
+    !isFx(sym) &&
+    !isMetal(sym)
+  );
 }
 
 // Stooq supports "exchange suffix" tickers like 700.HK, 9988.HK, 1299.HK, PTT.BK, etc.
 function isExchangeStock(sym: string) {
-  return /^[0-9]{1,6}\.[A-Z]{2}$/.test(sym) && !isCrypto(sym) && !isFx(sym) && !isMetal(sym);
+  return (
+    /^[0-9]{1,6}\.[A-Z]{2}$/.test(sym) &&
+    !isCrypto(sym) &&
+    !isFx(sym) &&
+    !isMetal(sym)
+  );
 }
 
 function isStock(sym: string) {
   return isUsStock(sym) || isExchangeStock(sym);
+}
+
+function inferQuoteCurrency(symRaw: string): "THB" | "USD" | undefined {
+  const sym = symRaw.trim().toUpperCase();
+  if (isCrypto(sym)) return "USD";
+  if (isMetal(sym)) return "USD";
+  if (isUsStock(sym)) return "USD";
+  if (isExchangeStock(sym) && sym.endsWith(".BK")) return "THB";
+  if (isFx(sym) && /^[A-Z]{6}$/.test(sym)) {
+    const quote = sym.slice(3, 6);
+    if (quote === "THB" || quote === "USD") return quote;
+  }
+  if (/^[A-Z]{3}$/.test(sym) && sym === "USD") return "USD";
+  if (/^[A-Z]{3}$/.test(sym) && sym === "THB") return "THB";
+  return undefined;
 }
 
 const COINGECKO_IDS: Record<string, string> = {
@@ -49,14 +81,14 @@ const COINGECKO_IDS: Record<string, string> = {
   SOL: "solana",
   ADA: "cardano",
   XRP: "ripple",
-  DOGE: "dogecoin"
+  DOGE: "dogecoin",
 };
 
 async function fetchCoinGecko(symbols: string[]) {
   const ids = symbols.map((s) => COINGECKO_IDS[s]).filter(Boolean);
   if (ids.length === 0) return {};
   const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(
-    ids.join(",")
+    ids.join(","),
   )}&vs_currencies=usd`;
   const res = await fetch(url, { next: { revalidate: 60 } });
   if (!res.ok) return {};
@@ -65,7 +97,8 @@ async function fetchCoinGecko(symbols: string[]) {
   for (const sym of symbols) {
     const id = COINGECKO_IDS[sym];
     const usd = id ? json?.[id]?.usd : undefined;
-    if (typeof usd === "number" && Number.isFinite(usd) && usd > 0) out[sym] = usd;
+    if (typeof usd === "number" && Number.isFinite(usd) && usd > 0)
+      out[sym] = usd;
   }
   return out;
 }
@@ -84,7 +117,7 @@ async function fetchStooqLatest(symbols: string[]) {
       // If it's already an exchange-suffixed ticker (e.g. 700.HK, PTT.BK), keep it.
       const stooqSymbol = isUsStock(sym) ? `${sym}.US` : sym;
       const url = `https://stooq.com/q/l/?s=${encodeURIComponent(
-        stooqSymbol.toLowerCase()
+        stooqSymbol.toLowerCase(),
       )}&f=sd2t2c&h&e=csv`;
       const res = await fetch(url, { next: { revalidate: 300 } });
       if (!res.ok) return;
@@ -102,7 +135,7 @@ async function fetchStooqLatest(symbols: string[]) {
       if (!Number.isFinite(close) || close <= 0) return;
 
       out[sym] = close;
-    })
+    }),
   );
 
   return out;
@@ -164,9 +197,14 @@ async function fetchForexLatest(symbols: string[]) {
 export async function GET(req: Request) {
   const symbols = parseSymbols(req.url);
   if (symbols.length === 0) {
-    return NextResponse.json({ prices: {}, partial: false, missing: [] } satisfies QuoteResponse);
+    return NextResponse.json({
+      prices: {},
+      partial: false,
+      missing: [],
+    } satisfies QuoteResponse);
   }
 
+  const cash = symbols.filter((s) => /^[A-Z]{3}$/.test(s) && !isCrypto(s));
   const crypto = symbols.filter(isCrypto);
   const fx = symbols.filter(isFx);
   const metals = symbols.filter(isMetal);
@@ -178,14 +216,43 @@ export async function GET(req: Request) {
   const [cg, stooq, fxPrices] = await Promise.all([
     fetchCoinGecko(crypto),
     fetchStooqLatest(stooqSyms),
-    fetchForexLatest(fx)
+    fetchForexLatest(fx),
   ]);
 
-  const prices = { ...stooq, ...fxPrices, ...cg };
+  // For cash currency holdings (e.g. EUR, JPY, CNY), we return USD per 1 unit.
+  // open.er-api gives rates[X] = X per 1 USD => USD per 1 X = 1 / rates[X]
+  const cashPrices: Record<string, number> = {};
+  if (cash.length > 0) {
+    const res = await fetch("https://open.er-api.com/v6/latest/USD", { next: { revalidate: 3600 } }).catch(
+      () => null,
+    );
+    const json = res && res.ok ? await res.json().catch(() => null) : null;
+    const rates: Record<string, number> = (json as any)?.rates ?? {};
+    for (const c of cash) {
+      if (c === "USD") {
+        cashPrices[c] = 1;
+        continue;
+      }
+      const r = Number(rates[c]);
+      if (Number.isFinite(r) && r > 0) cashPrices[c] = 1 / r;
+    }
+  }
+
+  const prices = { ...stooq, ...fxPrices, ...cg, ...cashPrices };
 
   const missing = symbols.filter((s) => typeof prices[s] !== "number");
   const partial = missing.length > 0;
 
-  return NextResponse.json({ prices, partial, missing } satisfies QuoteResponse);
-}
+  const currencies = symbols.reduce((acc, s) => {
+    const c = inferQuoteCurrency(s);
+    if (c) acc[s] = c;
+    return acc;
+  }, {} as Record<string, "THB" | "USD">);
 
+  return NextResponse.json({
+    prices,
+    currencies: Object.keys(currencies).length ? currencies : undefined,
+    partial,
+    missing,
+  } satisfies QuoteResponse);
+}

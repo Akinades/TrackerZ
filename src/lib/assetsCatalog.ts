@@ -1,12 +1,40 @@
 import type { AssetType } from "@/types/transactions";
+import type { AppCurrency } from "@/store/useCurrency";
 
 export type AssetCatalogItem = {
   symbol: string;
   label: string;
   type: AssetType;
+  /** Quote/transaction currency hint (only when known in-app) */
+  currency?: AppCurrency;
 };
 
-export const ASSETS_CATALOG: AssetCatalogItem[] = [
+function inferCurrency(symbolRaw: string, type: AssetType): AppCurrency | undefined {
+  const s = symbolRaw.trim().toUpperCase();
+  if (type === "cash" && /^[A-Z]{3}$/.test(s)) return s as AppCurrency;
+  if (type === "crypto") return "USD";
+  if (type === "gold") return "USD";
+  if (type === "stock") {
+    if (s.endsWith(".BK")) return "THB";
+    if (/^[0-9]{1,6}\.HK$/.test(s)) return undefined; // HKD (not supported in-app)
+    return "USD";
+  }
+  if (type === "forex" && /^[A-Z]{6}$/.test(s)) {
+    const quote = s.slice(3, 6);
+    if (quote === "THB" || quote === "USD" || quote === "EUR" || quote === "JPY" || quote === "GBP" || quote === "CNY")
+      return quote as AppCurrency;
+  }
+  return undefined;
+}
+
+const RAW_ASSETS_CATALOG: Omit<AssetCatalogItem, "currency">[] = [
+  // Cash / currency holdings
+  { symbol: "THB", label: "Thai Baht", type: "cash" },
+  { symbol: "USD", label: "U.S. Dollar", type: "cash" },
+  { symbol: "EUR", label: "Euro", type: "cash" },
+  { symbol: "JPY", label: "Japanese Yen", type: "cash" },
+  { symbol: "CNY", label: "Chinese Yuan", type: "cash" },
+
   { symbol: "AAPL", label: "Apple Inc.", type: "stock" },
   { symbol: "MSFT", label: "Microsoft Corp.", type: "stock" },
   { symbol: "NVDA", label: "NVIDIA Corp.", type: "stock" },
@@ -32,11 +60,27 @@ export const ASSETS_CATALOG: AssetCatalogItem[] = [
   { symbol: "ABNB", label: "Airbnb, Inc.", type: "stock" },
   // Thai market (Bangkok)
   { symbol: "PTT.BK", label: "PTT Public Company Limited", type: "stock" },
-  { symbol: "AOT.BK", label: "Airports of Thailand Public Company Limited", type: "stock" },
+  {
+    symbol: "AOT.BK",
+    label: "Airports of Thailand Public Company Limited",
+    type: "stock",
+  },
   { symbol: "CPALL.BK", label: "CP ALL Public Company Limited", type: "stock" },
-  { symbol: "ADVANC.BK", label: "Advanced Info Service Public Company Limited", type: "stock" },
-  { symbol: "KBANK.BK", label: "Kasikornbank Public Company Limited", type: "stock" },
-  { symbol: "BBL.BK", label: "Bangkok Bank Public Company Limited", type: "stock" },
+  {
+    symbol: "ADVANC.BK",
+    label: "Advanced Info Service Public Company Limited",
+    type: "stock",
+  },
+  {
+    symbol: "KBANK.BK",
+    label: "Kasikornbank Public Company Limited",
+    type: "stock",
+  },
+  {
+    symbol: "BBL.BK",
+    label: "Bangkok Bank Public Company Limited",
+    type: "stock",
+  },
 
   { symbol: "BTC", label: "Bitcoin", type: "crypto" },
   { symbol: "ETH", label: "Ethereum", type: "crypto" },
@@ -70,12 +114,16 @@ export const ASSETS_CATALOG: AssetCatalogItem[] = [
   { symbol: "1024.HK", label: "Xiaomi Corp. (HK:1024)", type: "stock" },
 
   { symbol: "XAUUSD", label: "Gold / U.S. Dollar", type: "gold" },
-  { symbol: "XAGUSD", label: "Silver / U.S. Dollar", type: "gold" }
+  { symbol: "XAGUSD", label: "Silver / U.S. Dollar", type: "gold" },
 ];
+
+export const ASSETS_CATALOG: AssetCatalogItem[] = RAW_ASSETS_CATALOG.map((x) => ({
+  ...x,
+  currency: inferCurrency(x.symbol, x.type),
+}));
 
 export function findAssetCatalogItem(queryRaw: string) {
   const q = queryRaw.trim().toUpperCase();
   if (!q) return null;
   return ASSETS_CATALOG.find((x) => x.symbol === q) ?? null;
 }
-

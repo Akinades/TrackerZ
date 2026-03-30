@@ -1,4 +1,5 @@
 import type { AssetType } from "@/types/transactions";
+import { STOCK_ICON_FILES } from "@/lib/stockIcons";
 
 export function getForexFlags(symbolRaw: string) {
   const s = symbolRaw.trim().toUpperCase();
@@ -19,6 +20,8 @@ export function getForexFlags(symbolRaw: string) {
         return "🇯🇵";
       case "GBP":
         return "🇬🇧";
+      case "CNY":
+        return "🇨🇳";
       case "AUD":
         return "🇦🇺";
       case "CAD":
@@ -53,7 +56,7 @@ export function getForexFlags(symbolRaw: string) {
 
 export function getCurrencyFlagIconSrc(ccyRaw: string): string | null {
   const ccy = ccyRaw.trim().toUpperCase();
-  const supported = new Set(["USD", "EUR", "JPY", "GBP", "THB"]);
+  const supported = new Set(["USD", "EUR", "JPY", "GBP", "THB", "CNY"]);
   if (!supported.has(ccy)) return null;
   return `/asset-icons/flags/${ccy.toLowerCase()}.svg`;
 }
@@ -71,8 +74,8 @@ export function getAssetIconSrc(symbolRaw: string, type: AssetType): string | nu
 
   // Symbol-specific stock logos
   if (type === "stock") {
-    const supported = new Set(["aapl", "nvda", "msft"]);
-    if (supported.has(symbol)) return `/asset-icons/stocks/${symbol}.svg`;
+    const ext = STOCK_ICON_FILES[symbol];
+    if (ext) return `/asset-icons/stocks/${symbol}.${ext}`;
   }
 
   // Type icons (for a consistent "specific" look)

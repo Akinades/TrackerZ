@@ -5,7 +5,7 @@ import type { AppCurrency } from "@/store/useCurrency";
 import { useTransactions } from "@/store/useTransactions";
 import { useAuth } from "@/store/useAuth";
 import { DEFAULT_TX_CURRENCY, useCurrency } from "@/store/useCurrency";
-import { useFxRate } from "@/store/useFxRate";
+import { useFxRates } from "@/store/useFxRates";
 import { round2 } from "@/lib/calculations";
 import { ASSETS_CATALOG, findAssetCatalogItem } from "@/lib/assetsCatalog";
 import { notify } from "@/lib/notify";
@@ -109,7 +109,7 @@ export type TransactionsPageModel = {
   pageButtons: (number | "gap")[];
   toDisplayMoney: (
     value: number,
-    from?: "THB" | "USD",
+    from?: AppCurrency,
     fxAtTrade?: number,
   ) => number;
   startEdit: (id: string) => void;
@@ -119,7 +119,7 @@ export type TransactionsPageModel = {
 export function useTransactionsPage(): TransactionsPageModel {
   const { user, hydrated: authHydrated } = useAuth();
   const { currency } = useCurrency();
-  const { usdThb } = useFxRate();
+  const { rates } = useFxRates();
   const { txs, hydrated, add, addMany, remove, removeAll, update } =
     useTransactions();
   const [form, setForm] = React.useState<TransactionFormState>(() =>
@@ -153,34 +153,60 @@ export function useTransactionsPage(): TransactionsPageModel {
   const [rowMenuOpenId, setRowMenuOpenId] = React.useState<string | null>(null);
   const rowMenuWrapRef = React.useRef<HTMLDivElement | null>(null);
   const isEditing = editingId !== null;
-  const fx = React.useMemo(
-    () => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36),
-    [usdThb],
-  );
+  const fx = React.useMemo(() => {
+    const thbPerUsd = Number(rates.THB);
+    return Number.isFinite(thbPerUsd) && thbPerUsd > 0 ? thbPerUsd : 36;
+  }, [rates.THB]);
 
   /** แปลงเป็นสกุลแสดงผล — ใช้อัตรา spot เหมือน `/dashboard` (ไม่ใช้ fxRateAtTrade ซึ่งอาจเป็น 1/ค่าผิด) */
   const toDisplayMoney = React.useCallback(
-    (value: number, from?: "THB" | "USD", _fxAtTrade?: number) => {
-      const src = from ?? DEFAULT_TX_CURRENCY;
-      const rate = fx;
-      if (src === currency) return value;
-      if (src === "USD" && currency === "THB") return value * rate;
-      if (src === "THB" && currency === "USD") return value / rate;
-      return value;
+    (value: number, from?: AppCurrency, fxAtTrade?: number) => {
+      const src = (from ?? DEFAULT_TX_CURRENCY) as AppCurrency;
+      const dst = currency;
+
+      // Prefer stored trade-time rate for THB/USD only.
+      if (fxAtTrade && Number.isFinite(fxAtTrade) && fxAtTrade > 0) {
+        if (src === dst) return value;
+        if (src === "USD" && dst === "THB") return value * fxAtTrade;
+        if (src === "THB" && dst === "USD") return value / fxAtTrade;
+      }
+
+      if (src === dst) return value;
+
+      // Use latest FX table (base USD): rates[X] = X per 1 USD.
+      const rSrc = src === "USD" ? 1 : Number(rates[src]);
+      const rDst = dst === "USD" ? 1 : Number(rates[dst]);
+      if (!Number.isFinite(rSrc) || rSrc <= 0) return value;
+      if (!Number.isFinite(rDst) || rDst <= 0) return value;
+
+      const usd = src === "USD" ? value : value / rSrc;
+      return dst === "USD" ? usd : usd * rDst;
     },
-    [currency, fx],
+    [currency, rates],
   );
 
   const fromDisplayMoney = React.useCallback(
-    (value: number, to?: "THB" | "USD", _fxAtTrade?: number) => {
-      const dst = to ?? currency;
-      const rate = fx;
-      if (dst === currency) return value;
-      if (currency === "USD" && dst === "THB") return value * rate;
-      if (currency === "THB" && dst === "USD") return value / rate;
-      return value;
+    (value: number, to?: AppCurrency, fxAtTrade?: number) => {
+      const dst = (to ?? currency) as AppCurrency;
+      const src = currency;
+
+      if (fxAtTrade && Number.isFinite(fxAtTrade) && fxAtTrade > 0) {
+        if (src === dst) return value;
+        if (src === "USD" && dst === "THB") return value * fxAtTrade;
+        if (src === "THB" && dst === "USD") return value / fxAtTrade;
+      }
+
+      if (dst === src) return value;
+
+      const rSrc = src === "USD" ? 1 : Number(rates[src]);
+      const rDst = dst === "USD" ? 1 : Number(rates[dst]);
+      if (!Number.isFinite(rSrc) || rSrc <= 0) return value;
+      if (!Number.isFinite(rDst) || rDst <= 0) return value;
+
+      const usd = src === "USD" ? value : value / rSrc;
+      return dst === "USD" ? usd : usd * rDst;
     },
-    [currency, fx],
+    [currency, rates],
   );
 
   const onChange = (patch: Partial<TransactionFormState>) =>

@@ -12,7 +12,7 @@ export function Modal({
   onClose,
   title,
   children,
-  className
+  className,
 }: {
   open: boolean;
   onClose: () => void;
@@ -44,7 +44,7 @@ export function Modal({
         <div
           className={cx(
             "w-full max-w-2xl rounded-3xl border border-zinc-200/70 bg-white p-5 text-zinc-900 shadow-[0_30px_80px_-50px_rgba(0,0,0,0.6)] dark:border-zinc-800/70 dark:bg-zinc-950 dark:text-zinc-100",
-            className
+            className,
           )}
           role="dialog"
           aria-modal="true"
@@ -66,4 +66,3 @@ export function Modal({
     </div>
   );
 }
-

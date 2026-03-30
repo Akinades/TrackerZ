@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/store/useAuth";
 import { DEFAULT_TX_CURRENCY, useCurrency } from "@/store/useCurrency";
-import { useFxRate } from "@/store/useFxRate";
+import { useFxRates } from "@/store/useFxRates";
 import { mapTx, useTransactions } from "@/store/useTransactions";
 import type { Transaction } from "@/types/transactions";
 import { txExecutedAtIso, txExecutedAtMs } from "@/lib/transactionTime";
@@ -35,23 +35,29 @@ export default function AssetsTimelinePage() {
     if (!user) router.replace("/");
   }, [authHydrated, user, router]);
   const { currency } = useCurrency();
-  const { usdThb } = useFxRate();
+  const { rates } = useFxRates();
   const { txs, hydrated, error } = useTransactions();
-  const fx = React.useMemo(
-    () => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36),
-    [usdThb],
-  );
 
   const toDisplayMoney = React.useCallback(
-    (value: number, from?: "THB" | "USD", _fxAtTrade?: number) => {
-      const src = from ?? DEFAULT_TX_CURRENCY;
-      const rate = fx;
-      if (src === currency) return value;
-      if (src === "USD" && currency === "THB") return value * rate;
-      if (src === "THB" && currency === "USD") return value / rate;
-      return value;
+    (value: number, from?: import("@/store/useCurrency").AppCurrency, fxAtTrade?: number) => {
+      const src = (from ?? DEFAULT_TX_CURRENCY) as import("@/store/useCurrency").AppCurrency;
+      const dst = currency;
+
+      if (fxAtTrade && Number.isFinite(fxAtTrade) && fxAtTrade > 0) {
+        if (src === dst) return value;
+        if (src === "USD" && dst === "THB") return value * fxAtTrade;
+        if (src === "THB" && dst === "USD") return value / fxAtTrade;
+      }
+
+      if (src === dst) return value;
+      const rSrc = src === "USD" ? 1 : Number(rates[src]);
+      const rDst = dst === "USD" ? 1 : Number(rates[dst]);
+      if (!Number.isFinite(rSrc) || rSrc <= 0) return value;
+      if (!Number.isFinite(rDst) || rDst <= 0) return value;
+      const usd = src === "USD" ? value : value / rSrc;
+      return dst === "USD" ? usd : usd * rDst;
     },
-    [currency, fx],
+    [currency, rates],
   );
   const [assetTxs, setAssetTxs] = React.useState<Transaction[]>([]);
   const [assetLoading, setAssetLoading] = React.useState(false);

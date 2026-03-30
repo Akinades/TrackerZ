@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "split-support": "node scripts/split-support-image.mjs"
+    "split-support": "node scripts/split-support-image.mjs",
+    "fetch:stock-icons": "node scripts/fetch-stock-icons.mjs",
+    "fetch:stock-logos": "node scripts/fetch-stock-logos.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",

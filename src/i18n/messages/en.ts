@@ -415,7 +415,7 @@ export const en = {
       marketCheckingSuffix: "...",
       marketOkSuffix: "has market pricing available",
       marketMissingSuffix:
-        "has no market pricing from the API right now (you can still save it, but unrealized/market value may be incomplete).",
+        "has no market price from the API right now (you can still save it, but market value may be incomplete).",
       marketError: "Failed to check market price (network/API)",
     },
   },

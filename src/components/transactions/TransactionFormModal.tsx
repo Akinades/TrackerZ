@@ -113,28 +113,32 @@ export function TransactionFormModal({ m }: Props) {
                   setTimeout(() => setAssetSuggestOpen(false), 0);
                 }}
               />
-              {errors.assetName ? <div className="mt-1 text-xs text-rose-700">{errors.assetName}</div> : null}
-              {!errors.assetName && marketStatusSymbol ? (
-                <div
-                  className={`mt-1 text-xs ${
-                    marketStatus === "ok"
-                      ? "text-emerald-700"
-                      : marketStatus === "missing"
-                        ? "text-amber-700"
-                        : "text-zinc-500"
-                  }`}
-                >
-                  {marketStatus === "checking"
-                    ? `${t("transactions.form.marketCheckingPrefix")} ${marketStatusSymbol}${t("transactions.form.marketCheckingSuffix")}`
-                    : marketStatus === "ok"
-                      ? `${marketStatusSymbol} ${t("transactions.form.marketOkSuffix")}`
-                      : marketStatus === "missing"
-                        ? `${marketStatusSymbol} ${t("transactions.form.marketMissingSuffix")}`
-                        : marketStatus === "error"
-                          ? t("transactions.form.marketError")
-                          : null}
-                </div>
-              ) : null}
+              {/* Reserve space so helper text doesn't shift layout */}
+              <div className="mt-1 min-h-[16px] text-xs leading-4">
+                {errors.assetName ? (
+                  <span className="text-rose-700">{errors.assetName}</span>
+                ) : marketStatusSymbol ? (
+                  <span
+                    className={
+                      marketStatus === "ok"
+                        ? "text-emerald-700"
+                        : marketStatus === "missing"
+                          ? "text-amber-700"
+                          : "text-zinc-500"
+                    }
+                  >
+                    {marketStatus === "checking"
+                      ? `${t("transactions.form.marketCheckingPrefix")} ${marketStatusSymbol}${t("transactions.form.marketCheckingSuffix")}`
+                      : marketStatus === "ok"
+                        ? `${marketStatusSymbol} ${t("transactions.form.marketOkSuffix")}`
+                        : marketStatus === "missing"
+                          ? `${marketStatusSymbol} ${t("transactions.form.marketMissingSuffix")}`
+                          : marketStatus === "error"
+                            ? t("transactions.form.marketError")
+                            : null}
+                  </span>
+                ) : null}
+              </div>
               {(() => {
                 if (!assetSuggestOpen) return null;
                 const q = form.assetName.trim();
@@ -184,6 +188,8 @@ export function TransactionFormModal({ m }: Props) {
                 </option>
               ))}
             </Select>
+            {/* Keep row height aligned with assetName helper line */}
+            <div className="mt-1 min-h-[16px]" aria-hidden />
           </div>
         </div>
 

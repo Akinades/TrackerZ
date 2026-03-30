@@ -1,6 +1,6 @@
 import type { AppCurrency } from "@/store/useCurrency";
 
-export type AssetType = "gold" | "stock" | "forex" | "crypto" | "other";
+export type AssetType = "gold" | "stock" | "forex" | "crypto" | "cash" | "other";
 export type TransactionSide = "buy" | "sell";
 
 export type Transaction = {

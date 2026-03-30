@@ -2,7 +2,11 @@
 
 import * as React from "react";
 
-export type AppCurrency = "THB" | "USD";
+// Display currency (global toggle) stays THB/USD.
+export type DisplayCurrency = "THB" | "USD";
+
+// Transaction / asset currencies can be broader.
+export type AppCurrency = DisplayCurrency | "EUR" | "JPY" | "GBP" | "CNY";
 
 /** สกุลที่บันทึกในฐานข้อมูลเมื่อรายการไม่มีฟิลด์ `currency` (ข้อมูลเก่า) */
 export const DEFAULT_TX_CURRENCY: AppCurrency = "THB";
@@ -10,7 +14,7 @@ export const DEFAULT_TX_CURRENCY: AppCurrency = "THB";
 const KEY = "trackerz.currency.v1";
 const EVT = "trackerz:currency";
 
-function safeRead(): AppCurrency | null {
+function safeRead(): DisplayCurrency | null {
   if (typeof window === "undefined") return null;
   try {
     const v = window.localStorage.getItem(KEY);
@@ -21,7 +25,7 @@ function safeRead(): AppCurrency | null {
   }
 }
 
-function safeWrite(v: AppCurrency) {
+function safeWrite(v: DisplayCurrency) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(KEY, v);
@@ -31,7 +35,7 @@ function safeWrite(v: AppCurrency) {
 }
 
 export function useCurrency() {
-  const [currency, setCurrencyState] = React.useState<AppCurrency>("THB");
+  const [currency, setCurrencyState] = React.useState<DisplayCurrency>("THB");
   const [hydrated, setHydrated] = React.useState(false);
 
   React.useEffect(() => {
@@ -44,7 +48,7 @@ export function useCurrency() {
     setHydrated(true);
 
     const onCurrency = (e: Event) => {
-      const ce = e as CustomEvent<AppCurrency>;
+      const ce = e as CustomEvent<DisplayCurrency>;
       const v = ce.detail;
       if (v === "THB" || v === "USD") setCurrencyState(v);
     };
@@ -68,11 +72,11 @@ export function useCurrency() {
     };
   }, []);
 
-  const setCurrency = React.useCallback((v: AppCurrency) => {
+  const setCurrency = React.useCallback((v: DisplayCurrency) => {
     setCurrencyState(v);
     safeWrite(v);
     try {
-      window.dispatchEvent(new CustomEvent<AppCurrency>(EVT, { detail: v }));
+      window.dispatchEvent(new CustomEvent<DisplayCurrency>(EVT, { detail: v }));
     } catch {
       // ignore
     }

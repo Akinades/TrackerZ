@@ -20,7 +20,7 @@ export type RangePreset =
 
 export type ToDisplayMoneyFn = (
   value: number,
-  from?: "THB" | "USD",
+  from?: import("@/store/useCurrency").AppCurrency,
   fxAtTrade?: number,
 ) => number;
 
@@ -38,12 +38,12 @@ export function unitDisplayForTx(
   t: Transaction,
   toDisplayMoney: ToDisplayMoneyFn,
 ) {
-  const baseCur = (t.currency ?? "THB") as "THB" | "USD";
+  const baseCur = (t.currency ?? "THB") as import("@/store/useCurrency").AppCurrency;
   return round2(toDisplayMoney(t.price, baseCur, t.fxRateAtTrade));
 }
 
 export function txBase(t: Transaction) {
-  return (t.currency ?? "THB") as "THB" | "USD";
+  return (t.currency ?? "THB") as import("@/store/useCurrency").AppCurrency;
 }
 
 export function txBuyOutflowDisplay(

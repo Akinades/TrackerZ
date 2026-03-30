@@ -17,7 +17,7 @@ const EVT = "trackerz:prefs";
 
 const defaultPrefs: Prefs = {
   costBasis: "avg",
-  allocation: { gold: 0, stock: 0, forex: 0, crypto: 0, other: 0 }
+  allocation: { gold: 0, stock: 0, forex: 0, crypto: 0, cash: 0, other: 0 }
 };
 
 function safeRead(): Prefs {
@@ -33,6 +33,7 @@ function safeRead(): Prefs {
       stock: Number(a.stock ?? 0) || 0,
       forex: Number(a.forex ?? 0) || 0,
       crypto: Number(a.crypto ?? 0) || 0,
+      cash: Number((a as any).cash ?? 0) || 0,
       other: Number(a.other ?? 0) || 0
     };
     return { costBasis, allocation };
