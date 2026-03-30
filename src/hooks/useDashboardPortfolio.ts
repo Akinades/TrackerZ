@@ -84,6 +84,10 @@ export type DashboardPortfolioModel = {
   pnlRows: DashboardPnlRow[];
   pricesStatus: "idle" | "loading" | "succeeded" | "failed";
   pricesError: string | null;
+  pollMinutes: number;
+  setPollMinutes: (minutes: number) => void;
+  refreshPricesNow: () => void;
+  pricesLastUpdatedAt?: number;
 };
 
 export function useDashboardPortfolio(): DashboardPortfolioModel {
@@ -96,7 +100,8 @@ export function useDashboardPortfolio(): DashboardPortfolioModel {
     refreshMarket,
     hydrated: pricesHydrated,
     status: pricesStatus,
-    error: pricesErrorRaw
+    error: pricesErrorRaw,
+    lastUpdatedAt: pricesLastUpdatedAt
   } = usePrices();
   const pricesError = pricesErrorRaw ?? null;
   const [pieMode, setPieMode] = React.useState<"asset" | "type">("asset");
@@ -149,11 +154,58 @@ export function useDashboardPortfolio(): DashboardPortfolioModel {
     [openPositions]
   );
 
+  const POLL_KEY = "trackerz.prices.pollMinutes.v1";
+  const [pollMinutes, setPollMinutesState] = React.useState<number>(5);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(POLL_KEY);
+      const n = raw ? Number(raw) : NaN;
+      if (Number.isFinite(n) && n >= 0) setPollMinutesState(n);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const setPollMinutes = React.useCallback((minutes: number) => {
+    const n = Number(minutes);
+    const safe = Number.isFinite(n) ? Math.max(0, Math.min(60, Math.round(n))) : 5;
+    setPollMinutesState(safe);
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(POLL_KEY, String(safe));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const refreshPricesNow = React.useCallback(() => {
+    if (!hydrated || !pricesHydrated) return;
+    if (quoteSymbols.length === 0) return;
+    refreshMarket(quoteSymbols);
+  }, [hydrated, pricesHydrated, quoteSymbols, refreshMarket]);
+
   React.useEffect(() => {
     if (!hydrated || !pricesHydrated) return;
     if (quoteSymbols.length === 0) return;
     refreshMarket(quoteSymbols);
   }, [hydrated, pricesHydrated, quoteSymbols, refreshMarket]);
+
+  React.useEffect(() => {
+    if (!hydrated || !pricesHydrated) return;
+    if (quoteSymbols.length === 0) return;
+    if (!Number.isFinite(pollMinutes) || pollMinutes <= 0) return;
+
+    const intervalMs = pollMinutes * 60_000;
+    const tick = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      refreshMarket(quoteSymbols);
+    };
+
+    const id = window.setInterval(tick, intervalMs);
+    return () => window.clearInterval(id);
+  }, [hydrated, pricesHydrated, quoteSymbols, refreshMarket, pollMinutes]);
 
   const marketValueOpenUsd = React.useMemo(
     () => currentValue(openPositions, prices),
@@ -366,6 +418,10 @@ export function useDashboardPortfolio(): DashboardPortfolioModel {
     txSellCount,
     pnlRows,
     pricesStatus,
-    pricesError
+    pricesError,
+    pollMinutes,
+    setPollMinutes,
+    refreshPricesNow,
+    pricesLastUpdatedAt
   };
 }

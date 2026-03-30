@@ -201,7 +201,11 @@ export const th = {
     costBasisTitle: "วิธีคำนวณต้นทุน/กำไร (Cost basis)",
     costBasisDesc: "ใช้สำหรับคำนวณ P/L ใน Dashboard ให้สอดคล้องกันทั้งระบบ",
     costBasisAvg: "Average Cost (ง่าย/นิยมในไทย)",
+    costBasisAvgHelp:
+      "เฉลี่ยต้นทุนของของที่ถืออยู่ให้เป็นราคาเดียวต่อหน่วย ทุกครั้งที่ซื้อจะถัวเฉลี่ยต้นทุนใหม่ เหมาะกับการดูภาพรวมแบบเข้าใจง่าย",
     costBasisFifo: "FIFO (มาตรฐานภาษี/รายงานหลายแบบ)",
+    costBasisFifoHelp:
+      "ขายออกจาก “ล็อตที่ซื้อก่อน” ก่อน (First-In-First-Out) ทำให้กำไร/ขาดทุนแต่ละครั้งผูกกับราคาซื้อจริงตามลำดับเวลา มักใช้กับรายงาน/ภาษี",
     allocationTitle: "Target allocation (สัดส่วนเป้าหมาย)",
     allocationDesc: "ตั้ง % ต่อประเภทสินทรัพย์เพื่อดู drift ใน Dashboard",
     allocationTotal: "รวมทั้งหมด:",
@@ -317,6 +321,15 @@ export const th = {
       title: "สัดส่วนพอร์ต (Allocation)",
       subtitle: "เปอร์เซ็นต์จากต้นทุนคงค้าง (ยังถือ) เทียบเป้าหมายในหน้า Settings",
       target: "Target",
+    },
+    prices: {
+      pollAria: "ตั้งค่าการรีเฟรชราคาตลาดอัตโนมัติ",
+      pollOff: "ไม่รีเฟรชอัตโนมัติ",
+      poll1m: "ทุก 1 นาที",
+      poll5m: "ทุก 5 นาที",
+      poll15m: "ทุก 15 นาที",
+      refreshNow: "รีเฟรช",
+      lastUpdated: "อัปเดตล่าสุด:",
     },
   },
   transactions: {

@@ -145,7 +145,9 @@ export function useTransactionsPage(): TransactionsPageModel {
   const [importing, setImporting] = React.useState(false);
   const [importError, setImportError] = React.useState<string | null>(null);
   const [importSummary, setImportSummary] = React.useState<string | null>(null);
-  const [importSummaryKind, setImportSummaryKind] = React.useState<"success" | "warning" | null>(null);
+  const [importSummaryKind, setImportSummaryKind] = React.useState<
+    "success" | "warning" | null
+  >(null);
   const [pageSize, setPageSize] = React.useState<10 | 25 | 50 | 100 | "all">(
     10,
   );
@@ -433,7 +435,7 @@ export function useTransactionsPage(): TransactionsPageModel {
           ? fromDisplayMoney(price, base!.currency, base!.fxRateAtTrade)
           : price,
       ),
-      amount: round2(amount),
+      amount,
       fee: isEditWithBase
         ? fromDisplayMoney(fee, base!.currency, base!.fxRateAtTrade)
         : fee,

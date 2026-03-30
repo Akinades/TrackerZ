@@ -204,7 +204,11 @@ export const en = {
     costBasisTitle: "Cost basis method",
     costBasisDesc: "Used to calculate P/L consistently across the app",
     costBasisAvg: "Average Cost (simple / common)",
+    costBasisAvgHelp:
+      "Averages your remaining position cost into one unit cost. Each buy updates the average cost, which is easy to understand at a glance.",
     costBasisFifo: "FIFO (tax/reporting standard in many places)",
+    costBasisFifoHelp:
+      "Sells are matched against the earliest buys first (First-In-First-Out). Realized P/L is based on actual buy lots in time order—often used for reporting/taxes.",
     allocationTitle: "Target allocation",
     allocationDesc: "Set % per asset type to track drift on the Dashboard",
     allocationTotal: "Total:",
@@ -319,6 +323,15 @@ export const en = {
       title: "Allocation targets",
       subtitle: "Percent by remaining cost (open) vs your target in Settings",
       target: "Target",
+    },
+    prices: {
+      pollAria: "Set market price auto refresh interval",
+      pollOff: "Auto refresh: off",
+      poll1m: "Every 1 minute",
+      poll5m: "Every 5 minutes",
+      poll15m: "Every 15 minutes",
+      refreshNow: "Refresh",
+      lastUpdated: "Last updated:",
     },
   },
   transactions: {

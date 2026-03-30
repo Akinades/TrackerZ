@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { formatMoney } from "@/lib/format";
 import { CircleDollarSign, LineChart, Percent, TrendingDown, TrendingUp } from "lucide-react";
 import type { DashboardPortfolioModel } from "@/hooks/useDashboardPortfolio";
@@ -77,6 +78,27 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
           <div className="text-xs text-zinc-500">
             {t("dashboard.summary.subtitle")}
           </div>
+        </div>
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+          <select
+            className="h-9 w-full rounded-2xl border border-zinc-200/70 bg-white px-3 text-xs text-zinc-700 sm:w-[170px]"
+            value={String(d.pollMinutes)}
+            onChange={(e) => d.setPollMinutes(Number(e.target.value))}
+            aria-label={t("dashboard.prices.pollAria")}
+          >
+            <option value="0">{t("dashboard.prices.pollOff")}</option>
+            <option value="1">{t("dashboard.prices.poll1m")}</option>
+            <option value="5">{t("dashboard.prices.poll5m")}</option>
+            <option value="15">{t("dashboard.prices.poll15m")}</option>
+          </select>
+          <Button
+            variant="secondary"
+            className="h-9 shrink-0 rounded-2xl px-3 py-0 text-xs"
+            disabled={d.pricesStatus === "loading"}
+            onClick={() => d.refreshPricesNow()}
+          >
+            {t("dashboard.prices.refreshNow")}
+          </Button>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -196,6 +218,15 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
       </div>
       {hydrated && (pricesError || openPositions.length > 0 || txsLength > 0) ? (
         <div className="mt-4 space-y-2 border-t border-zinc-100 pt-3 text-xs leading-relaxed text-zinc-500">
+          {typeof d.pricesLastUpdatedAt === "number" ? (
+            <p>
+              {t("dashboard.prices.lastUpdated")}{" "}
+              {new Date(d.pricesLastUpdatedAt).toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          ) : null}
           {pricesError ? (
             <p className="text-rose-600/90">{t("dashboard.summary.pricesFailed")}</p>
           ) : openPositions.length > 0 && quotedOpenCount < openPositions.length ? (

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/Card";
 import { SupportBlurb } from "@/components/shared/SupportBlurb";
 import { useAuth } from "@/store/useAuth";
 import { useDashboardPortfolio } from "@/hooks/useDashboardPortfolio";
@@ -46,6 +45,9 @@ export default function DashboardPage() {
               {t("dashboard.introReal")}
             </span>{" "}
             {t("dashboard.introSuffix")}
+            <span className="mt-1 block">
+              <SupportBlurb as="span" className="text-sm text-zinc-600" />
+            </span>
           </p>
         </div>
         <div className="w-full rounded-2xl  p-3 sm:w-[250px]">
@@ -74,10 +76,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      <Card className="rounded-2xl border-emerald-200/70 bg-emerald-50/40 px-4 py-3 sm:px-5">
-        <SupportBlurb />
-      </Card>
 
       {d.hydrated && d.txsLength === 0 ? (
         <DashboardDemoEmptyCard onSeedDemo={d.seedDemo} />

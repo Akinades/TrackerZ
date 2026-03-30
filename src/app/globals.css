@@ -24,6 +24,16 @@ body {
     background-attachment: fixed;
     background-size: cover;
   }
+
+  /* Ensure form controls use app font (Kanit) */
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+  }
 }
 
 /* Sonner toast: Tailwind-like styling (subtle + readable) */

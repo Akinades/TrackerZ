@@ -9,11 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { useFxRate } from "@/store/useFxRate";
 import { usePreferences } from "@/store/usePreferences";
 import type { AssetType } from "@/types/transactions";
-import {
-  LEVELS,
-  formatLevelRange,
-  getLevelByPerformance,
-} from "@/lib/levels";
+import { LEVELS, formatLevelRange, getLevelByPerformance } from "@/lib/levels";
 import { useDashboardPortfolio } from "@/hooks/useDashboardPortfolio";
 import { feedbackMailtoHref, getFeedbackEmail } from "@/lib/siteContact";
 import { useI18n } from "@/components/shared/I18nProvider";
@@ -111,6 +107,17 @@ export default function SettingsPage() {
               <option value="avg">{t("settings.costBasisAvg")}</option>
               <option value="fifo">{t("settings.costBasisFifo")}</option>
             </select>
+            <div className="mt-2 text-xs leading-snug text-zinc-600">
+              {prefsHydrated ? (
+                prefs.costBasis === "fifo" ? (
+                  <span>{t("settings.costBasisFifoHelp")}</span>
+                ) : (
+                  <span>{t("settings.costBasisAvgHelp")}</span>
+                )
+              ) : (
+                <span>{t("settings.costBasisAvgHelp")}</span>
+              )}
+            </div>
           </div>
         </div>
       </Card>
@@ -132,9 +139,7 @@ export default function SettingsPage() {
                   </div>
                   <Input
                     inputMode="decimal"
-                    value={
-                      prefsHydrated ? String(prefs.allocation[k]) : "0"
-                    }
+                    value={prefsHydrated ? String(prefs.allocation[k]) : "0"}
                     onChange={(e) => {
                       const n = Number(e.target.value.trim());
                       const v = Number.isFinite(n)
@@ -217,7 +222,7 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      <Card className="p-4 sm:p-5">
+      {/* <Card className="p-4 sm:p-5">
         <div className="text-sm font-semibold text-zinc-900">{t("settings.contactTitle")}</div>
         <p className="mt-1 text-sm text-zinc-600">
           {t("settings.contactDesc")}
@@ -231,7 +236,7 @@ export default function SettingsPage() {
             {feedbackEmail}
           </a>
         </p>
-      </Card>
+      </Card> */}
     </div>
   );
 }

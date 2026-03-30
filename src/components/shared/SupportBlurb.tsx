@@ -2,10 +2,17 @@ import Link from "next/link";
 import { useI18n } from "@/components/shared/I18nProvider";
 
 /** ข้อความสั้นๆ ชวนสนับสนุน — ใช้ใน Dashboard / โปรไฟล์ (ไม่ใช้ในหน้าสมัคร) */
-export function SupportBlurb({ className }: { className?: string }) {
+export function SupportBlurb({
+  className,
+  as = "p",
+}: {
+  className?: string;
+  as?: "p" | "span";
+}) {
   const { t } = useI18n();
+  const Tag = as;
   return (
-    <p className={className ?? "text-sm leading-relaxed text-zinc-600"}>
+    <Tag className={className ?? "text-sm leading-relaxed text-zinc-600"}>
       {t("support.supportBlurbPrefix")}{" "}
       <Link
         href="/support"
@@ -13,6 +20,6 @@ export function SupportBlurb({ className }: { className?: string }) {
       >
         {t("authMenu.support")}
       </Link>
-    </p>
+    </Tag>
   );
 }
