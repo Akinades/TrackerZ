@@ -3,10 +3,13 @@ import { AssetIcon } from "@/components/ui/AssetIcon";
 import { formatMoney, formatNumber2 } from "@/lib/format";
 import type { DashboardPortfolioModel } from "@/hooks/useDashboardPortfolio";
 import { formatDashboardPct } from "@/components/dashboard/dashboardFormat";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 type Props = { d: DashboardPortfolioModel };
 
 export function DashboardHoldingsTableCard({ d }: Props) {
+  const { t, locale } = useI18n();
+  const numLocale = locale === "th" ? "th-TH" : "en-US";
   const { hydrated, currency, holdingRows, toDisplay } = d;
 
   return (
@@ -14,18 +17,20 @@ export function DashboardHoldingsTableCard({ d }: Props) {
       <div className="grid gap-3">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="text-sm font-semibold text-zinc-900">สินทรัพย์ที่ถือทั้งหมด</div>
+            <div className="text-sm font-semibold text-zinc-900">{t("dashboard.holdings.title")}</div>
             <div className="text-xs text-zinc-500">
-              เรียงตามต้นทุนคงค้าง (มาก → น้อย) · เลื่อนตารางซ้าย–ขวาบนมือถือได้
+              {t("dashboard.holdings.subtitle")}
             </div>
           </div>
-          <div className="text-xs text-zinc-500">{hydrated ? `${holdingRows.length} รายการ` : "…"}</div>
+          <div className="text-xs text-zinc-500">
+            {hydrated ? `${holdingRows.length} ${t("dashboard.holdings.items")}` : "…"}
+          </div>
         </div>
 
         {!hydrated ? (
-          <div className="text-sm text-zinc-400">กำลังโหลดข้อมูล…</div>
+          <div className="text-sm text-zinc-400">{t("common.loading")}</div>
         ) : holdingRows.length === 0 ? (
-          <div className="text-sm text-zinc-400">ยังไม่มีสินทรัพย์ที่ถือค้าง (หรือขายหมดแล้ว)</div>
+          <div className="text-sm text-zinc-400">{t("dashboard.holdings.empty")}</div>
         ) : (
           <div className="overflow-hidden rounded-3xl border border-zinc-200/70">
             <div className="overflow-x-auto [scrollbar-width:thin]">
@@ -33,14 +38,14 @@ export function DashboardHoldingsTableCard({ d }: Props) {
                 <table className="w-full min-w-[980px] border-collapse text-left text-sm">
                   <thead>
                     <tr className="sticky top-0 z-[1] border-b border-zinc-200/80 bg-zinc-50/95 text-xs font-medium text-zinc-600 backdrop-blur-sm">
-                      <th className="whitespace-nowrap px-4 py-3">สินทรัพย์</th>
-                      <th className="whitespace-nowrap px-3 py-3 text-right">จำนวน</th>
-                      <th className="whitespace-nowrap px-3 py-3 text-right">ทุนเฉลี่ย / หน่วย</th>
-                      <th className="whitespace-nowrap px-3 py-3 text-right">ราคาตลาด / หน่วย</th>
-                      <th className="whitespace-nowrap px-3 py-3 text-right">ต้นทุนค้าง</th>
-                      <th className="whitespace-nowrap px-3 py-3 text-right">มูลค่าตลาด</th>
-                      <th className="whitespace-nowrap px-3 py-3 text-right">กำไรค้าง</th>
-                      <th className="whitespace-nowrap px-4 py-3 text-right">ขายแล้ว</th>
+                      <th className="whitespace-nowrap px-4 py-3">{t("dashboard.holdings.cols.asset")}</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-right">{t("dashboard.holdings.cols.amount")}</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-right">{t("dashboard.holdings.cols.avgCost")}</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-right">{t("dashboard.holdings.cols.marketPx")}</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-right">{t("dashboard.holdings.cols.cost")}</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-right">{t("dashboard.holdings.cols.marketValue")}</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-right">{t("dashboard.holdings.cols.unreal")}</th>
+                      <th className="whitespace-nowrap px-4 py-3 text-right">{t("dashboard.holdings.cols.realized")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200/70 bg-white">
@@ -71,7 +76,7 @@ export function DashboardHoldingsTableCard({ d }: Props) {
                             </div>
                           </td>
                           <td className="px-3 py-3 text-right tabular-nums text-zinc-800">
-                            {formatNumber2(p.qty, "th-TH")}
+                            {formatNumber2(p.qty, numLocale)}
                           </td>
                           <td className="px-3 py-3 text-right tabular-nums text-zinc-800">
                             {formatMoney(Math.round(toDisplay(p.avgCost) * 100) / 100, currency)}
@@ -114,7 +119,7 @@ export function DashboardHoldingsTableCard({ d }: Props) {
                                 ].join(" ")}
                               >
                                 ({unrealPctOnCost > 0 ? "+" : ""}
-                                {formatDashboardPct(unrealPctOnCost)}% ของต้นทุนค้าง)
+                                {formatDashboardPct(unrealPctOnCost)}% {t("dashboard.holdings.ofCost")})
                               </div>
                             ) : null}
                           </td>

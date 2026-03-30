@@ -1,18 +1,20 @@
 import { Card } from "@/components/ui/Card";
 import type { DashboardPortfolioModel } from "@/hooks/useDashboardPortfolio";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 type Props = { d: DashboardPortfolioModel };
 
 export function DashboardAllocationTargetsCard({ d }: Props) {
+  const { t } = useI18n();
   const { allocationRows } = d;
 
   return (
     <Card>
       <div className="grid gap-3">
         <div>
-          <div className="text-sm font-medium">สัดส่วนพอร์ต (Allocation)</div>
+          <div className="text-sm font-medium">{t("dashboard.allocationTargets.title")}</div>
           <div className="text-xs text-zinc-400">
-            เปอร์เซ็นต์จากต้นทุนคงค้าง (ยังถือ) เทียบเป้าหมายในหน้า Settings
+            {t("dashboard.allocationTargets.subtitle")}
           </div>
         </div>
         <div className="grid gap-2">
@@ -26,7 +28,8 @@ export function DashboardAllocationTargetsCard({ d }: Props) {
                 <div className="font-medium text-zinc-900">{r.type.toUpperCase()}</div>
                 <div className="flex items-center gap-3 tabular-nums">
                   <div className="text-zinc-600">
-                    {r.pct.toFixed(2)}% / Target {Number(r.target).toFixed(2)}%
+                    {r.pct.toFixed(2)}% / {t("dashboard.allocationTargets.target")}{" "}
+                    {Number(r.target).toFixed(2)}%
                   </div>
                   <div
                     className={

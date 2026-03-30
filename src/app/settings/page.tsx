@@ -16,10 +16,12 @@ import {
 } from "@/lib/levels";
 import { useDashboardPortfolio } from "@/hooks/useDashboardPortfolio";
 import { feedbackMailtoHref, getFeedbackEmail } from "@/lib/siteContact";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 export default function SettingsPage() {
   const router = useRouter();
   const { user, hydrated } = useAuth();
+  const { t } = useI18n();
 
   React.useEffect(() => {
     if (!hydrated) return;
@@ -31,10 +33,10 @@ export default function SettingsPage() {
   const currentLevel = getLevelByPerformance(d.totalReturnPct, d.txsLength);
   const feedbackEmail = getFeedbackEmail();
   const feedbackMailHref =
-    feedbackMailtoHref("TrackerZ — แจ้งปัญหา / ข้อเสนอแนะ") ?? `mailto:${feedbackEmail}`;
+    feedbackMailtoHref(t("feedback.subject")) ?? `mailto:${feedbackEmail}`;
 
   if (!hydrated) {
-    return <Card className="p-6">กำลังโหลด…</Card>;
+    return <Card className="p-6">{t("common.loading")}</Card>;
   }
 
   if (!user) {
@@ -44,16 +46,16 @@ export default function SettingsPage() {
   return (
     <div className="grid gap-4">
       <div>
-        <div className="text-xl font-semibold">ตั้งค่า</div>
+        <div className="text-xl font-semibold">{t("settings.title")}</div>
       </div>
 
       <Card className="p-4 sm:p-5">
         <div>
           <div className="text-sm font-semibold text-zinc-900">
-            สกุลเงินหลัก
+            {t("settings.primaryCurrencyTitle")}
           </div>
           <div className="mt-1 text-sm text-zinc-600">
-            ใช้เพื่อแสดงผลตัวเลขใน Dashboard (พร้อม conversion)
+            {t("settings.primaryCurrencyDesc")}
           </div>
         </div>
         <div className="mt-3">
@@ -64,13 +66,13 @@ export default function SettingsPage() {
       <Card className="p-4 sm:p-5">
         <div className="rounded-2xl border border-zinc-200/70 bg-zinc-50/60 p-4">
           <div className="text-sm font-semibold text-zinc-900">
-            อัตราแลกเปลี่ยน (USD/THB)
+            {t("settings.fxTitle")}
           </div>
           <div className="mt-1 text-sm text-zinc-600">
-            ใช้สำหรับแปลงตัวเลขเมื่อสลับ THB ↔ USD (MVP ใส่เองก่อน)
+            {t("settings.fxDesc")}
           </div>
           <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="text-sm text-zinc-700">1 USD =</div>
+            <div className="text-sm text-zinc-700">{t("settings.fxLeft")}</div>
             <div className="w-[160px]">
               <Input
                 inputMode="decimal"
@@ -83,7 +85,7 @@ export default function SettingsPage() {
                 aria-label="USDTHB rate"
               />
             </div>
-            <div className="text-sm text-zinc-700">THB</div>
+            <div className="text-sm text-zinc-700">{t("settings.fxRight")}</div>
           </div>
         </div>
       </Card>
@@ -91,10 +93,10 @@ export default function SettingsPage() {
       <Card className="p-4 sm:p-5">
         <div className="rounded-2xl border border-zinc-200/70 bg-zinc-50/60 p-4">
           <div className="text-sm font-semibold text-zinc-900">
-            วิธีคำนวณต้นทุน/กำไร (Cost basis)
+            {t("settings.costBasisTitle")}
           </div>
           <div className="mt-1 text-sm text-zinc-600">
-            ใช้สำหรับคำนวณ P/L ใน Dashboard ให้สอดคล้องกันทั้งระบบ
+            {t("settings.costBasisDesc")}
           </div>
           <div className="mt-3">
             <select
@@ -106,8 +108,8 @@ export default function SettingsPage() {
                 })
               }
             >
-              <option value="avg">Average Cost (ง่าย/นิยมในไทย)</option>
-              <option value="fifo">FIFO (มาตรฐานภาษี/รายงานหลายแบบ)</option>
+              <option value="avg">{t("settings.costBasisAvg")}</option>
+              <option value="fifo">{t("settings.costBasisFifo")}</option>
             </select>
           </div>
         </div>
@@ -116,10 +118,10 @@ export default function SettingsPage() {
       <Card className="p-4 sm:p-5">
         <div className="rounded-2xl border border-zinc-200/70 bg-zinc-50/60 p-4">
           <div className="text-sm font-semibold text-zinc-900">
-            Target allocation (สัดส่วนเป้าหมาย)
+            {t("settings.allocationTitle")}
           </div>
           <div className="mt-1 text-sm text-zinc-600">
-            ตั้ง % ต่อประเภทสินทรัพย์เพื่อดู drift ใน Dashboard
+            {t("settings.allocationDesc")}
           </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-5">
             {(["gold", "stock", "forex", "crypto", "other"] as const).map(
@@ -152,7 +154,7 @@ export default function SettingsPage() {
             )}
           </div>
           <div className="mt-3 text-xs text-zinc-500">
-            รวมทั้งหมด:{" "}
+            {t("settings.allocationTotal")}{" "}
             {prefsHydrated
               ? Math.round(
                   (prefs.allocation.gold +
@@ -171,21 +173,21 @@ export default function SettingsPage() {
       <Card className="p-4 sm:p-5">
         <div className="rounded-2xl border border-emerald-200/70  p-4">
           <div className="text-sm font-semibold text-zinc-900">
-            ระบบระดับผู้ใช้งาน (ตาม % กำไร)
+            {t("settings.levelsTitle")}
           </div>
           <div className="mt-1 text-sm text-zinc-600">
-            ระดับปัจจุบัน:{" "}
+            {t("settings.levelsCurrent")}{" "}
             <span className="font-semibold text-emerald-800">
-              {d.hydrated ? currentLevel.label : "กำลังโหลด..."}
+              {d.hydrated ? currentLevel.label : t("settings.levelsLoading")}
             </span>{" "}
-            (กำไรรวม{" "}
+            {t("settings.levelsProfitPrefix")}{" "}
             {typeof d.totalReturnPct === "number"
               ? `${d.totalReturnPct.toFixed(2)}%`
               : "-"}
             )
           </div>
           <div className="mt-1 text-xs text-zinc-500">
-            การจัดระดับคำนวณจาก % กำไรรวมของพอร์ต (จากต้นทุนสะสม) และมีเงื่อนไขข้อมูลธุรกรรมเพียงพอภายในระบบ
+            {t("settings.levelsCalcHint")}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
             {LEVELS.map((level) => (
@@ -216,12 +218,12 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="p-4 sm:p-5">
-        <div className="text-sm font-semibold text-zinc-900">ติดต่อ & ข้อเสนอแนะ</div>
+        <div className="text-sm font-semibold text-zinc-900">{t("settings.contactTitle")}</div>
         <p className="mt-1 text-sm text-zinc-600">
-          พบบั๊กหรืออยากเสนอไอเดีย — คลิกอีเมลด้านล่างเพื่อเปิดแอปอีเมล
+          {t("settings.contactDesc")}
         </p>
         <p className="mt-2 text-sm text-zinc-700">
-          <span className="font-medium text-zinc-900">อีเมล:</span>{" "}
+          <span className="font-medium text-zinc-900">{t("settings.contactEmailLabel")}</span>{" "}
           <a
             href={feedbackMailHref}
             className="break-all font-mono text-emerald-700 underline-offset-2 hover:underline"

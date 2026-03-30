@@ -8,10 +8,12 @@ import { ASSETS_CATALOG, findAssetCatalogItem } from "@/lib/assetsCatalog";
 import type { AssetType, TransactionSide } from "@/types/transactions";
 import type { TransactionsPageModel } from "@/hooks/useTransactionsPage";
 import { parseStrictPositiveNumber, sanitizeDecimalInput } from "@/lib/transactionPageUtils";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 type Props = { m: TransactionsPageModel };
 
 export function TransactionFormModal({ m }: Props) {
+  const { t } = useI18n();
   const {
     open,
     setOpen,
@@ -69,15 +71,19 @@ export function TransactionFormModal({ m }: Props) {
   }, [form.assetName]);
 
   return (
-    <Modal open={open} onClose={() => setOpen(false)} title={isEditing ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}>
+    <Modal
+      open={open}
+      onClose={() => setOpen(false)}
+      title={isEditing ? t("transactions.form.titleEdit") : t("transactions.form.titleAdd")}
+    >
       <div className="grid gap-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
-            <label className="text-sm text-zinc-700 dark:text-zinc-200">ชื่อสินทรัพย์</label>
+            <label className="text-sm text-zinc-700 dark:text-zinc-200">{t("transactions.form.assetName")}</label>
             <div ref={assetSuggestWrapRef} className="relative">
               <Input
                 value={form.assetName}
-                placeholder="เช่น AAPL, BTC, EURUSD, XAUUSD"
+                placeholder={t("transactions.form.assetPlaceholder")}
                 aria-invalid={Boolean(errors.assetName) || undefined}
                 className={errors.assetName ? "border-rose-300 focus:ring-rose-200" : undefined}
                 onFocus={() => setAssetSuggestOpen(true)}
@@ -95,7 +101,7 @@ export function TransactionFormModal({ m }: Props) {
                 onBlur={() => {
                   const sym = form.assetName.trim().toUpperCase();
                   if (!sym) {
-                    setErrors((p) => ({ ...p, assetName: "กรุณากรอกชื่อสินทรัพย์" }));
+                    setErrors((p) => ({ ...p, assetName: t("transactions.form.errAssetRequired") }));
                     return;
                   }
                   const hit = findAssetCatalogItem(sym);
@@ -119,13 +125,13 @@ export function TransactionFormModal({ m }: Props) {
                   }`}
                 >
                   {marketStatus === "checking"
-                    ? `กำลังเช็คราคาตลาดของ ${marketStatusSymbol}...`
+                    ? `${t("transactions.form.marketCheckingPrefix")} ${marketStatusSymbol}${t("transactions.form.marketCheckingSuffix")}`
                     : marketStatus === "ok"
-                      ? `${marketStatusSymbol} มีราคาตลาดให้คำนวณ`
+                      ? `${marketStatusSymbol} ${t("transactions.form.marketOkSuffix")}`
                       : marketStatus === "missing"
-                        ? `${marketStatusSymbol} ยังไม่มีราคาตลาดจาก API ตอนนี้ (บันทึกรายการได้ แต่กำไรค้าง/มูลค่าปัจจุบันจะไม่ครบ)`
+                        ? `${marketStatusSymbol} ${t("transactions.form.marketMissingSuffix")}`
                         : marketStatus === "error"
-                          ? "เช็คราคาตลาดไม่สำเร็จ (เครือข่าย/API)"
+                          ? t("transactions.form.marketError")
                           : null}
                 </div>
               ) : null}
@@ -167,7 +173,7 @@ export function TransactionFormModal({ m }: Props) {
           </div>
 
           <div className="grid gap-1">
-            <label className="text-sm text-zinc-700 dark:text-zinc-200">ประเภท</label>
+            <label className="text-sm text-zinc-700 dark:text-zinc-200">{t("transactions.form.assetType")}</label>
             <Select
               value={form.assetType}
               onChange={(e) => onChange({ assetType: e.target.value as AssetType })}
@@ -184,7 +190,7 @@ export function TransactionFormModal({ m }: Props) {
         <div className="grid gap-2">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="grid min-w-0 flex-1 gap-1">
-              <label className="text-sm text-zinc-700 dark:text-zinc-200">วันที่ซื้อ/ขาย</label>
+              <label className="text-sm text-zinc-700 dark:text-zinc-200">{t("transactions.form.tradeDate")}</label>
               <Input
                 type="date"
                 value={form.tradeDate}
@@ -197,7 +203,7 @@ export function TransactionFormModal({ m }: Props) {
               />
             </div>
             <div className="grid min-w-0 flex-1 gap-1">
-              <label className="text-sm text-zinc-700 dark:text-zinc-200">เวลาซื้อ/ขาย</label>
+              <label className="text-sm text-zinc-700 dark:text-zinc-200">{t("transactions.form.tradeTime")}</label>
               <Input
                 type="time"
                 step={60}
@@ -209,13 +215,13 @@ export function TransactionFormModal({ m }: Props) {
           </div>
           {errors.tradeDate ? <div className="text-xs text-rose-700">{errors.tradeDate}</div> : null}
           <p className="text-[11px] leading-snug text-zinc-500">
-            วันที่กับเวลาต้องสอดคล้องกัน — ใช้เรียงลำดับเมื่อมีหลายรายการในวันเดียวกัน
+            {t("transactions.form.tradeHint")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
           <div className="grid gap-1">
-            <label className="text-sm text-zinc-700 dark:text-zinc-200">ฝั่ง</label>
+            <label className="text-sm text-zinc-700 dark:text-zinc-200">{t("transactions.form.side")}</label>
             <Select
               value={form.side}
               onChange={(e) => onChange({ side: e.target.value as TransactionSide })}
@@ -228,7 +234,7 @@ export function TransactionFormModal({ m }: Props) {
 
           <div className="grid gap-1">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm text-zinc-700 dark:text-zinc-200">ราคา/หน่วย</label>
+              <label className="text-sm text-zinc-700 dark:text-zinc-200">{t("transactions.form.pricePerUnit")}</label>
               <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{currency}</span>
             </div>
             <Input
@@ -247,7 +253,10 @@ export function TransactionFormModal({ m }: Props) {
                 if (!p.ok) {
                   setErrors((prev) => ({
                     ...prev,
-                    price: p.reason === "required" ? "กรุณากรอกราคา" : "กรุณากรอกราคาเป็นตัวเลขเท่านั้น"
+                    price:
+                      p.reason === "required"
+                        ? t("transactions.form.errPriceRequired")
+                        : t("transactions.form.errPriceNumeric")
                   }));
                 }
               }}
@@ -257,7 +266,7 @@ export function TransactionFormModal({ m }: Props) {
 
           <div className="grid gap-1">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm text-zinc-700 dark:text-zinc-200">จำนวน</label>
+              <label className="text-sm text-zinc-700 dark:text-zinc-200">{t("transactions.form.amount")}</label>
               <span className="invisible text-[11px] font-medium">USD</span>
             </div>
             <Input
@@ -276,7 +285,7 @@ export function TransactionFormModal({ m }: Props) {
                 if (!a.ok) {
                   setErrors((prev) => ({
                     ...prev,
-                    amount: "กรุณากรอกจำนวน"
+                    amount: t("transactions.form.errAmountRequired")
                   }));
                 }
               }}
@@ -316,14 +325,16 @@ export function TransactionFormModal({ m }: Props) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-zinc-500">
             {isEditing
-              ? "แก้ไขรวมวันที่/เวลาที่ทำรายการได้ — ใช้กับการเรียงลำดับและกรองช่วงวันที่"
-              : "กำหนดวันที่และเวลาที่ซื้อ/ขายจริง เพื่อให้เรียงตามเวลาถูกต้อง"}
+              ? t("transactions.form.bottomHintEdit")
+              : t("transactions.form.bottomHintAdd")}
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={reset}>
-              ยกเลิก
+              {t("common.cancel")}
             </Button>
-            <Button onClick={submit}>{isEditing ? "บันทึกการแก้ไข" : "เพิ่มรายการ"}</Button>
+            <Button onClick={submit}>
+              {isEditing ? t("transactions.form.saveEdit") : t("transactions.form.add")}
+            </Button>
           </div>
         </div>
       </div>

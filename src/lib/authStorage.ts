@@ -48,10 +48,13 @@ export async function getCurrentUser(): Promise<PublicUser | null> {
 export async function register(
   emailRaw: string,
   passwordRaw: string,
-  plan: UserPlan = "free"
+  language: "th" | "en"
 ): Promise<PublicUser> {
   const email = emailRaw.trim().toLowerCase();
   const password = passwordRaw;
+  if (language !== "th" && language !== "en") {
+    throw new Error("language must be one of: th, en");
+  }
   if (!email || !password || password.length < 6) {
     throw new Error("กรุณากรอกอีเมล และรหัสผ่านอย่างน้อย 6 ตัวอักษร");
   }
@@ -60,7 +63,7 @@ export async function register(
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, plan })
+      body: JSON.stringify({ email, password, language })
     });
     const json = (await readJsonSafe(res)) as unknown;
     if (!res.ok) throw new Error((json as { message?: string })?.message || "สมัครสมาชิกไม่สำเร็จ");

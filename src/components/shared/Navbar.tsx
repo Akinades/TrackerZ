@@ -4,15 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthButtons } from "@/components/shared/NavbarAuth";
-
-const nav = [
-  { href: "/dashboard", label: "พอร์ตภาพรวม" },
-  { href: "/transactions", label: "บันทึกรายการ" },
-  { href: "/assets", label: "กราฟสินทรัพย์" },
-] as const;
+import { useI18n } from "@/components/shared/I18nProvider";
 
 export function Navbar() {
   const pathname = usePathname();
+  const { t } = useI18n();
   if (
     pathname === "/" ||
     pathname === "/login" ||
@@ -22,6 +18,12 @@ export function Navbar() {
   ) {
     return null;
   }
+
+  const nav = [
+    { href: "/dashboard", label: t("nav.dashboard") },
+    { href: "/transactions", label: t("nav.transactions") },
+    { href: "/assets", label: t("nav.assets") },
+  ] as const;
 
   return (
     <header className="sticky top-0 z-20 -mx-4 bg-transparent px-4 py-5">

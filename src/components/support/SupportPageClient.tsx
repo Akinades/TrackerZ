@@ -7,16 +7,18 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { feedbackMailtoHref, getFeedbackEmail } from "@/lib/siteContact";
 import { useAuth } from "@/store/useAuth";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 export function SupportPageClient() {
   const { user, hydrated } = useAuth();
+  const { t } = useI18n();
   const [qrBroken, setQrBroken] = React.useState(false);
   const feedbackEmail = getFeedbackEmail();
   const feedbackMailHref =
-    feedbackMailtoHref("TrackerZ — แจ้งปัญหา / ข้อเสนอแนะ") ?? `mailto:${feedbackEmail}`;
+    feedbackMailtoHref(t("feedback.subject")) ?? `mailto:${feedbackEmail}`;
 
   const backHref = hydrated && user ? "/dashboard" : "/";
-  const backLabel = hydrated && user ? "← กลับแดชบอร์ด" : "← กลับหน้าแรก";
+  const backLabel = hydrated && user ? t("support.backDashboard") : t("support.backHome");
 
   return (
     <div className="mx-auto grid max-w-4xl gap-8 py-2">
@@ -31,14 +33,13 @@ export function SupportPageClient() {
 
       <header className="text-center">
         <p className="text-xs font-medium uppercase tracking-widest text-emerald-700">
-          ยุทธภพ TrackerZ
+          {t("support.headingWorld")}
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-          ขอบคุณที่สนับสนุน
+          {t("support.headingThanks")}
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-600 sm:text-base">
-          TrackerZ ใช้งานฟรีเต็มรูปแบบ — ถ้าอยากช่วยค่าน้ำชาหรือค่าพัฒนา สแกน PromptPay ด้านล่างได้ตามใจศรัทธา
-          ร่วมสร้างตำนานไปด้วยกัน
+          {t("support.intro")}
         </p>
       </header>
 
@@ -47,12 +48,12 @@ export function SupportPageClient() {
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Sparkles className="h-7 w-7 text-amber-500 motion-safe:animate-pulse" aria-hidden />
             <span className="rounded-full border border-amber-200/80 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-amber-800">
-              คำจากสำนัก
+              {t("support.fromSchool")}
             </span>
             <Sparkles className="h-7 w-7 text-emerald-500 motion-safe:animate-pulse" aria-hidden />
           </div>
           <p className="mx-auto max-w-xl text-lg font-semibold leading-snug text-emerald-950 sm:text-xl">
-            ขอบพระคุณทุกท่านที่แวะเติมพลังให้ TrackerZ — ไม่ว่าจะยอดเท่าไร ศรัทธาของท่านคือแรงผลักให้เราพัฒนาต่อในยุทธภพนี้
+            {t("support.thanksBody")}
           </p>
           <div
             className="mx-auto mt-1 h-1 w-32 max-w-full rounded-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-80"
@@ -73,7 +74,7 @@ export function SupportPageClient() {
               </div>
               <h2 className="text-lg font-semibold text-zinc-900 sm:text-xl">สนับสนุนสำนัก</h2>
               <p className="max-w-xl text-sm leading-relaxed text-zinc-600 sm:text-base">
-                สแกน QR ในกรอบด้านขวาเพื่อโอน — กำหนดยอดเองตามศรัทธาได้เลย
+                {t("support.cardSupportDesc")}
               </p>
               
             </section>
@@ -88,17 +89,18 @@ export function SupportPageClient() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
                   <Mail className="h-4 w-4 text-emerald-700" aria-hidden />
                 </span>
-                แจ้งปัญหาหรือส่งข้อเสนอแนะ
+                {t("support.cardTitleFeedback")}
               </div>
               <p className="text-sm leading-relaxed text-zinc-600">
-                พบบั๊ก ใช้งานไม่สะดวก หรืออยากเสนอฟีเจอร์ — ส่งอีเมลถึงทีมได้โดยตรง
-                เราอ่านทุกฉบับและใช้ปรับปรุง TrackerZ
+                {t("support.cardFeedbackDesc")}
               </p>
               <a
                 href={feedbackMailHref}
                 className="inline-flex w-fit max-w-full items-center gap-2 rounded-xl border border-emerald-200/80 bg-white/90 px-3 py-2 text-sm shadow-sm transition hover:border-emerald-300 hover:bg-white"
               >
-                <span className="shrink-0 text-xs font-medium text-zinc-500">อีเมล</span>
+                <span className="shrink-0 text-xs font-medium text-zinc-500">
+                  {t("common.email")}
+                </span>
                 <span className="break-all font-mono text-sm font-medium text-emerald-800">
                   {feedbackEmail}
                 </span>
@@ -109,7 +111,7 @@ export function SupportPageClient() {
           {/* ขวา: QR */}
           <div className="flex flex-col justify-center border-t border-zinc-100 bg-gradient-to-b from-zinc-50/90 to-emerald-50/30 px-6 py-8 sm:px-8 lg:w-[min(100%,18.5rem)] lg:border-l lg:border-t-0 lg:py-10">
             <p className="mb-3 text-center text-[11px] font-medium uppercase tracking-wider text-zinc-500 lg:text-left">
-              สแกนโอนสนับสนุน
+              {t("support.qrTitle")}
             </p>
             {!qrBroken ? (
               <div className="mx-auto w-full max-w-[16.5rem] overflow-hidden rounded-2xl border border-white bg-white shadow-[0_12px_40px_-20px_rgba(16,185,129,0.35)] ring-1 ring-zinc-100">
@@ -123,7 +125,7 @@ export function SupportPageClient() {
               </div>
             ) : (
               <div className="mx-auto flex min-h-[12rem] w-full max-w-[16.5rem] items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white/80 p-4 text-center text-xs text-zinc-500">
-                ยังไม่มีรูป QR — ใส่ไฟล์ promptpay-qr.png ในโฟลเดอร์ public/support
+                {t("support.qrMissing")}
               </div>
             )}
           </div>

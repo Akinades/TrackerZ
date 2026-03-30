@@ -11,11 +11,13 @@ import { useAuth } from "@/store/useAuth";
 import { forgotPassword, resetPasswordWithOtp } from "@/lib/authStorage";
 import { notify } from "@/lib/notify";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 export function LoginClient() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/dashboard";
+  const { t } = useI18n();
 
   const { user, hydrated, login } = useAuth();
   const [email, setEmail] = React.useState("");
@@ -50,12 +52,12 @@ export function LoginClient() {
     setPending(true);
     try {
       await login(email, password);
-      notify.success("เข้าสู่ระบบสำเร็จ");
+      notify.success(t("auth.login.successToast"));
       router.replace(next);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "เกิดข้อผิดพลาด";
+      const msg = e instanceof Error ? e.message : t("common.genericError");
       setError(msg);
-      notify.error(msg, "เข้าสู่ระบบไม่สำเร็จ");
+      notify.error(msg, t("auth.login.failedTitle"));
       setPending(false);
     }
   };
@@ -76,14 +78,14 @@ export function LoginClient() {
     setForgotPending(true);
     try {
       const msg = await forgotPassword(forgotEmail);
-      notify.success(msg || "ส่ง OTP เรียบร้อย");
+      notify.success(msg || t("auth.login.otpSent"));
       setForgotStep(2);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "ส่ง OTP ไม่สำเร็จ";
+      const msg = e instanceof Error ? e.message : t("auth.login.otpSendFailed");
       const retry = (e as Error & { retryAfterSeconds?: number })?.retryAfterSeconds ?? 0;
       if (retry > 0) setRetryAfter(retry);
       setForgotError(msg);
-      notify.error(msg, "ลืมรหัสผ่าน");
+      notify.error(msg, t("auth.login.forgotTitle"));
     } finally {
       setForgotPending(false);
     }
@@ -95,7 +97,7 @@ export function LoginClient() {
     setForgotPending(true);
     try {
       const msg = await resetPasswordWithOtp(forgotEmail, otp, newPassword);
-      notify.success(msg || "รีเซ็ตรหัสผ่านสำเร็จ");
+      notify.success(msg || t("auth.login.resetSuccess"));
       setForgotOpen(false);
       setPassword("");
       setOtp("");
@@ -103,11 +105,11 @@ export function LoginClient() {
       setForgotStep(1);
       setForgotError(null);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "รีเซ็ตรหัสผ่านไม่สำเร็จ";
+      const msg = e instanceof Error ? e.message : t("auth.login.resetFailed");
       const retry = (e as Error & { retryAfterSeconds?: number })?.retryAfterSeconds ?? 0;
       if (retry > 0) setRetryAfter(retry);
       setForgotError(msg);
-      notify.error(msg, "รีเซ็ตรหัสผ่าน");
+      notify.error(msg, t("auth.login.resetPassword"));
     } finally {
       setForgotPending(false);
     }
@@ -118,13 +120,13 @@ export function LoginClient() {
       <div className="p-2 sm:p-4">
         <div className="grid gap-4">
           <div>
-            <div className="text-lg font-semibold">เข้าสู่ระบบ</div>
-            <div className="text-sm text-zinc-600">ยินดีต้อนรับกลับมา</div>
+            <div className="text-lg font-semibold">{t("auth.login.title")}</div>
+            <div className="text-sm text-zinc-600">{t("auth.login.subtitle")}</div>
           </div>
 
           <div className="grid gap-3">
             <div className="grid gap-1">
-              <label className="text-sm text-zinc-700">อีเมล</label>
+              <label className="text-sm text-zinc-700">{t("auth.login.emailLabel")}</label>
               <Input
                 value={email}
                 inputMode="email"
@@ -133,10 +135,10 @@ export function LoginClient() {
               />
             </div>
             <div className="grid gap-1">
-              <label className="text-sm text-zinc-700">รหัสผ่าน</label>
+              <label className="text-sm text-zinc-700">{t("auth.login.passwordLabel")}</label>
               <PasswordInput
                 value={password}
-                placeholder="อย่างน้อย 6 ตัวอักษร"
+                placeholder={t("auth.login.passwordPlaceholder")}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
               />
@@ -156,7 +158,7 @@ export function LoginClient() {
                 onClick={openForgot}
                 className="text-zinc-700 underline underline-offset-4 hover:text-zinc-900"
               >
-                ลืมรหัสผ่าน?
+                {t("auth.login.forgotPassword")}
               </button>
             </div>
             <Button
@@ -164,15 +166,15 @@ export function LoginClient() {
               disabled={!hydrated || pending}
               className="w-full"
             >
-              เข้าสู่ระบบ
+              {t("auth.login.submit")}
             </Button>
             <div className="text-sm text-zinc-600">
-              ยังไม่มีบัญชี?{" "}
+              {t("auth.login.noAccount")}{" "}
               <Link
                 href={`/register?next=${encodeURIComponent(next)}`}
                 className="text-zinc-900 underline underline-offset-4"
               >
-                สมัครสมาชิก
+                {t("auth.login.registerLink")}
               </Link>
             </div>
           </div>
@@ -194,15 +196,19 @@ export function LoginClient() {
         </div>
       </div>
 
-      <Modal open={forgotOpen} onClose={() => setForgotOpen(false)} title="ลืมรหัสผ่าน (OTP)">
+      <Modal
+        open={forgotOpen}
+        onClose={() => setForgotOpen(false)}
+        title={t("auth.login.forgotModalTitle")}
+      >
         <div className="grid gap-3">
           <div className="text-sm text-zinc-600">
             {forgotStep === 1
-              ? "กรอกอีเมลเพื่อรับ OTP 6 หลัก"
-              : "กรอก OTP 6 หลัก และตั้งรหัสผ่านใหม่"}
+              ? t("auth.login.forgotStep1Hint")
+              : t("auth.login.forgotStep2Hint")}
           </div>
           <div className="grid gap-1">
-            <label className="text-sm text-zinc-700">อีเมล</label>
+            <label className="text-sm text-zinc-700">{t("auth.login.emailLabel")}</label>
             <Input
               value={forgotEmail}
               inputMode="email"
@@ -213,7 +219,7 @@ export function LoginClient() {
           {forgotStep === 2 ? (
             <>
               <div className="grid gap-1">
-                <label className="text-sm text-zinc-700">OTP 6 หลัก</label>
+                <label className="text-sm text-zinc-700">{t("auth.login.otpLabel")}</label>
                 <Input
                   value={otp}
                   inputMode="numeric"
@@ -223,10 +229,10 @@ export function LoginClient() {
                 />
               </div>
               <div className="grid gap-1">
-                <label className="text-sm text-zinc-700">รหัสผ่านใหม่</label>
+                <label className="text-sm text-zinc-700">{t("auth.login.newPasswordLabel")}</label>
                 <PasswordInput
                   value={newPassword}
-                  placeholder="อย่างน้อย 6 ตัวอักษร"
+                  placeholder={t("auth.login.passwordPlaceholder")}
                   onChange={(e) => setNewPassword(e.target.value)}
                   autoComplete="new-password"
                 />
@@ -240,13 +246,15 @@ export function LoginClient() {
           ) : null}
           {retryAfter > 0 ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              กรุณารอ {retryAfter} วินาที แล้วลองใหม่
+              {t("auth.login.waitRetryPrefix")} {retryAfter} {t("auth.login.waitRetrySuffix")}
             </div>
           ) : null}
           <div className="flex gap-2">
             {forgotStep === 1 ? (
               <Button onClick={sendOtp} disabled={forgotPending || retryAfter > 0} className="w-full">
-                {retryAfter > 0 ? `ส่ง OTP อีกครั้งใน ${retryAfter}s` : "ส่ง OTP"}
+                {retryAfter > 0
+                  ? `${t("auth.login.resendOtpInPrefix")} ${retryAfter}${t("auth.login.resendOtpInSuffix")}`
+                  : t("auth.login.sendOtp")}
               </Button>
             ) : (
               <>
@@ -256,10 +264,12 @@ export function LoginClient() {
                   disabled={forgotPending || retryAfter > 0}
                   className="w-full"
                 >
-                  {retryAfter > 0 ? `ส่ง OTP ใหม่ใน ${retryAfter}s` : "ส่ง OTP ใหม่"}
+                  {retryAfter > 0
+                    ? `${t("auth.login.resendOtpIn2Prefix")} ${retryAfter}${t("auth.login.resendOtpIn2Suffix")}`
+                    : t("auth.login.resendOtp")}
                 </Button>
                 <Button onClick={resetByOtp} disabled={forgotPending} className="w-full">
-                  รีเซ็ตรหัสผ่าน
+                  {t("auth.login.resetPassword")}
                 </Button>
               </>
             )}

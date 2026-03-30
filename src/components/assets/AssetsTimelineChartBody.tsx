@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { AssetValueTimelineLine } from "@/components/charts/AssetValueTimelineLine";
 import type { AssetSeries } from "@/components/charts/AssetValueTimelineLine";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 type Props = {
   hydrated: boolean;
@@ -31,11 +32,12 @@ export function AssetsTimelineChartBody({
   showSummaryToggle,
   onToggleSummary
 }: Props) {
+  const { t } = useI18n();
   return (
     <div className="px-4 pb-5 pt-4 sm:px-6">
       {!hydrated || (assetNotAll && assetLoading) ? (
         <div className="flex min-h-[320px] items-center justify-center text-sm text-zinc-400">
-          กำลังโหลด…
+          {t("common.loading")}
         </div>
       ) : assetError ? (
         <div className="flex min-h-[200px] items-center justify-center text-sm text-rose-600">
@@ -47,7 +49,7 @@ export function AssetsTimelineChartBody({
         </div>
       ) : filteredEmpty ? (
         <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/40 text-sm text-zinc-500">
-          ไม่มีรายการในช่วงนี้ — ลองขยายช่วงวันที่
+          {t("assets.empty")}
         </div>
       ) : (
         <>
@@ -56,15 +58,24 @@ export function AssetsTimelineChartBody({
               <p className="text-[11px] leading-relaxed text-zinc-600">
                 {showAllChartLines ? (
                   <>
-                    แสดง<strong className="font-medium text-zinc-800"> ทุกสินทรัพย์</strong> พร้อมกัน
-                    — เส้นอาจซ้อนกันจนอ่านยาก
+                    {t("assets.simplify.allPrefix")}
+                    <strong className="font-medium text-zinc-800">
+                      {" "}
+                      {t("assets.simplify.allEmphasis")}
+                    </strong>{" "}
+                    {t("assets.simplify.allSuffix")}
                   </>
                 ) : (
                   <>
-                    โหมดอ่านง่าย: แสดง{" "}
-                    <strong className="font-medium text-zinc-800">5 รายการที่มูลค่าถือล่าสุดสูงสุด</strong>{" "}
-                    และเส้น <strong className="font-medium text-zinc-800">อื่นๆ</strong> เป็นมูลค่ารวมของที่เหลือ
-                    — จุดซื้อ/ขายของแต่ละเหรียญในกลุ่มอื่นๆ ยังแสดงครบ
+                    {t("assets.simplify.simplePrefix")}{" "}
+                    <strong className="font-medium text-zinc-800">
+                      {t("assets.simplify.top5")}
+                    </strong>{" "}
+                    {t("assets.simplify.simpleMid")}{" "}
+                    <strong className="font-medium text-zinc-800">
+                      {t("assets.simplify.others")}
+                    </strong>{" "}
+                    {t("assets.simplify.simpleSuffix")}
                   </>
                 )}
               </p>
@@ -74,7 +85,9 @@ export function AssetsTimelineChartBody({
                 className="h-8 shrink-0 rounded-xl px-3 text-xs shadow-none"
                 onClick={onToggleShowAllChartLines}
               >
-                {showAllChartLines ? "ย่อเป็น 5 + อื่นๆ" : "แสดงทุกเส้น"}
+                {showAllChartLines
+                  ? t("assets.simplify.ctaCompact")
+                  : t("assets.simplify.ctaShowAll")}
               </Button>
             </div>
           ) : null}
@@ -86,7 +99,9 @@ export function AssetsTimelineChartBody({
               className="h-8 rounded-xl px-3 text-xs font-medium text-zinc-600 hover:bg-zinc-100"
               onClick={onToggleSummary}
             >
-              {showSummaryToggle ? "ซ่อนสรุปด้านล่าง" : "แสดงสรุปด้านล่าง"}
+              {showSummaryToggle
+                ? t("assets.summary.hide")
+                : t("assets.summary.show")}
             </Button>
           </div>
         </>

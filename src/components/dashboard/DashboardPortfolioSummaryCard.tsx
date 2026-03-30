@@ -4,10 +4,12 @@ import { CircleDollarSign, LineChart, Percent, TrendingDown, TrendingUp } from "
 import type { DashboardPortfolioModel } from "@/hooks/useDashboardPortfolio";
 import { DashboardSummaryStat } from "@/components/dashboard/DashboardSummaryStat";
 import { formatDashboardPct } from "@/components/dashboard/dashboardFormat";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 type Props = { d: DashboardPortfolioModel };
 
 export function DashboardPortfolioSummaryCard({ d }: Props) {
+  const { t } = useI18n();
   const {
     hydrated,
     currency,
@@ -71,22 +73,22 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
     <Card>
       <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="text-sm font-semibold text-zinc-900">สรุปพอร์ต</div>
+          <div className="text-sm font-semibold text-zinc-900">{t("dashboard.summary.title")}</div>
           <div className="text-xs text-zinc-500">
-            สี่ตัวเลขหลัก — มูลค่าปัจจุบันและกำไรค้างนับเฉพาะสินทรัพย์ที่ดึงราคาได้
+            {t("dashboard.summary.subtitle")}
           </div>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <DashboardSummaryStat
-          label="ต้นทุน"
-          hint="ของที่ถืออยู่ (ต้นทุนคงค้าง)"
+          label={t("dashboard.summary.costLabel")}
+          hint={t("dashboard.summary.costHint")}
           icon={LineChart}
           value={hydrated ? formatMoney(openCostDisp, currency) : "…"}
         />
         <DashboardSummaryStat
-          label="มูลค่าปัจจุบัน"
-          hint="ประมาณจากราคาล่าสุด"
+          label={t("dashboard.summary.marketValueLabel")}
+          hint={t("dashboard.summary.marketValueHint")}
           icon={CircleDollarSign}
           value={
             !hydrated
@@ -101,8 +103,8 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
           }
         />
         <DashboardSummaryStat
-          label="กำไร / ขาดทุน"
-          hint="ขายแล้ว + ค้าง รวมกัน"
+          label={t("dashboard.summary.pnlLabel")}
+          hint={t("dashboard.summary.pnlHint")}
           icon={pnlIcon}
           iconClassName={pnlIconClass}
           valueClassName={pnlValueClass}
@@ -121,10 +123,10 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
           pctLine={
             hydrated && (openPositions.length > 0 || realized !== 0) ? (
               <>
-                ขายแล้ว {realizedDisp >= 0 ? "+" : "−"}
+                {t("dashboard.summary.realized")} {realizedDisp >= 0 ? "+" : "−"}
                 {formatMoney(Math.abs(realizedDisp), currency)}
                 {" · "}
-                ค้าง{" "}
+                {t("dashboard.summary.unrealized")}{" "}
                 {showUnrealizedBreakdown ? (
                   <>
                     {unrealizedTotalDisp >= 0 ? "+" : "−"}
@@ -141,8 +143,8 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
           pctClassName={pnlPctClass}
         />
         <DashboardSummaryStat
-          label="ผลตอบแทน"
-          hint="% เทียบเงินลงทุนรวม"
+          label={t("dashboard.summary.returnLabel")}
+          hint={t("dashboard.summary.returnHint")}
           icon={Percent}
           iconClassName={
             !hydrated || totalReturnPct == null
@@ -176,7 +178,11 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
           }
           pctLine={
             hydrated && invested > 0 ? (
-              <>ลงทุนรวม {formatMoney(investedDisp, currency)} (ซื้อ + fee)</>
+              <>
+                {t("dashboard.summary.investedPrefix")}{" "}
+                {formatMoney(investedDisp, currency)}{" "}
+                {t("dashboard.summary.investedSuffix")}
+              </>
             ) : undefined
           }
           pctClassName={
@@ -191,17 +197,20 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
       {hydrated && (pricesError || openPositions.length > 0 || txsLength > 0) ? (
         <div className="mt-4 space-y-2 border-t border-zinc-100 pt-3 text-xs leading-relaxed text-zinc-500">
           {pricesError ? (
-            <p className="text-rose-600/90">ดึงราคาไม่สำเร็จ — ลองรีเฟรชหน้า</p>
+            <p className="text-rose-600/90">{t("dashboard.summary.pricesFailed")}</p>
           ) : openPositions.length > 0 && quotedOpenCount < openPositions.length ? (
             <p>
-              มีราคาตลาดครบ {quotedOpenCount} จาก {openPositions.length} รายการ — &quot;มูลค่าปัจจุบัน&quot; และส่วนกำไรค้างใน
-              &quot;กำไร / ขาดทุน&quot; นับเฉพาะที่มีราคา
+              {t("dashboard.summary.partialPricesPrefix")} {quotedOpenCount}{" "}
+              {t("dashboard.summary.partialPricesOf")} {openPositions.length}{" "}
+              {t("dashboard.summary.partialPricesSuffix")}
             </p>
           ) : openPositions.length > 0 ? (
-            <p>ราคาอ้างอิงจากแหล่งข้อมูลตลาด (โหลดเมื่อเปิดหน้านี้)</p>
+            <p>{t("dashboard.summary.priceSource")}</p>
           ) : null}
           {txsLength > 0 ? (
-            <p>ค่าธรรมเนียม + ภาษีสะสม {formatMoney(feesDisp, currency)}</p>
+            <p>
+              {t("dashboard.summary.feesTaxes")} {formatMoney(feesDisp, currency)}
+            </p>
           ) : null}
         </div>
       ) : null}

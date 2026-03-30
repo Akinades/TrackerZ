@@ -1,9 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { useI18n } from "@/components/shared/I18nProvider";
+import { LanguageToggle } from "@/components/shared/LanguageToggle";
 
 export default function HomePage() {
+  const { t } = useI18n();
   return (
     <div className="grid gap-12 py-2">
       {/* HERO (full-bleed background) */}
@@ -19,6 +24,9 @@ export default function HomePage() {
           />
 
           <div className="relative grid gap-10 sm:grid-cols-2 sm:items-center">
+            <div className="absolute right-0 top-0 z-10">
+              <LanguageToggle />
+            </div>
             <div className="grid gap-5">
               <div className="grid gap-3">
                 <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">
@@ -26,13 +34,12 @@ export default function HomePage() {
                     TrackerZ
                   </span>
                   <br />
-                  จดไว้ให้ครบ
+                  {t("home.heroLine1")}
                   <br />
-                  แล้วดูพอร์ตให้สวย
+                  {t("home.heroLine2")}
                 </h1>
                 <p className="max-w-xl text-base text-zinc-600">
-                  บันทึกรายการซื้อ/ขาย → ใส่ราคาปัจจุบัน →
-                  เห็นสัดส่วนพอร์ตและกำไร/ขาดทุนแบบเข้าใจง่าย
+                  {t("home.heroSubtitle")}
                 </p>
                 <div className="max-w-xl rounded-3xl border border-emerald-200/70 bg-white/80 p-4 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.25)] backdrop-blur">
                   <div className="flex items-center gap-3 justify-center">
@@ -42,7 +49,7 @@ export default function HomePage() {
                         it.”
                       </div>
                       <div className="mt-1 text-sm text-zinc-700">
-                        ถ้าคุณวัดผลไม่ได้ คุณก็พัฒนาการเทรดไม่ได้
+                        {t("home.quoteThai")}
                       </div>
                     </div>
                   </div>
@@ -52,7 +59,7 @@ export default function HomePage() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link href="/register" className="w-full sm:w-auto">
                   <Button className="h-11 w-full px-6 text-base shadow-[0_16px_30px_-18px_rgba(0,0,0,0.45)] sm:w-auto">
-                    เริ่มต้นใช้งาน (ฟรี)
+                    {t("home.ctaStartFree")}
                   </Button>
                 </Link>
                 <Link href="/login" className="w-full sm:w-auto">
@@ -60,7 +67,7 @@ export default function HomePage() {
                     variant="secondary"
                     className="h-11 w-full px-6 text-base sm:w-auto"
                   >
-                    เข้าสู่ระบบ
+                    {t("home.ctaLogin")}
                   </Button>
                 </Link>
               </div>
@@ -92,7 +99,7 @@ export default function HomePage() {
                 />
               </div>
               <div className="mt-4 text-center text-xs text-zinc-500">
-                ข้อมูลพอร์ตถูกจัดเก็บบนระบบฐานข้อมูลกลาง (MongoDB)
+                {t("home.dataStored")}
               </div>
             </div>
           </div>
@@ -112,10 +119,9 @@ export default function HomePage() {
               />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold">บันทึกรายการ</div>
+              <div className="text-sm font-semibold">{t("home.featureLogTitle")}</div>
               <div className="mt-2 text-sm text-zinc-600">
-                ซื้อ/ขาย, ราคา, จำนวน, ค่าธรรมเนียม พร้อมเวลา
-                และกรองตามช่วงวันที่ได้
+                {t("home.featureLogDesc")}
               </div>
             </div>
           </div>
@@ -132,10 +138,9 @@ export default function HomePage() {
               />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold">ต้นทุนเฉลี่ย</div>
+              <div className="text-sm font-semibold">{t("home.featureAvgCostTitle")}</div>
               <div className="mt-2 text-sm text-zinc-600">
-                Average Cost แยกตามสินทรัพย์ คิด realized/unrealized
-                แบบเข้าใจง่าย
+                {t("home.featureAvgCostDesc")}
               </div>
             </div>
           </div>
@@ -152,9 +157,9 @@ export default function HomePage() {
               />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold">กราฟสรุปทันที</div>
+              <div className="text-sm font-semibold">{t("home.featureChartTitle")}</div>
               <div className="mt-2 text-sm text-zinc-600">
-                Pie สัดส่วนพอร์ต และ Bar กำไร/ขาดทุนรายสินทรัพย์ ดูง่ายบนมือถือ
+                {t("home.featureChartDesc")}
               </div>
             </div>
           </div>
@@ -166,11 +171,9 @@ export default function HomePage() {
         <Card className="p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <div className="text-base font-semibold">
-                ทำไมต้องใช้ TrackerZ?
-              </div>
+              <div className="text-base font-semibold">{t("home.whyTitle")}</div>
               <div className="mt-1 text-sm text-zinc-600">
-                เพราะ “การเทรดที่ดี” ต้องวัดผลได้ และรู้ว่าควรปรับตรงไหน
+                {t("home.whyDesc")}
               </div>
             </div>
             <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
@@ -181,35 +184,34 @@ export default function HomePage() {
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-3xl border border-zinc-200/70 bg-white p-5">
               <div className="text-sm font-semibold text-zinc-900">
-                เห็นภาพรวมไว
+                {t("home.whyCardFastTitle")}
               </div>
               <div className="mt-2 text-sm text-zinc-600">
-                มูลค่าพอร์ต, ROI, กำไร/ขาดทุน แสดงแบบอ่านง่ายในหน้า Dashboard
+                {t("home.whyCardFastDesc")}
               </div>
             </div>
             <div className="rounded-3xl border border-zinc-200/70 bg-white p-5">
               <div className="text-sm font-semibold text-zinc-900">
-                รู้ต้นทุนจริง
+                {t("home.whyCardTrueCostTitle")}
               </div>
               <div className="mt-2 text-sm text-zinc-600">
-                คำนวณ Average Cost พร้อมรวมค่าธรรมเนียม ช่วยตัดสินใจได้แม่นขึ้น
+                {t("home.whyCardTrueCostDesc")}
               </div>
             </div>
             <div className="rounded-3xl border border-zinc-200/70 bg-white p-5">
               <div className="text-sm font-semibold text-zinc-900">
-                ปรับปรุงได้ต่อเนื่อง
+                {t("home.whyCardImproveTitle")}
               </div>
               <div className="mt-2 text-sm text-zinc-600">
-                บันทึกให้ครบ → วัดผลให้ชัด → รู้ว่าควรปรับแผนตรงไหน
+                {t("home.whyCardImproveDesc")}
               </div>
             </div>
             <div className="rounded-3xl border border-zinc-200/70 bg-white p-5">
               <div className="text-sm font-semibold text-zinc-900">
-                ข้อมูลอยู่กับคุณ
+                {t("home.whyCardOwnDataTitle")}
               </div>
               <div className="mt-2 text-sm text-zinc-600">
-                ข้อมูลถูกบันทึกอย่างปลอดภัยบน MongoDB
-                พร้อมใช้งานต่อเนื่องข้ามอุปกรณ์
+                {t("home.whyCardOwnDataDesc")}
               </div>
             </div>
           </div>
@@ -219,19 +221,19 @@ export default function HomePage() {
       {/* HOW IT WORKS */}
       <section className="grid gap-4 sm:grid-cols-2">
         <Card className="p-6">
-          <div className="text-sm font-semibold">ทำงานยังไง?</div>
+          <div className="text-sm font-semibold">{t("home.howTitle")}</div>
           <div className="mt-2 grid gap-3 text-sm text-zinc-600">
             <div>
               <span className="font-medium text-zinc-900">1)</span>{" "}
-              เพิ่มรายการซื้อ/ขายในหน้า “บันทึกรายการ”
+              {t("home.howStep1")}
             </div>
             <div>
               <span className="font-medium text-zinc-900">2)</span>{" "}
-              ใส่ราคาปัจจุบันใน Dashboard
+              {t("home.howStep2")}
             </div>
             <div>
               <span className="font-medium text-zinc-900">3)</span>{" "}
-              ดูสัดส่วนพอร์ต + กำไร/ขาดทุนแบบกราฟ
+              {t("home.howStep3")}
             </div>
             <div className="relative mx-auto mt-3 h-40 w-full max-w-md sm:h-44">
               <Image
@@ -246,14 +248,8 @@ export default function HomePage() {
         <Card className="relative overflow-hidden p-6">
           <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-emerald-50" />
           <div className="relative grid gap-3">
-            <div className="text-sm font-semibold">ใช้งานสะดวกทุกอุปกรณ์</div>
-            <div className="text-sm text-zinc-600">
-              ใช้ได้ลื่นทั้งคอม/แล็ปท็อป/มือถือ — บนหน้าจอใหญ่ดูภาพรวมได้ครบ
-              ทั้งกราฟสัดส่วนพอร์ต, P/L และตารางรายการแบบอ่านง่าย ขณะที่บนมือถือ
-              ปุ่ม/ฟอร์มถูกจัดให้กดและกรอกสะดวก เลื่อนดูไว
-              และเพิ่ม/แก้รายการผ่าน Modal ได้ทันที
-              เหมาะกับการเช็คพอร์ตระหว่างวัน
-            </div>
+            <div className="text-sm font-semibold">{t("home.devicesTitle")}</div>
+            <div className="text-sm text-zinc-600">{t("home.devicesDesc")}</div>
             <div className="relative mx-auto mt-3 h-40 w-full max-w-md sm:h-44">
               <Image
                 src="/landing/mobile.png"
@@ -268,35 +264,25 @@ export default function HomePage() {
 
       <section className="grid gap-4">
         <Card className="p-6">
-          <div className="text-sm font-semibold">คำถามที่คนเริ่มใช้ถามบ่อย</div>
+          <div className="text-sm font-semibold">{t("home.faqTitle")}</div>
           <div className="mt-3 grid gap-3 text-sm text-zinc-600">
             <div className="rounded-2xl border border-zinc-200/70 bg-white p-4">
-              <div className="font-medium text-zinc-900">ใช้ฟรีได้ไหม?</div>
+              <div className="font-medium text-zinc-900">{t("home.faqFreeQ")}</div>
               <div className="mt-1">
-                ได้เต็มยุทธภพ — บันทึก วิเคราะห์ และ Import ได้ครบ ไม่มีแพ็กแบ่งชั้น
-                ถ้าอยากช่วยค่าน้ำชาให้ผู้พัฒนา แวะหน้า{" "}
+                {t("home.faqFreeAPrefix")}{" "}
                 <Link href="/support" className="font-medium text-emerald-700 underline underline-offset-2">
-                  สนับสนุนสำนัก
+                  {t("authMenu.support")}
                 </Link>{" "}
-                ได้ตามใจศรัทธา
+                {t("home.faqFreeASuffix")}
               </div>
             </div>
             <div className="rounded-2xl border border-zinc-200/70 bg-white p-4">
-              <div className="font-medium text-zinc-900">
-                รองรับสินทรัพย์อะไรบ้าง?
-              </div>
-              <div className="mt-1">
-                หุ้น คริปโต ฟอเร็กซ์ ทอง และสินทรัพย์อื่นๆ ในพอร์ตเดียวกัน
-              </div>
+              <div className="font-medium text-zinc-900">{t("home.faqAssetsQ")}</div>
+              <div className="mt-1">{t("home.faqAssetsA")}</div>
             </div>
             <div className="rounded-2xl border border-zinc-200/70 bg-white p-4">
-              <div className="font-medium text-zinc-900">
-                ต้องเก่งเรื่องบัญชีก่อนไหม?
-              </div>
-              <div className="mt-1">
-                ไม่ต้อง
-                ระบบช่วยคำนวณตัวเลขหลักให้อัตโนมัติและแสดงผลแบบเข้าใจง่าย
-              </div>
+              <div className="font-medium text-zinc-900">{t("home.faqAccountingQ")}</div>
+              <div className="mt-1">{t("home.faqAccountingA")}</div>
             </div>
           </div>
         </Card>

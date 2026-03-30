@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 function cx(...classes: Array<string | undefined | false>) {
   return classes.filter(Boolean).join(" ");
@@ -19,6 +20,7 @@ export function Modal({
   children: React.ReactNode;
   className?: string;
 }) {
+  const { t } = useI18n();
   React.useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -55,7 +57,7 @@ export function Modal({
               onClick={onClose}
               className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800/70 dark:bg-zinc-950/40 dark:text-zinc-200 dark:hover:bg-zinc-900/50"
             >
-              ปิด
+              {t("common.close")}
             </button>
           </div>
           {children}

@@ -1,10 +1,12 @@
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import type { TransactionsPageModel } from "@/hooks/useTransactionsPage";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 type Props = { m: TransactionsPageModel };
 
 export function TransactionConfirmModal({ m }: Props) {
+  const { t } = useI18n();
   const {
     confirmOpen,
     setConfirmOpen,
@@ -34,7 +36,7 @@ export function TransactionConfirmModal({ m }: Props) {
               confirmActionRef.current = null;
             }}
           >
-            ยกเลิก
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={() => {

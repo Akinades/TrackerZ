@@ -58,6 +58,13 @@ export function getCurrencyFlagIconSrc(ccyRaw: string): string | null {
   return `/asset-icons/flags/${ccy.toLowerCase()}.svg`;
 }
 
+export function getLocaleFlagIconSrc(localeRaw: string): string | null {
+  const locale = localeRaw.trim().toLowerCase();
+  if (locale === "th") return getCurrencyFlagIconSrc("THB");
+  if (locale === "en") return getCurrencyFlagIconSrc("USD");
+  return null;
+}
+
 export function getAssetIconSrc(symbolRaw: string, type: AssetType): string | null {
   const symbol = symbolRaw.trim().toLowerCase();
   if (!symbol) return null;

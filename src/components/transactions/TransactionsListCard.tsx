@@ -5,10 +5,13 @@ import { AssetIcon } from "@/components/ui/AssetIcon";
 import { formatMoney, formatMoneyMax } from "@/lib/format";
 import { round2, txValue } from "@/lib/calculations";
 import type { TransactionsPageModel } from "@/hooks/useTransactionsPage";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 type Props = { m: TransactionsPageModel };
 
 export function TransactionsListCard({ m }: Props) {
+  const { t: tr, locale } = useI18n();
+  const dtLocale = locale === "th" ? "th-TH" : "en-US";
   const {
     hydrated,
     txs,
@@ -42,9 +45,11 @@ export function TransactionsListCard({ m }: Props) {
       <div className="border-b border-zinc-800 p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="text-sm font-medium">รายการทั้งหมด</div>
+            <div className="text-sm font-medium">{tr("transactions.list.title")}</div>
             <div className="text-xs text-zinc-400">
-              แสดง {filteredTxs.length} / ทั้งหมด {txs.length} รายการ
+              {tr("transactions.list.showingPrefix")} {filteredTxs.length}{" "}
+              {tr("transactions.list.showingOf")} {txs.length}{" "}
+              {tr("transactions.list.items")}
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -54,7 +59,7 @@ export function TransactionsListCard({ m }: Props) {
               disabled={!hydrated || txs.length === 0}
               className="h-9 rounded-2xl px-4 py-0"
             >
-              Export CSV
+              {tr("transactions.list.exportCsv")}
             </Button>
             <Button
               variant="secondary"
@@ -62,7 +67,7 @@ export function TransactionsListCard({ m }: Props) {
               disabled={!hydrated || importing}
               className="h-9 rounded-2xl px-4 py-0"
             >
-              Import Files
+              {tr("transactions.list.importFiles")}
             </Button>
           </div>
         </div>
@@ -70,66 +75,66 @@ export function TransactionsListCard({ m }: Props) {
 
       <div className="divide-y divide-zinc-800">
         {!hydrated ? (
-          <div className="p-5 text-sm text-zinc-400">กำลังโหลดข้อมูล…</div>
+          <div className="p-5 text-sm text-zinc-400">{tr("transactions.list.loading")}</div>
         ) : filteredTxs.length === 0 ? (
           <div className="p-5 text-sm text-zinc-400">
-            ยังไม่มีรายการ ลองเพิ่มรายการแรกได้เลย
+            {tr("transactions.list.empty")}
           </div>
         ) : (
           <div ref={rowMenuWrapRef}>
             <div className="hidden gap-3 bg-zinc-50/60 px-5 py-3 text-xs font-medium text-zinc-600 sm:grid sm:grid-cols-[minmax(200px,2.4fr)_minmax(120px,1fr)_minmax(86px,0.85fr)_minmax(130px,1.1fr)_minmax(100px,1fr)_minmax(92px,1fr)_minmax(92px,1fr)_minmax(124px,1.1fr)_minmax(72px,0.6fr)]">
-              <div>สินทรัพย์</div>
-              <div>วันที่ทำรายการ</div>
-              <div>ฝั่ง</div>
-              <div className="text-right">มูลค่า</div>
-              <div className="text-right">จำนวน</div>
+              <div>{tr("transactions.list.cols.asset")}</div>
+              <div>{tr("transactions.list.cols.date")}</div>
+              <div>{tr("transactions.list.cols.side")}</div>
+              <div className="text-right">{tr("transactions.list.cols.value")}</div>
+              <div className="text-right">{tr("transactions.list.cols.amount")}</div>
               <div className="text-right">Fee</div>
               <div className="text-right">Tax</div>
-              <div className="text-right">ราคา</div>
-              <div className="text-right">จัดการ</div>
+              <div className="text-right">{tr("transactions.list.cols.price")}</div>
+              <div className="text-right">{tr("transactions.list.cols.manage")}</div>
             </div>
-            {pageItems.map((t) => (
+            {pageItems.map((row) => (
               <div
-                key={t.id}
+                key={row.id}
                 className="grid gap-3 p-5 sm:grid sm:grid-cols-[minmax(200px,2.4fr)_minmax(120px,1fr)_minmax(86px,0.85fr)_minmax(130px,1.1fr)_minmax(100px,1fr)_minmax(92px,1fr)_minmax(92px,1fr)_minmax(124px,1.1fr)_minmax(72px,0.6fr)] sm:items-center"
               >
                 <div>
                   <div className="font-medium text-zinc-900">
-                    {t.assetLabel ? (
+                    {row.assetLabel ? (
                       <span className="flex flex-wrap items-center gap-2">
                         <AssetIcon
-                          symbol={t.assetName}
-                          type={t.assetType}
+                          symbol={row.assetName}
+                          type={row.assetType}
                           className="h-7 w-7 rounded-xl"
                         />
-                        <span className="truncate">{t.assetLabel}</span>
+                        <span className="truncate">{row.assetLabel}</span>
                         <span className="rounded-full border border-zinc-200/70 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
-                          {t.assetName}
+                          {row.assetName}
                         </span>
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
                         <AssetIcon
-                          symbol={t.assetName}
-                          type={t.assetType}
+                          symbol={row.assetName}
+                          type={row.assetType}
                           className="h-7 w-7 rounded-xl"
                         />
-                        <span>{t.assetName}</span>
+                        <span>{row.assetName}</span>
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    {t.assetType.toUpperCase()}
+                    {row.assetType.toUpperCase()}
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between gap-2 sm:block">
                     <span className="text-xs text-zinc-500 sm:hidden">
-                      วันที่ทำรายการ
+                      {tr("transactions.list.cols.date")}
                     </span>
                     <span className="text-sm tabular-nums text-zinc-800">
-                      {new Date(t.createdAt).toLocaleString("th-TH", {
+                      {new Date(row.createdAt).toLocaleString(dtLocale, {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
@@ -143,27 +148,27 @@ export function TransactionsListCard({ m }: Props) {
                 <div>
                   <span
                     className={
-                      t.side === "buy"
+                      row.side === "buy"
                         ? "rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-medium text-emerald-700"
                         : "rounded-full bg-rose-500/15 px-2 py-1 text-xs font-medium text-rose-700"
                     }
                   >
-                    {t.side.toUpperCase()}
+                    {row.side.toUpperCase()}
                   </span>
                 </div>
 
                 <div className="sm:text-right">
                   <div className="flex items-center justify-between text-sm sm:block">
                     <span className="text-xs text-zinc-500 sm:hidden">
-                      มูลค่า
+                      {tr("transactions.list.cols.value")}
                     </span>
                     <span className="tabular-nums font-medium text-zinc-900">
                       {formatMoney(
                         round2(
                           toDisplayMoney(
-                            txValue(t),
-                            t.currency,
-                            t.fxRateAtTrade,
+                            txValue(row),
+                            row.currency,
+                            row.fxRateAtTrade,
                           ),
                         ),
                         currency,
@@ -175,10 +180,10 @@ export function TransactionsListCard({ m }: Props) {
                 <div className="sm:text-right">
                   <div className="flex items-center justify-between text-sm sm:block">
                     <span className="text-xs text-zinc-500 sm:hidden">
-                      จำนวน
+                      {tr("transactions.list.cols.amount")}
                     </span>
                     <span className="tabular-nums text-zinc-700">
-                      {t.amount}
+                      {row.amount}
                     </span>
                   </div>
                 </div>
@@ -190,9 +195,9 @@ export function TransactionsListCard({ m }: Props) {
                       {formatMoneyMax(
                         round2(
                           toDisplayMoney(
-                            t.fee ?? 0,
-                            t.currency,
-                            t.fxRateAtTrade,
+                            row.fee ?? 0,
+                            row.currency,
+                            row.fxRateAtTrade,
                           ),
                         ),
                         currency,
@@ -209,9 +214,9 @@ export function TransactionsListCard({ m }: Props) {
                       {formatMoneyMax(
                         round2(
                           toDisplayMoney(
-                            t.tax ?? 0,
-                            t.currency,
-                            t.fxRateAtTrade,
+                            row.tax ?? 0,
+                            row.currency,
+                            row.fxRateAtTrade,
                           ),
                         ),
                         currency,
@@ -224,12 +229,12 @@ export function TransactionsListCard({ m }: Props) {
                 <div className="sm:text-right">
                   <div className="flex items-center justify-between text-sm sm:block">
                     <span className="text-xs text-zinc-500 sm:hidden">
-                      ราคา
+                      {tr("transactions.list.cols.price")}
                     </span>
                     <span className="tabular-nums text-zinc-700">
                       {formatMoney(
                         round2(
-                          toDisplayMoney(t.price, t.currency, t.fxRateAtTrade),
+                          toDisplayMoney(row.price, row.currency, row.fxRateAtTrade),
                         ),
                         currency,
                       )}
@@ -245,13 +250,13 @@ export function TransactionsListCard({ m }: Props) {
                       className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                       onClick={() =>
                         setRowMenuOpenId((prev) =>
-                          prev === t.id ? null : t.id,
+                          prev === row.id ? null : row.id,
                         )
                       }
                     >
                       ⋯
                     </button>
-                    {rowMenuOpenId === t.id ? (
+                    {rowMenuOpenId === row.id ? (
                       <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-40 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_30px_70px_-55px_rgba(0,0,0,0.55)]">
                         <button
                           type="button"
@@ -259,10 +264,10 @@ export function TransactionsListCard({ m }: Props) {
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => {
                             setRowMenuOpenId(null);
-                            startEdit(t.id);
+                            startEdit(row.id);
                           }}
                         >
-                          แก้ไขรายการ
+                          {tr("transactions.list.actions.edit")}
                         </button>
                         <button
                           type="button"
@@ -271,37 +276,37 @@ export function TransactionsListCard({ m }: Props) {
                           onClick={() => {
                             setRowMenuOpenId(null);
                             openConfirm({
-                              title: "ยืนยันลบรายการ?",
+                              title: tr("transactions.list.deleteConfirm.title"),
                               body: (
                                 <div className="grid gap-2">
                                   <div className="text-sm text-zinc-700">
-                                    คุณกำลังจะลบ{" "}
+                                    {tr("transactions.list.deleteConfirm.bodyPrefix")}{" "}
                                     <span className="font-medium">
-                                      {t.assetName}
+                                      {row.assetName}
                                     </span>{" "}
-                                    ({t.side.toUpperCase()}) มูลค่า{" "}
+                                    ({row.side.toUpperCase()}) {tr("transactions.list.deleteConfirm.valueLabel")}{" "}
                                     {formatMoney(
                                       round2(
                                         toDisplayMoney(
-                                          txValue(t),
-                                          t.currency,
-                                          t.fxRateAtTrade,
+                                          txValue(row),
+                                          row.currency,
+                                          row.fxRateAtTrade,
                                         ),
                                       ),
                                       currency,
                                     )}
                                   </div>
                                   <div className="text-xs text-zinc-500">
-                                    การลบไม่สามารถกู้คืนได้
+                                    {tr("transactions.list.deleteConfirm.cannotUndo")}
                                   </div>
                                 </div>
                               ),
-                              cta: "ลบรายการ",
-                              onConfirm: () => remove(t.id),
+                              cta: tr("transactions.list.deleteConfirm.cta"),
+                              onConfirm: () => remove(row.id),
                             });
                           }}
                         >
-                          ลบรายการ
+                          {tr("transactions.list.actions.delete")}
                         </button>
                       </div>
                     ) : null}
@@ -317,11 +322,14 @@ export function TransactionsListCard({ m }: Props) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs text-zinc-500">
             {pageSize === "all" ? (
-              <>แสดงทั้งหมด {totalItems} รายการ</>
+              <>
+                {tr("transactions.pagination.showAllPrefix")} {totalItems}{" "}
+                {tr("transactions.pagination.items")}
+              </>
             ) : (
               <>
-                {startIdx + 1}-{endIdx} / {totalItems} (หน้า {safePage}/
-                {totalPages})
+                {startIdx + 1}-{endIdx} / {totalItems} ({tr("transactions.pagination.page")}{" "}
+                {safePage}/{totalPages})
               </>
             )}
           </div>
@@ -338,11 +346,11 @@ export function TransactionsListCard({ m }: Props) {
                 className="h-9 rounded-2xl px-3 text-xs shadow-none"
                 aria-label="Page size"
               >
-                <option value="10">แสดง 10</option>
-                <option value="25">แสดง 25</option>
-                <option value="50">แสดง 50</option>
-                <option value="100">แสดง 100</option>
-                <option value="all">ดูทั้งหมด</option>
+                <option value="10">{tr("transactions.pagination.show")} 10</option>
+                <option value="25">{tr("transactions.pagination.show")} 25</option>
+                <option value="50">{tr("transactions.pagination.show")} 50</option>
+                <option value="100">{tr("transactions.pagination.show")} 100</option>
+                <option value="all">{tr("transactions.pagination.all")}</option>
               </Select>
             </div>
             <button
@@ -351,7 +359,7 @@ export function TransactionsListCard({ m }: Props) {
               disabled={safePage <= 1 || pageSize === "all"}
               className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              ก่อนหน้า
+              {tr("transactions.pagination.prev")}
             </button>
             <div className="flex flex-wrap items-center justify-center gap-1">
               {pageButtons.map((item, idx) =>
@@ -385,7 +393,7 @@ export function TransactionsListCard({ m }: Props) {
               disabled={safePage >= totalPages || pageSize === "all"}
               className="rounded-2xl border border-zinc-200/70 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              ถัดไป
+              {tr("transactions.pagination.next")}
             </button>
           </div>
         </div>

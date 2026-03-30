@@ -23,10 +23,12 @@ import {
 import { AssetsTimelineFilters } from "@/components/assets/AssetsTimelineFilters";
 import { AssetsTimelineChartBody } from "@/components/assets/AssetsTimelineChartBody";
 import { AssetsRangeSummary } from "@/components/assets/AssetsRangeSummary";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 export default function AssetsTimelinePage() {
   const router = useRouter();
   const { user, hydrated: authHydrated } = useAuth();
+  const { t, locale } = useI18n();
 
   React.useEffect(() => {
     if (!authHydrated) return;
@@ -109,7 +111,7 @@ export default function AssetsTimelinePage() {
         setAssetError(
           (json as any)?.message ||
             (json as any)?.error ||
-            "โหลดรายการสินทรัพย์ไม่สำเร็จ",
+            t("assets.loadFailed"),
         );
         setAssetTxs([]);
         setAssetLoading(false);
@@ -242,11 +244,11 @@ export default function AssetsTimelinePage() {
     <div className="fhd-text-tune mx-auto grid max-w-6xl gap-5">
       <div className="text-center sm:text-left">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          กราฟสินทรัพย์
+          {t("assets.title")}
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
-          แกนเงินและคำอธิบายตามสกุลที่เลือก ({currency}) · จุดเขียว = ซื้อ ·
-          จุดแดง = ขาย
+          {t("assets.subtitlePrefix")} ({currency}) · {t("assets.subtitleGreen")} ·{" "}
+          {t("assets.subtitleRed")}
         </p>
       </div>
 
@@ -270,6 +272,7 @@ export default function AssetsTimelinePage() {
           }}
           oldest={oldest}
           newest={newest}
+          locale={locale}
         />
         <AssetsTimelineChartBody
           hydrated={hydrated}
@@ -291,10 +294,10 @@ export default function AssetsTimelinePage() {
         <Card className="overflow-hidden rounded-3xl border-zinc-200/80 p-0 shadow-sm">
           <div className="border-b border-zinc-100 bg-gradient-to-b from-zinc-50/60 to-white px-4 py-3 sm:px-6">
             <h2 className="text-sm font-semibold text-zinc-800">
-              สรุปในช่วงที่เลือก
+              {t("assets.rangeSummary.title")}
             </h2>
             <p className="mt-0.5 text-[11px] text-zinc-500">
-              ตัวเลขและรายการซื้อขาย — การ์ดแยกจากกราฟด้านบน
+              {t("assets.rangeSummary.subtitle")}
             </p>
           </div>
           <div className="px-4 pb-6 pt-1 sm:px-6">

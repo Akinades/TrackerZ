@@ -18,7 +18,7 @@ export type AuthUser = PublicUser | null;
 type AuthContextValue = {
   user: AuthUser;
   hydrated: boolean;
-  register: (email: string, password: string, plan?: UserPlan) => Promise<PublicUser>;
+  register: (email: string, password: string, language: "th" | "en") => Promise<PublicUser>;
   login: (email: string, password: string) => Promise<PublicUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<PublicUser | null>;
@@ -51,8 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return u;
   }, []);
 
-  const doRegister = React.useCallback(async (email: string, password: string, plan: UserPlan = "free") => {
-    const u = await apiRegister(email, password, plan);
+  const doRegister = React.useCallback(async (email: string, password: string, language: "th" | "en") => {
+    const u = await apiRegister(email, password, language);
     setUser(u);
     return u;
   }, []);

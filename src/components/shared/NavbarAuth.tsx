@@ -8,6 +8,8 @@ import { CurrencyBadge } from "@/components/ui/CurrencyBadge";
 import { useAuth } from "@/store/useAuth";
 import { useCurrency } from "@/store/useCurrency";
 import { notify } from "@/lib/notify";
+import { useI18n } from "@/components/shared/I18nProvider";
+import { LanguageToggle } from "@/components/shared/LanguageToggle";
 
 type MobileNavItem = {
   href: string;
@@ -26,6 +28,7 @@ export function AuthButtons({
   const router = useRouter();
   const { user, hydrated, logout } = useAuth();
   const { currency, setCurrency } = useCurrency();
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const wrapRef = React.useRef<HTMLDivElement | null>(null);
@@ -59,7 +62,7 @@ export function AuthButtons({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex max-w-[320px] items-center gap-2 rounded-2xl border border-zinc-200/70 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-        aria-label="User menu"
+        aria-label={t("authMenu.userMenuAria")}
       >
         <span className="max-w-[200px] truncate">{menuLabel}</span>
         <span className="text-zinc-400">▾</span>
@@ -72,7 +75,7 @@ export function AuthButtons({
       {open ? (
         <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_30px_70px_-55px_rgba(0,0,0,0.55)]">
           <div className="border-b border-zinc-200/70 px-4 py-3">
-            <div className="text-xs text-zinc-500">เข้าสู่ระบบด้วย</div>
+            <div className="text-xs text-zinc-500">{t("authMenu.signedInWith")}</div>
             <div className="mt-0.5 truncate text-sm font-medium text-zinc-900">
               {menuLabel}
             </div>
@@ -88,22 +91,29 @@ export function AuthButtons({
             className="block px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
             onClick={() => setOpen(false)}
           >
-            ข้อมูลส่วนตัว
+            {t("authMenu.profile")}
           </Link>
           <Link
             href="/settings"
             className="block px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
             onClick={() => setOpen(false)}
           >
-            ตั้งค่า
+            {t("authMenu.settings")}
           </Link>
           <Link
             href="/support"
             className="block border-t border-zinc-200/70 px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
             onClick={() => setOpen(false)}
           >
-            สนับสนุนสำนัก
+            {t("authMenu.support")}
           </Link>
+
+          <div className="border-t border-zinc-200/70 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-medium text-zinc-600">{t("authMenu.language")}</div>
+              <LanguageToggle />
+            </div>
+          </div>
 
           {mobileNavItems.length ? (
             <div className="border-t border-zinc-200/70 md:hidden">
@@ -145,11 +155,11 @@ export function AuthButtons({
                 setPending(true);
                 setOpen(false);
                 await logout();
-                notify.success("ออกจากระบบแล้ว");
+                notify.success(t("authMenu.signedOutToast"));
                 router.push("/");
               }}
             >
-              ออกจากระบบ
+              {t("authMenu.signOut")}
             </Button>
           </div>
         </div>

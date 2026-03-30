@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <div className="mx-auto grid min-h-full w-full max-w-6xl place-items-center py-4">
       <div className="grid w-full gap-6">
@@ -18,17 +22,17 @@ export default function AuthLayout({
             </div>
           </div>
           <div className="text-2xl font-semibold tracking-tight">
-            ติดตามพอร์ตแบบง่ายๆ สวยๆ บนเว็บ
+            {t("authLayout.headline")}
           </div>
           <div className="text-sm text-zinc-600">
-            บันทึกรายการซื้อ/ขาย → ดูพอร์ตภาพรวม → เห็นกำไร/ขาดทุน + กราฟสัดส่วน
+            {t("authLayout.subhead")}
           </div>
           <div className="text-sm">
             <Link
               href="/"
               className="text-zinc-700 underline underline-offset-4 hover:text-zinc-900"
             >
-              กลับหน้าแรก
+              {t("authLayout.backHomeLink")}
             </Link>
           </div>
         </div>

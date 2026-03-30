@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { feedbackMailtoHref } from "@/lib/siteContact";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 export function Footer() {
-  const feedbackHref = feedbackMailtoHref("TrackerZ — แจ้งปัญหา / ข้อเสนอแนะ");
+  const { t } = useI18n();
+  const feedbackHref = feedbackMailtoHref(t("feedback.subject"));
   const pathname = usePathname();
   if (
     pathname === "/login" ||
@@ -33,7 +35,7 @@ export function Footer() {
           </>
         ) : null}
       </div> */}
-      <div>© 2026 TrackerZ</div>
+      <div>{t("footer.copyright")}</div>
     </footer>
   );
 }

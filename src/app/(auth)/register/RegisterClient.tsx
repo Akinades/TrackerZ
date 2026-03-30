@@ -10,11 +10,13 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/store/useAuth";
 import { notify } from "@/lib/notify";
+import { useI18n } from "@/components/shared/I18nProvider";
 
 export function RegisterClient() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/dashboard";
+  const { t, locale } = useI18n();
 
   const { user, hydrated, register } = useAuth();
   const [email, setEmail] = React.useState("");
@@ -34,27 +36,27 @@ export function RegisterClient() {
     if (pending) return;
     setError(null);
     if (!termsAccepted) {
-      setError("กรุณายอมรับเงื่อนไขการใช้งานก่อนสมัคร");
+      setError(t("auth.register.mustAcceptTerms"));
       return;
     }
     if (password !== confirmPassword) {
-      setError("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน");
+      setError(t("auth.register.pwMismatch"));
       return;
     }
     if (password.length < 6) {
-      setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+      setError(t("auth.register.pwMin"));
       return;
     }
     setPending(true);
     try {
-      await register(email, password, "free");
-      notify.success("สมัครสมาชิกสำเร็จ");
+      await register(email, password, locale);
+      notify.success(t("auth.register.successToast"));
       setPending(false);
       router.replace(next);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "เกิดข้อผิดพลาด";
+      const msg = e instanceof Error ? e.message : t("common.genericError");
       setError(msg);
-      notify.error(msg, "สมัครสมาชิกไม่สำเร็จ");
+      notify.error(msg, t("auth.register.failedTitle"));
       setPending(false);
     }
   };
@@ -80,15 +82,15 @@ export function RegisterClient() {
       <div className="p-2 sm:p-4">
         <div className="grid gap-4">
           <div>
-            <div className="text-lg font-semibold">สมัครสมาชิก</div>
+            <div className="text-lg font-semibold">{t("auth.register.title")}</div>
             <div className="text-sm text-zinc-600">
-              สร้างบัญชีเพื่อบันทึกและดูพอร์ตของคุณ
+              {t("auth.register.subtitle")}
             </div>
           </div>
 
           <div className="grid gap-3">
             <div className="grid gap-1">
-              <label className="text-sm text-zinc-700">อีเมล</label>
+              <label className="text-sm text-zinc-700">{t("auth.register.emailLabel")}</label>
               <Input
                 value={email}
                 inputMode="email"
@@ -97,10 +99,10 @@ export function RegisterClient() {
               />
             </div>
             <div className="grid gap-1">
-              <label className="text-sm text-zinc-700">รหัสผ่าน</label>
+              <label className="text-sm text-zinc-700">{t("auth.register.passwordLabel")}</label>
               <PasswordInput
                 value={password}
-                placeholder="อย่างน้อย 6 ตัวอักษร"
+                placeholder={t("auth.login.passwordPlaceholder")}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setError(null);
@@ -110,12 +112,12 @@ export function RegisterClient() {
             </div>
             <div className="grid gap-1">
               <label className="text-sm text-zinc-700" htmlFor="register-confirm-password">
-                ยืนยันรหัสผ่าน
+                {t("auth.register.confirmPasswordLabel")}
               </label>
               <PasswordInput
                 id="register-confirm-password"
                 value={confirmPassword}
-                placeholder="กรอกรหัสผ่านอีกครั้ง"
+                placeholder={t("auth.register.confirmPasswordPlaceholder")}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   setError(null);
@@ -131,7 +133,7 @@ export function RegisterClient() {
               />
               {passwordMismatch ? (
                 <p id="register-confirm-password-hint" className="text-sm text-rose-600" role="alert">
-                  รหัสผ่านไม่ตรงกัน กรุณากรอกให้เหมือนกับช่องรหัสผ่านด้านบน
+                  {t("auth.register.mismatchHint")}
                 </p>
               ) : null}
             </div>
@@ -143,7 +145,7 @@ export function RegisterClient() {
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 accent-emerald-600 focus:ring-emerald-500 focus:ring-offset-0"
               />
               <span className="text-sm leading-snug text-zinc-700">
-                ฉันได้อ่านและยอมรับ{" "}
+                {t("auth.register.acceptPrefix")}{" "}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -152,9 +154,9 @@ export function RegisterClient() {
                   }}
                   className="font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-800"
                 >
-                  เงื่อนไขการใช้งาน
+                  {t("auth.register.termsLink")}
                 </button>{" "}
-                ของ TrackerZ
+                {t("auth.register.acceptSuffix")}
               </span>
             </label>
           </div>
@@ -167,16 +169,16 @@ export function RegisterClient() {
 
           <form className="grid gap-3" onSubmit={handleFormSubmit} noValidate>
             <div className="text-sm text-zinc-600">
-              มีบัญชีแล้ว?{" "}
+              {t("auth.register.haveAccount")}{" "}
               <Link
                 href={`/login?next=${encodeURIComponent(next)}`}
                 className="text-zinc-900 underline underline-offset-4"
               >
-                เข้าสู่ระบบ
+                {t("auth.register.loginLink")}
               </Link>
             </div>
             <Button type="submit" disabled={!canSubmit} className="w-full">
-              สร้างบัญชี
+              {t("auth.register.createAccount")}
             </Button>
           </form>
         </div>
@@ -200,28 +202,28 @@ export function RegisterClient() {
       <Modal
         open={termsModalOpen}
         onClose={() => setTermsModalOpen(false)}
-        title="เงื่อนไขการใช้งาน"
+        title={t("auth.register.termsModalTitle")}
         className="max-h-[85vh] max-w-lg overflow-y-auto sm:p-6"
       >
         <p className="text-sm text-zinc-600">
-          ฉบับย่อสำหรับ MVP — ปรับแต่งกับทีมกฎหมายก่อนใช้งานจริง
+          {t("auth.register.termsShort")}
         </p>
         <div className="mt-4 grid gap-3 text-sm leading-relaxed text-zinc-700">
           <p>
-            <span className="font-medium text-zinc-900">1. การให้บริการ</span> — TrackerZ
-            ให้บริการบันทึกและวิเคราะห์พอร์ตการลงทุนตามที่ระบุบนเว็บไซต์
-            ข้อมูลที่แสดงไม่ถือเป็นคำแนะนำการลงทุน
+            <span className="font-medium text-zinc-900">{t("auth.register.terms1Title")}</span>{" "}
+            — {t("auth.register.terms1Body")}
           </p>
           <p>
-            <span className="font-medium text-zinc-900">2. บัญชีผู้ใช้</span> — คุณต้องรักษาความลับของรหัสผ่าน
-            และรับผิดชอบต่อกิจกรรมภายใต้บัญชีของคุณ
+            <span className="font-medium text-zinc-900">{t("auth.register.terms2Title")}</span>{" "}
+            — {t("auth.register.terms2Body")}
           </p>
           <p>
-            <span className="font-medium text-zinc-900">3. การสนับสนุน</span> — การโอนหรือบริจาคเป็นไปโดยสมัครใจ
-            ไม่มีผลต่อการใช้งานฟีเจอร์หลักของระบบ
+            <span className="font-medium text-zinc-900">{t("auth.register.terms3Title")}</span>{" "}
+            — {t("auth.register.terms3Body")}
           </p>
           <p>
-            <span className="font-medium text-zinc-900">4. การเปลี่ยนแปลง</span> — เราอาจปรับปรุงเงื่อนไขนี้ได้ โดยแจ้งผ่านเว็บไซต์หรือช่องทางที่เหมาะสม
+            <span className="font-medium text-zinc-900">{t("auth.register.terms4Title")}</span>{" "}
+            — {t("auth.register.terms4Body")}
           </p>
         </div>
       </Modal>

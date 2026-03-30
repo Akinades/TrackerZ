@@ -52,6 +52,7 @@ export type TransactionsPageModel = {
   importError: string | null;
   /** สรุปหลังนำเข้าสำเร็จ (รวมจำนวนที่ข้าม) */
   importSummary: string | null;
+  importSummaryKind: "success" | "warning" | null;
   importing: boolean;
   from: string;
   setFrom: React.Dispatch<React.SetStateAction<string>>;
@@ -144,6 +145,7 @@ export function useTransactionsPage(): TransactionsPageModel {
   const [importing, setImporting] = React.useState(false);
   const [importError, setImportError] = React.useState<string | null>(null);
   const [importSummary, setImportSummary] = React.useState<string | null>(null);
+  const [importSummaryKind, setImportSummaryKind] = React.useState<"success" | "warning" | null>(null);
   const [pageSize, setPageSize] = React.useState<10 | 25 | 50 | 100 | "all">(
     10,
   );
@@ -242,6 +244,7 @@ export function useTransactionsPage(): TransactionsPageModel {
     async (file: File) => {
       setImportError(null);
       setImportSummary(null);
+      setImportSummaryKind(null);
       setImporting(true);
       try {
         const lower = file.name.toLowerCase();
@@ -257,8 +260,13 @@ export function useTransactionsPage(): TransactionsPageModel {
           await addMany(payloads);
           const msg = formatImportOutcomeMessage(payloads.length, skips);
           setImportSummary(msg);
-          if (skips.length > 0) notify.warning(msg);
-          else notify.success(msg);
+          if (skips.length > 0) {
+            setImportSummaryKind("warning");
+            notify.warning(msg);
+          } else {
+            setImportSummaryKind("success");
+            notify.success(msg);
+          }
         };
 
         if (lower.endsWith(".json")) {
@@ -320,6 +328,7 @@ export function useTransactionsPage(): TransactionsPageModel {
         await finishImport(payloads, skips);
       } catch (e) {
         setImportSummary(null);
+        setImportSummaryKind(null);
         setImportError(e instanceof Error ? e.message : "นำเข้าไม่สำเร็จ");
       } finally {
         setImporting(false);
@@ -695,6 +704,7 @@ export function useTransactionsPage(): TransactionsPageModel {
     currency,
     importError,
     importSummary,
+    importSummaryKind,
     importing,
     from,
     setFrom,

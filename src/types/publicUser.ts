@@ -5,6 +5,8 @@ export type PublicUser = {
   id: string;
   email: string;
   plan: "free" | "monthly" | "yearly";
+  /** UI language preference */
+  language?: "th" | "en";
   /** ISO 8601 หรือ null */
   planStartedAt: string | null;
   /** ISO 8601 หรือ null */
@@ -25,7 +27,10 @@ export type PublicUser = {
 };
 
 export type UserProfilePatch = Partial<
-  Pick<PublicUser, "displayName" | "phone" | "lineId" | "country" | "occupation" | "bio" | "notes">
+  Pick<
+    PublicUser,
+    "displayName" | "phone" | "lineId" | "country" | "occupation" | "bio" | "notes" | "language"
+  >
 >;
 
 function str(v: unknown, fallback = ""): string {
@@ -54,10 +59,12 @@ export function normalizePublicUser(input: unknown): PublicUser | null {
   const id = o.id;
   const email = o.email;
   if (typeof id !== "string" || typeof email !== "string") return null;
+  const language = o.language === "en" || o.language === "th" ? o.language : undefined;
   return {
     id,
     email,
     plan: o.plan === "monthly" || o.plan === "yearly" ? o.plan : "free",
+    language,
     planStartedAt: nullableIso(o.planStartedAt),
     planExpiresAt: nullableIso(o.planExpiresAt),
     displayName: str(o.displayName),

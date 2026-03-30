@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/store/useAuth";
 import { notify } from "@/lib/notify";
+import { useI18n } from "@/components/shared/I18nProvider";
 import {
   clearPendingRegister,
   readPendingRegister,
@@ -17,6 +18,7 @@ import { runRegisterCompleteOnce } from "@/lib/registerCompleteOnce";
 export function RegisterCompleteClient() {
   const router = useRouter();
   const { register } = useAuth();
+  const { locale } = useI18n();
   const [state, setState] = React.useState<"loading" | "error">("loading");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
@@ -28,7 +30,7 @@ export function RegisterCompleteClient() {
         return;
       }
       try {
-        await register(pending.email, pending.password, pending.plan);
+        await register(pending.email, pending.password, locale);
         clearPendingRegister();
         notify.success("สมัครสมาชิกสำเร็จ");
         router.replace(pending.next);
