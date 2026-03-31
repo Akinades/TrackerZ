@@ -16,8 +16,7 @@ export type RangePreset =
   | "last30"
   | "last90"
   | "ytd"
-  | "last365"
-  | "all";
+  | "lastYear";
 
 export type ToDisplayMoneyFn = (
   value: number,
@@ -248,6 +247,40 @@ export function startOfYear(d: Date) {
   return x;
 }
 
+export function startOfMonth(d: Date) {
+  const x = new Date(d);
+  x.setDate(1);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+export function endOfMonth(d: Date) {
+  const x = new Date(d);
+  x.setMonth(x.getMonth() + 1, 0);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+export function monthsAgo(n: number, base: Date = new Date()) {
+  const x = new Date(base);
+  x.setMonth(x.getMonth() - n);
+  return x;
+}
+
+export function startOfPrevYear(base: Date = new Date()) {
+  const x = new Date(base);
+  x.setFullYear(x.getFullYear() - 1, 0, 1);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+export function endOfPrevYear(base: Date = new Date()) {
+  const x = new Date(base);
+  x.setFullYear(x.getFullYear() - 1, 11, 31);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
 export function buildSeriesForAsset(
   assetTxs: Transaction[],
   assetName: string,
@@ -268,21 +301,51 @@ export function buildSeriesForAsset(
   const buys: AssetSeries["buys"] = [];
   const sells: AssetSeries["sells"] = [];
 
+  const tradeAgg = new Map<string, (typeof buys)[number]>();
+  const tradeKey = (ts: number, kind: "buy" | "sell") => `${ts}|${kind}`;
+  const upsertTrade = (marker: (typeof buys)[number]) => {
+    const key = tradeKey(marker.ts, marker.tipKind);
+    const prev = tradeAgg.get(key);
+    if (!prev) {
+      tradeAgg.set(key, marker);
+      return;
+    }
+    const prevAmt = Number(prev.tipAmount) || 0;
+    const nextAmt = Number(marker.tipAmount) || 0;
+    const totalAmt = prevAmt + nextAmt;
+    const weighted =
+      totalAmt > 0
+        ? (prev.tipUnitPrice * prevAmt + marker.tipUnitPrice * nextAmt) / totalAmt
+        : marker.tipUnitPrice;
+    prev.tipAmount = round2(totalAmt);
+    prev.tipUnitPrice = round2(weighted);
+    prev.value = marker.value; // align to latest position value at this ts
+    prev.tipCount = (Number(prev.tipCount) || 1) + (Number(marker.tipCount) || 1);
+  };
+
   for (const t of sorted) {
     const baseCur = (t.currency ?? "THB") as "THB" | "USD";
     const fx = t.fxRateAtTrade;
     const unitDisplay = round2(toDisplayMoney(t.price, baseCur, fx));
     qty = t.side === "buy" ? qty + t.amount : qty - t.amount;
-    const ts = txExecutedAtMs(t);
+    const rawTs = txExecutedAtMs(t);
+    // Merge "same time" trades as users see them (minute-level), not exact milliseconds.
+    const ts = Math.floor(rawTs / 60_000) * 60_000;
     const value = round2(qty * unitDisplay);
 
-    points.push({
-      ts,
-      value,
-      tipKind: "position",
-      tipAsset: assetName,
-      tipQty: round2(qty),
-    });
+    const lastPos = points[points.length - 1];
+    if (lastPos && lastPos.ts === ts) {
+      lastPos.value = value;
+      lastPos.tipQty = round2(qty);
+    } else {
+      points.push({
+        ts,
+        value,
+        tipKind: "position",
+        tipAsset: assetName,
+        tipQty: round2(qty),
+      });
+    }
 
     const marker = {
       ts,
@@ -291,9 +354,16 @@ export function buildSeriesForAsset(
       tipAsset: assetName,
       tipAmount: t.amount,
       tipUnitPrice: unitDisplay,
+      tipCount: 1,
     };
-    if (t.side === "buy") buys.push(marker);
-    else sells.push(marker);
+    upsertTrade(marker);
+  }
+
+  // Flush aggregated trade markers (order by time).
+  const allTrades = Array.from(tradeAgg.values()).sort((a, b) => a.ts - b.ts);
+  for (const m of allTrades) {
+    if (m.tipKind === "buy") buys.push(m);
+    else sells.push(m);
   }
 
   return { assetName, color, points, buys, sells };

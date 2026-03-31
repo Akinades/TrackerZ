@@ -60,8 +60,7 @@ export function TransactionsFiltersCard({ m }: Props) {
                 <option value="last30">{t("transactions.filters.last30")}</option>
                 <option value="last90">{t("transactions.filters.last90")}</option>
                 <option value="ytd">{t("datePreset.ytd")}</option>
-                <option value="last365">{t("transactions.filters.last365")}</option>
-                <option value="all">{t("datePreset.all")}</option>
+                <option value="lastYear">{t("datePreset.lastYear")}</option>
               </Select>
             </div>
             <div className="w-full sm:w-[190px]">

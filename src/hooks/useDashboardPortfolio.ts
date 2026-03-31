@@ -49,6 +49,7 @@ export type DashboardPnlRow = {
 export type DashboardPortfolioModel = {
   hydrated: boolean;
   currency: AppCurrency;
+  txs: ReturnType<typeof useTransactions>["txs"];
   txsLength: number;
   pieMode: "asset" | "type";
   setPieMode: React.Dispatch<React.SetStateAction<"asset" | "type">>;
@@ -386,6 +387,7 @@ export function useDashboardPortfolio(): DashboardPortfolioModel {
   return {
     hydrated,
     currency,
+    txs,
     txsLength: txs.length,
     pieMode,
     setPieMode,

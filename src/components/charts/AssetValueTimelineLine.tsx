@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Area,
   CartesianGrid,
   ComposedChart,
   Legend,
@@ -15,6 +16,8 @@ import {
 import type { AppCurrency } from "@/store/useCurrency";
 import { useCurrency } from "@/store/useCurrency";
 import { formatMoney } from "@/lib/format";
+import type { RangePreset } from "@/lib/assetTimeline";
+import { endOfDay, endOfMonth, startOfDay } from "@/lib/assetTimeline";
 
 export const SERIES_COLORS = [
   "#10b981",
@@ -42,6 +45,7 @@ export type TradePoint = {
   tipAsset: string;
   tipAmount: number;
   tipUnitPrice: number;
+  tipCount?: number;
 };
 
 export type ChartPointPayload = PositionPoint | TradePoint;
@@ -52,6 +56,20 @@ export type AssetSeries = {
   points: PositionPoint[];
   buys: TradePoint[];
   sells: TradePoint[];
+};
+
+type TradeClusterPoint = {
+  ts: number;
+  value: number;
+  tipKind: "trade";
+  tipAsset: string;
+  tipCount: number;
+  buyCount: number;
+  sellCount: number;
+  buyAmount: number;
+  sellAmount: number;
+  buyUnitPrice: number | null;
+  sellUnitPrice: number | null;
 };
 
 const BUY_FILL = "#22c55e";
@@ -103,12 +121,16 @@ function buildMergedLineData(series: AssetSeries[]): Record<string, unknown>[] {
 
 function tooltipRowsFromPayload(
   payload?: ReadonlyArray<{ payload?: unknown; dataKey?: unknown }>,
-): ChartPointPayload[] {
+): Array<ChartPointPayload | TradeClusterPoint> {
   if (!payload?.length) return [];
-  const out: ChartPointPayload[] = [];
+  const out: Array<ChartPointPayload | TradeClusterPoint> = [];
   for (const p of payload) {
     const raw = p.payload;
     if (isChartPayload(raw)) {
+      out.push(raw);
+      continue;
+    }
+    if (isTradeClusterPayload(raw)) {
       out.push(raw);
       continue;
     }
@@ -117,7 +139,7 @@ function tooltipRowsFromPayload(
       if (dk == null) continue;
       const name = typeof dk === "number" ? String(dk) : String(dk);
       const tip = (raw as Record<string, unknown>)[tipStoreKey(name)];
-      if (isChartPayload(tip)) out.push(tip);
+      if (isChartPayload(tip) || isTradeClusterPayload(tip)) out.push(tip as any);
     }
   }
   return out;
@@ -130,6 +152,17 @@ function isChartPayload(x: unknown): x is ChartPointPayload {
     "tipKind" in x &&
     typeof (x as ChartPointPayload).ts === "number" &&
     typeof (x as ChartPointPayload).value === "number"
+  );
+}
+
+function isTradeClusterPayload(x: unknown): x is TradeClusterPoint {
+  return (
+    x != null &&
+    typeof x === "object" &&
+    (x as any).tipKind === "trade" &&
+    typeof (x as any).ts === "number" &&
+    typeof (x as any).value === "number" &&
+    typeof (x as any).tipAsset === "string"
   );
 }
 
@@ -298,12 +331,17 @@ function TimelineTooltipBody({
 
   if (rows.length === 0) return null;
 
+  const cluster = rows.find((r) => (r as any).tipKind === "trade") as
+    | TradeClusterPoint
+    | undefined;
   const trade = rows.find(
-    (r: ChartPointPayload) => r.tipKind === "buy" || r.tipKind === "sell",
-  );
-  const pos = rows.find((r: ChartPointPayload) => r.tipKind === "position");
+    (r: any) => r.tipKind === "buy" || r.tipKind === "sell",
+  ) as TradePoint | PositionPoint | undefined;
+  const pos = rows.find((r: any) => r.tipKind === "position") as
+    | PositionPoint
+    | undefined;
   const sameTsTrade = pos ? tradeAtSameTs(pos, allBuys, allSells) : undefined;
-  const d = trade ?? sameTsTrade ?? pos;
+  const d: any = cluster ?? trade ?? sameTsTrade ?? pos;
   if (!d) return null;
 
   const timeStr = new Date(d.ts).toLocaleString("th-TH", {
@@ -314,6 +352,90 @@ function TimelineTooltipBody({
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  if (cluster) {
+    const showBadge = cluster.tipCount > 1;
+    return (
+      <div
+        className="min-w-[220px] rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs shadow-lg"
+        style={{ color: "rgb(24,24,27)" }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-zinc-900">
+              {cluster.tipAsset}
+            </div>
+            <div className="mt-0.5 text-[11px] text-zinc-500">{timeStr}</div>
+          </div>
+          {showBadge ? (
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white">
+              {cluster.tipCount}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-2 space-y-2 border-t border-zinc-100 pt-2 tabular-nums">
+          {cluster.buyCount > 0 ? (
+            <div className="grid gap-1">
+              <div className="inline-flex items-center gap-2">
+                <span className="inline-block rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-bold tracking-wide text-emerald-800">
+                  BUY
+                </span>
+                {cluster.buyCount > 1 ? (
+                  <span className="text-[11px] text-zinc-500">
+                    ×{cluster.buyCount}
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-zinc-500">จำนวน</span>
+                <span className="font-medium text-zinc-900">
+                  {cluster.buyAmount}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-zinc-500">ราคา/หน่วย</span>
+                <span className="font-medium text-zinc-900">
+                  {cluster.buyUnitPrice == null
+                    ? "-"
+                    : formatMoney(cluster.buyUnitPrice, currency)}
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          {cluster.sellCount > 0 ? (
+            <div className="grid gap-1">
+              <div className="inline-flex items-center gap-2">
+                <span className="inline-block rounded-md bg-rose-100 px-2 py-0.5 text-[11px] font-bold tracking-wide text-rose-800">
+                  SELL
+                </span>
+                {cluster.sellCount > 1 ? (
+                  <span className="text-[11px] text-zinc-500">
+                    ×{cluster.sellCount}
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-zinc-500">จำนวน</span>
+                <span className="font-medium text-zinc-900">
+                  {cluster.sellAmount}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-zinc-500">ราคา/หน่วย</span>
+                <span className="font-medium text-zinc-900">
+                  {cluster.sellUnitPrice == null
+                    ? "-"
+                    : formatMoney(cluster.sellUnitPrice, currency)}
+                </span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   if (d.tipKind === "buy" || d.tipKind === "sell") {
     return (
@@ -372,12 +494,141 @@ function TimelineTooltipBody({
   );
 }
 
+function buildTradeClusters(
+  series: AssetSeries[],
+  allBuys: readonly TradePoint[],
+  allSells: readonly TradePoint[],
+): TradeClusterPoint[] {
+  const posByAssetTs = new Map<string, number>();
+  for (const s of series) {
+    for (const p of s.points) posByAssetTs.set(`${s.assetName}|${p.ts}`, p.value);
+  }
+
+  const m = new Map<string, TradeClusterPoint>();
+  const add = (p: TradePoint) => {
+    const key = `${p.tipAsset}|${p.ts}`;
+    const base =
+      m.get(key) ??
+      ({
+        ts: p.ts,
+        value: posByAssetTs.get(key) ?? p.value,
+        tipKind: "trade",
+        tipAsset: p.tipAsset,
+        tipCount: 0,
+        buyCount: 0,
+        sellCount: 0,
+        buyAmount: 0,
+        sellAmount: 0,
+        buyUnitPrice: null,
+        sellUnitPrice: null,
+      } satisfies TradeClusterPoint);
+
+    const c = Number(p.tipCount) || 1;
+    base.tipCount += c;
+
+    if (p.tipKind === "buy") {
+      base.buyCount += c;
+      const prevAmt = base.buyAmount;
+      const nextAmt = Number(p.tipAmount) || 0;
+      const totalAmt = prevAmt + nextAmt;
+      if (totalAmt > 0) {
+        const prevPx = base.buyUnitPrice ?? p.tipUnitPrice;
+        const weighted = (prevPx * prevAmt + p.tipUnitPrice * nextAmt) / totalAmt;
+        base.buyUnitPrice = weighted;
+      } else {
+        base.buyUnitPrice = p.tipUnitPrice;
+      }
+      base.buyAmount = prevAmt + nextAmt;
+    } else {
+      base.sellCount += c;
+      const prevAmt = base.sellAmount;
+      const nextAmt = Number(p.tipAmount) || 0;
+      const totalAmt = prevAmt + nextAmt;
+      if (totalAmt > 0) {
+        const prevPx = base.sellUnitPrice ?? p.tipUnitPrice;
+        const weighted = (prevPx * prevAmt + p.tipUnitPrice * nextAmt) / totalAmt;
+        base.sellUnitPrice = weighted;
+      } else {
+        base.sellUnitPrice = p.tipUnitPrice;
+      }
+      base.sellAmount = prevAmt + nextAmt;
+    }
+
+    // Always snap to final position value at that timestamp (if available).
+    base.value = posByAssetTs.get(key) ?? base.value;
+    m.set(key, base);
+  };
+
+  for (const p of allBuys) add(p);
+  for (const p of allSells) add(p);
+
+  return Array.from(m.values()).sort((a, b) => a.ts - b.ts);
+}
+
+function TradeDot(props: { cx?: number; cy?: number; payload?: unknown }) {
+  const { cx, cy, payload } = props;
+  if (cx == null || cy == null) return null;
+  const p = payload as any;
+  const isCluster = isTradeClusterPayload(p);
+  const hasBuy = isCluster ? p.buyCount > 0 : p?.tipKind === "buy";
+  const hasSell = isCluster ? p.sellCount > 0 : p?.tipKind === "sell";
+  const fill =
+    hasBuy && hasSell ? "#0f172a" : hasSell ? SELL_FILL : hasBuy ? BUY_FILL : "#0f172a";
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={7} fill={fill} stroke="#ffffff" strokeWidth={2} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={18}
+        fill="transparent"
+        style={{ cursor: "pointer" }}
+      />
+    </g>
+  );
+}
+
+function ActiveTradeDot(props: { cx?: number; cy?: number; payload?: unknown }) {
+  const { cx, cy, payload } = props;
+  if (cx == null || cy == null) return null;
+  const p = payload as any;
+  const isCluster = isTradeClusterPayload(p);
+  const hasBuy = isCluster ? p.buyCount > 0 : p?.tipKind === "buy";
+  const hasSell = isCluster ? p.sellCount > 0 : p?.tipKind === "sell";
+  const fill =
+    hasBuy && hasSell ? "#0f172a" : hasSell ? SELL_FILL : hasBuy ? BUY_FILL : "#0f172a";
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={10} fill={fill} stroke="#ffffff" strokeWidth={3} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={20}
+        fill="transparent"
+        style={{ cursor: "pointer" }}
+      />
+    </g>
+  );
+}
+
 export function AssetValueTimelineLine({
   series,
   height = 400,
+  rangePreset,
+  from,
+  to,
+  locale = "th",
+  showTradeLegend = true,
+  showArea = false,
 }: {
   series: AssetSeries[];
   height?: number;
+  rangePreset?: RangePreset;
+  from?: Date | null;
+  to?: Date | null;
+  locale?: "th" | "en";
+  showTradeLegend?: boolean;
+  showArea?: boolean;
 }) {
   const { currency } = useCurrency();
 
@@ -386,6 +637,16 @@ export function AssetValueTimelineLine({
   );
 
   const xDomain = React.useMemo<[number, number]>(() => {
+    const hasFrom = from instanceof Date && Number.isFinite(from.getTime());
+    const hasTo = to instanceof Date && Number.isFinite(to.getTime());
+    if (hasFrom || hasTo) {
+      const start = hasFrom ? startOfDay(from!).getTime() : undefined;
+      const end = hasTo ? endOfDay(to!).getTime() : undefined;
+      if (start != null && end != null) return [start, end];
+      if (start != null) return [start, start];
+      if (end != null) return [end, end];
+    }
+
     let min = Infinity;
     let max = -Infinity;
     for (const s of series) {
@@ -395,9 +656,112 @@ export function AssetValueTimelineLine({
       }
     }
     return [min === Infinity ? 0 : min, max === -Infinity ? 0 : max];
-  }, [series]);
+  }, [series, from, to]);
 
-  const xTicks = React.useMemo(() => {
+  const xAxis = React.useMemo(() => {
+    const [d0, d1] = xDomain;
+    const start = Number(d0);
+    const end = Number(d1);
+    const safeStart = Number.isFinite(start) ? start : 0;
+    const safeEnd = Number.isFinite(end) ? end : safeStart;
+    const span = Math.max(0, safeEnd - safeStart);
+
+    const thWeekdays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"] as const;
+    const enWeekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+    const weekdayLabel = (d: Date) =>
+      locale === "th" ? thWeekdays[d.getDay()] : enWeekdays[d.getDay()];
+
+    const monthLabel = (d: Date) =>
+      d.toLocaleString(locale === "th" ? "th-TH" : "en-US", {
+        month: "short",
+      });
+
+    const sameDay =
+      new Date(safeStart).toDateString() === new Date(safeEnd).toDateString();
+    const shouldShowHours =
+      rangePreset === "today" ||
+      rangePreset === "yesterday" ||
+      (sameDay && span <= 36 * 60 * 60 * 1000);
+
+    const format = (v: number) => {
+      const d = new Date(Number(v));
+      if (shouldShowHours) {
+        return d.toLocaleTimeString(locale === "th" ? "th-TH" : "en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+      if (rangePreset === "last7") {
+        const wd = d.getDay(); // 0 Sun ... 6 Sat
+        if (wd === 0 || wd === 6) return "";
+        return weekdayLabel(d);
+      }
+      if (rangePreset === "last30") return String(d.getDate());
+      if (rangePreset === "last90") return monthLabel(d);
+      if (rangePreset === "ytd" || rangePreset === "lastYear") return monthLabel(d);
+      return d.toLocaleDateString(locale === "th" ? "th-TH" : "en-US");
+    };
+
+    const sampleTicks = (ticks: number[], max: number) => {
+      if (ticks.length <= max) return ticks;
+      const step = (ticks.length - 1) / (max - 1);
+      const sampled: number[] = [];
+      for (let i = 0; i < max; i++) sampled.push(ticks[Math.round(i * step)]!);
+      return Array.from(new Set(sampled)).sort((a, b) => a - b);
+    };
+
+    // Build "calendar" ticks so points don't look scattered on same-day ranges.
+    const ticks: number[] = [];
+    if (shouldShowHours) {
+      const d = new Date(safeStart);
+      d.setMinutes(0, 0, 0);
+      for (let h = 0; h < 24; h++) {
+        const x = new Date(d);
+        x.setHours(h, 0, 0, 0);
+        const ms = x.getTime();
+        if (ms >= safeStart && ms <= safeEnd) ticks.push(ms);
+      }
+      return { ticks: sampleTicks(ticks, 8), format };
+    }
+
+    if (
+      rangePreset === "last7" ||
+      rangePreset === "last30" ||
+      rangePreset === "ytd" ||
+      rangePreset === "lastYear" ||
+      rangePreset === "last90"
+    ) {
+      // Month-based
+      if (
+        rangePreset === "ytd" ||
+        rangePreset === "lastYear" ||
+        rangePreset === "last90"
+      ) {
+        const cur = new Date(safeStart);
+        cur.setDate(1);
+        cur.setHours(0, 0, 0, 0);
+        while (cur.getTime() <= safeEnd) {
+          // Use month-end ticks to avoid clipping the first month label at far-left,
+          // and to align with month-sampled series points.
+          ticks.push(endOfDay(endOfMonth(cur)).getTime());
+          cur.setMonth(cur.getMonth() + 1, 1);
+          cur.setHours(0, 0, 0, 0);
+        }
+        return { ticks: sampleTicks(ticks, 12), format };
+      }
+
+      // Day-based
+      const cur = new Date(safeStart);
+      cur.setHours(0, 0, 0, 0);
+      while (cur.getTime() <= safeEnd) {
+        ticks.push(cur.getTime());
+        cur.setDate(cur.getDate() + 1);
+      }
+      return { ticks: sampleTicks(ticks, rangePreset === "last7" ? 7 : 10), format };
+    }
+
+    // Fallback: sample existing point timestamps.
     const uniq = new Set<number>();
     for (const s of series) {
       for (const p of s.points) uniq.add(p.ts);
@@ -405,21 +769,22 @@ export function AssetValueTimelineLine({
       for (const p of s.sells) uniq.add(p.ts);
     }
     const sorted = Array.from(uniq).sort((a, b) => a - b);
-    if (sorted.length <= 8) return sorted;
-
-    const target = 8;
-    const step = (sorted.length - 1) / (target - 1);
-    const sampled: number[] = [];
-    for (let i = 0; i < target; i++) {
-      sampled.push(sorted[Math.round(i * step)]);
+    if (sorted.length === 0) {
+      const target = 8;
+      const step = target > 1 ? span / (target - 1) : 0;
+      const gen = Array.from({ length: target }, (_, i) =>
+        Math.round(safeStart + i * step),
+      );
+      return { ticks: gen, format };
     }
-    return Array.from(new Set(sampled)).sort((a, b) => a - b);
-  }, [series]);
+    return { ticks: sampleTicks(sorted, 8), format };
+  }, [xDomain, rangePreset, locale, series]);
 
   const allBuys = React.useMemo(() => series.flatMap((s) => s.buys), [series]);
-  const allSells = React.useMemo(
-    () => series.flatMap((s) => s.sells),
-    [series],
+  const allSells = React.useMemo(() => series.flatMap((s) => s.sells), [series]);
+  const tradeClusters = React.useMemo(
+    () => buildTradeClusters(series, allBuys, allSells),
+    [series, allBuys, allSells],
   );
 
   const mergedLineData = React.useMemo(
@@ -451,24 +816,26 @@ export function AssetValueTimelineLine({
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center justify-center gap-5 text-xs font-medium text-zinc-600">
-          <span className="inline-flex items-center gap-2">
-            <span
-              className="inline-block h-4 w-4 rounded-full border-[2.5px] border-white shadow-md"
-              style={{ background: BUY_FILL }}
-            />
-            จุดซื้อ
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span
-              className="inline-block h-4 w-4 rounded-full border-[2.5px] border-white shadow-md"
-              style={{ background: SELL_FILL }}
-            />
-            จุดขาย
-          </span>
+      {showTradeLegend ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center justify-center gap-5 text-xs font-medium text-zinc-600">
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="inline-block h-4 w-4 rounded-full border-[2.5px] border-white shadow-md"
+                style={{ background: BUY_FILL }}
+              />
+              จุดซื้อ
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="inline-block h-4 w-4 rounded-full border-[2.5px] border-white shadow-md"
+                style={{ background: SELL_FILL }}
+              />
+              จุดขาย
+            </span>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div
         style={{ height }}
@@ -495,14 +862,12 @@ export function AssetValueTimelineLine({
               type="number"
               dataKey="ts"
               domain={xDomain}
-              ticks={xTicks}
+              ticks={xAxis.ticks}
               scale="time"
               tick={{ fill: "rgb(113,113,122)", fontSize: 11 }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) =>
-                new Date(Number(v)).toLocaleDateString("th-TH")
-              }
+              tickFormatter={(v) => xAxis.format(Number(v))}
               tickMargin={8}
               minTickGap={28}
             />
@@ -511,6 +876,7 @@ export function AssetValueTimelineLine({
               tick={{ fill: "rgb(113,113,122)", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
+              domain={[0, "auto"]}
               tickFormatter={(v) => formatMoney(Number(v), currency)}
               width={76}
             />
@@ -545,6 +911,18 @@ export function AssetValueTimelineLine({
               />
             ) : null}
 
+            {showArea && series.length === 1 ? (
+              <Area
+                type="monotoneX"
+                dataKey={series[0]!.assetName}
+                stroke="transparent"
+                fill={series[0]!.color}
+                fillOpacity={0.12}
+                isAnimationActive={false}
+                connectNulls={false}
+              />
+            ) : null}
+
             {series.map((s) => (
               <Line
                 key={`line-${s.assetName}`}
@@ -572,26 +950,14 @@ export function AssetValueTimelineLine({
               />
             ))}
 
-            {allBuys.length > 0 && (
+            {tradeClusters.length > 0 && (
               <Scatter
-                data={allBuys}
+                data={tradeClusters}
                 dataKey="value"
-                name="ซื้อ"
-                fill={BUY_FILL}
-                shape={BuyDot}
-                activeShape={ActiveBuyDot}
-                isAnimationActive={false}
-              />
-            )}
-
-            {allSells.length > 0 && (
-              <Scatter
-                data={allSells}
-                dataKey="value"
-                name="ขาย"
-                fill={SELL_FILL}
-                shape={SellDot}
-                activeShape={ActiveSellDot}
+                name="ซื้อ/ขาย"
+                fill="#0f172a"
+                shape={TradeDot}
+                activeShape={ActiveTradeDot}
                 isAnimationActive={false}
               />
             )}

@@ -1,7 +1,9 @@
-import { Button } from "@/components/ui/Button";
 import { AssetValueTimelineLine } from "@/components/charts/AssetValueTimelineLine";
 import type { AssetSeries } from "@/components/charts/AssetValueTimelineLine";
 import { useI18n } from "@/components/shared/I18nProvider";
+import type { RangePreset } from "@/lib/assetTimeline";
+import type { AppLocale } from "@/i18n";
+import { Button } from "@/components/ui/Button";
 
 type Props = {
   hydrated: boolean;
@@ -11,9 +13,10 @@ type Props = {
   listError: string | null;
   filteredEmpty: boolean;
   series: AssetSeries[];
-  wouldSimplifyChart?: boolean;
-  showAllChartLines?: boolean;
-  onToggleShowAllChartLines?: () => void;
+  rangePreset: RangePreset;
+  from: string;
+  to: string;
+  locale: AppLocale;
   showSummaryToggle: boolean;
   onToggleSummary: () => void;
 };
@@ -26,11 +29,12 @@ export function AssetsTimelineChartBody({
   listError,
   filteredEmpty,
   series,
-  wouldSimplifyChart = false,
-  showAllChartLines = false,
-  onToggleShowAllChartLines,
+  rangePreset,
+  from,
+  to,
+  locale,
   showSummaryToggle,
-  onToggleSummary
+  onToggleSummary,
 }: Props) {
   const { t } = useI18n();
   return (
@@ -53,45 +57,14 @@ export function AssetsTimelineChartBody({
         </div>
       ) : (
         <>
-          {wouldSimplifyChart && onToggleShowAllChartLines ? (
-            <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-zinc-100 bg-zinc-50/60 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] leading-relaxed text-zinc-600">
-                {showAllChartLines ? (
-                  <>
-                    {t("assets.simplify.allPrefix")}
-                    <strong className="font-medium text-zinc-800">
-                      {" "}
-                      {t("assets.simplify.allEmphasis")}
-                    </strong>{" "}
-                    {t("assets.simplify.allSuffix")}
-                  </>
-                ) : (
-                  <>
-                    {t("assets.simplify.simplePrefix")}{" "}
-                    <strong className="font-medium text-zinc-800">
-                      {t("assets.simplify.top5")}
-                    </strong>{" "}
-                    {t("assets.simplify.simpleMid")}{" "}
-                    <strong className="font-medium text-zinc-800">
-                      {t("assets.simplify.others")}
-                    </strong>{" "}
-                    {t("assets.simplify.simpleSuffix")}
-                  </>
-                )}
-              </p>
-              <Button
-                type="button"
-                variant="secondary"
-                className="h-8 shrink-0 rounded-xl px-3 text-xs shadow-none"
-                onClick={onToggleShowAllChartLines}
-              >
-                {showAllChartLines
-                  ? t("assets.simplify.ctaCompact")
-                  : t("assets.simplify.ctaShowAll")}
-              </Button>
-            </div>
-          ) : null}
-          <AssetValueTimelineLine series={series} height={420} />
+          <AssetValueTimelineLine
+            series={series}
+            height={420}
+            rangePreset={rangePreset}
+            from={from ? new Date(from) : null}
+            to={to ? new Date(to) : null}
+            locale={locale}
+          />
           <div className="mt-2 flex justify-end">
             <Button
               type="button"

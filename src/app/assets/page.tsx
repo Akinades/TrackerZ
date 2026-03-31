@@ -16,8 +16,10 @@ import {
   buildTimelines,
   daysAgo,
   endOfDay,
-  limitAllAssetSeriesForChart,
-  ALL_ASSETS_CHART_MAX_LINES,
+  monthsAgo,
+  startOfMonth,
+  startOfPrevYear,
+  endOfPrevYear,
   startOfDay,
   startOfYear,
   toDateInputValue,
@@ -108,11 +110,6 @@ export default function AssetsTimelinePage() {
   const [to, setTo] = React.useState<string>("");
   const [rangePreset, setRangePreset] = React.useState<RangePreset>("");
   const [asset, setAsset] = React.useState<string>("__all__");
-  const [showAllChartLines, setShowAllChartLines] = React.useState(false);
-
-  React.useEffect(() => {
-    if (asset !== "__all__") setShowAllChartLines(false);
-  }, [asset]);
 
   React.useEffect(() => {
     if (!hydrated) return;
@@ -159,64 +156,56 @@ export default function AssetsTimelinePage() {
     return () => {
       mounted = false;
     };
-  }, [asset, hydrated]);
+  }, [asset, hydrated, t]);
 
   React.useEffect(() => {
     if (!hydrated) return;
     if (from || to) return;
     const now = new Date();
     setRangePreset("last30");
-    setFrom(toDateInputValue(daysAgo(29)));
+    setFrom(toDateInputValue(startOfMonth(now)));
     setTo(toDateInputValue(now));
   }, [hydrated, from, to]);
 
-  const applyPreset = React.useCallback(
-    (preset: RangePreset) => {
-      const now = new Date();
-      if (preset === "custom" || !preset) return;
-      if (preset === "all") {
-        setFrom(oldest ? toDateInputValue(oldest) : "");
-        setTo(newest ? toDateInputValue(newest) : "");
-        return;
-      }
-      if (preset === "today") {
-        setFrom(toDateInputValue(now));
-        setTo(toDateInputValue(now));
-        return;
-      }
-      if (preset === "yesterday") {
-        const y = daysAgo(1);
-        setFrom(toDateInputValue(y));
-        setTo(toDateInputValue(y));
-        return;
-      }
-      if (preset === "last7") {
-        setFrom(toDateInputValue(daysAgo(6)));
-        setTo(toDateInputValue(now));
-        return;
-      }
-      if (preset === "last30") {
-        setFrom(toDateInputValue(daysAgo(29)));
-        setTo(toDateInputValue(now));
-        return;
-      }
-      if (preset === "last90") {
-        setFrom(toDateInputValue(daysAgo(89)));
-        setTo(toDateInputValue(now));
-        return;
-      }
-      if (preset === "ytd") {
-        setFrom(toDateInputValue(startOfYear(now)));
-        setTo(toDateInputValue(now));
-        return;
-      }
-      if (preset === "last365") {
-        setFrom(toDateInputValue(daysAgo(364)));
-        setTo(toDateInputValue(now));
-      }
-    },
-    [newest, oldest],
-  );
+  const applyPreset = React.useCallback((preset: RangePreset) => {
+    const now = new Date();
+    if (preset === "custom" || !preset) return;
+    if (preset === "today") {
+      setFrom(toDateInputValue(now));
+      setTo(toDateInputValue(now));
+      return;
+    }
+    if (preset === "yesterday") {
+      const y = daysAgo(1);
+      setFrom(toDateInputValue(y));
+      setTo(toDateInputValue(y));
+      return;
+    }
+    if (preset === "last7") {
+      setFrom(toDateInputValue(daysAgo(6)));
+      setTo(toDateInputValue(now));
+      return;
+    }
+    if (preset === "last30") {
+      setFrom(toDateInputValue(startOfMonth(now)));
+      setTo(toDateInputValue(now));
+      return;
+    }
+    if (preset === "last90") {
+      setFrom(toDateInputValue(startOfMonth(monthsAgo(2, now))));
+      setTo(toDateInputValue(now));
+      return;
+    }
+    if (preset === "ytd") {
+      setFrom(toDateInputValue(startOfYear(now)));
+      setTo(toDateInputValue(now));
+      return;
+    }
+    if (preset === "lastYear") {
+      setFrom(toDateInputValue(startOfPrevYear(now)));
+      setTo(toDateInputValue(endOfPrevYear(now)));
+    }
+  }, []);
 
   const sourceTxs = asset === "__all__" ? txs : assetTxs;
 
@@ -314,14 +303,6 @@ export default function AssetsTimelinePage() {
     [filteredTxs, asset, toDisplayMoney],
   );
 
-  const wouldSimplifyChart =
-    asset === "__all__" && series.length > ALL_ASSETS_CHART_MAX_LINES;
-
-  const chartSeries = React.useMemo(() => {
-    if (asset !== "__all__" || showAllChartLines) return series;
-    return limitAllAssetSeriesForChart(series).series;
-  }, [asset, showAllChartLines, series]);
-
   const handleRangePresetChange = React.useCallback(
     (v: RangePreset) => {
       setRangePreset(v);
@@ -385,10 +366,11 @@ export default function AssetsTimelinePage() {
           assetError={assetError}
           listError={error}
           filteredEmpty={filteredTxs.length === 0}
-          series={chartSeries}
-          wouldSimplifyChart={wouldSimplifyChart}
-          showAllChartLines={showAllChartLines}
-          onToggleShowAllChartLines={() => setShowAllChartLines((x) => !x)}
+          series={series}
+          rangePreset={rangePreset}
+          from={from}
+          to={to}
+          locale={locale}
           showSummaryToggle={showAssetsSummary}
           onToggleSummary={() => setShowAssetsSummary((x) => !x)}
         />

@@ -21,8 +21,8 @@ export function Navbar() {
 
   const nav = [
     { href: "/dashboard", label: t("nav.dashboard") },
-    { href: "/transactions", label: t("nav.transactions") },
     { href: "/assets", label: t("nav.assets") },
+    { href: "/transactions", label: t("nav.transactions") },
   ] as const;
 
   return (

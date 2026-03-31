@@ -23,6 +23,10 @@ import {
   daysAgo,
   endOfDay,
   RangePreset,
+  endOfPrevYear,
+  monthsAgo,
+  startOfMonth,
+  startOfPrevYear,
   startOfDay,
   startOfYear,
   toDateInputValue,
@@ -635,11 +639,6 @@ export function useTransactionsPage(): TransactionsPageModel {
   const applyPreset = React.useCallback(
     (preset: NonNullable<RangePreset>) => {
       const now = new Date();
-      if (preset === "all") {
-        setFrom(oldest ? toDateInputValue(oldest) : "");
-        setTo(newest ? toDateInputValue(newest) : "");
-        return;
-      }
       if (preset === "today") {
         setFrom(toDateInputValue(now));
         setTo(toDateInputValue(now));
@@ -657,12 +656,12 @@ export function useTransactionsPage(): TransactionsPageModel {
         return;
       }
       if (preset === "last30") {
-        setFrom(toDateInputValue(daysAgo(29)));
+        setFrom(toDateInputValue(startOfMonth(now)));
         setTo(toDateInputValue(now));
         return;
       }
       if (preset === "last90") {
-        setFrom(toDateInputValue(daysAgo(89)));
+        setFrom(toDateInputValue(startOfMonth(monthsAgo(2, now))));
         setTo(toDateInputValue(now));
         return;
       }
@@ -671,12 +670,12 @@ export function useTransactionsPage(): TransactionsPageModel {
         setTo(toDateInputValue(now));
         return;
       }
-      if (preset === "last365") {
-        setFrom(toDateInputValue(daysAgo(364)));
-        setTo(toDateInputValue(now));
+      if (preset === "lastYear") {
+        setFrom(toDateInputValue(startOfPrevYear(now)));
+        setTo(toDateInputValue(endOfPrevYear(now)));
       }
     },
-    [newest, oldest],
+    [],
   );
 
   const filteredTxs = React.useMemo(() => {

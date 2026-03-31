@@ -88,21 +88,21 @@ export function AuthButtons({
 
           <Link
             href="/account"
-            className="block px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+            className="hidden px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50 md:block"
             onClick={() => setOpen(false)}
           >
             {t("authMenu.profile")}
           </Link>
           <Link
             href="/settings"
-            className="block px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+            className="hidden px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50 md:block"
             onClick={() => setOpen(false)}
           >
             {t("authMenu.settings")}
           </Link>
           <Link
             href="/support"
-            className="block border-t border-zinc-200/70 px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+            className="hidden border-t border-zinc-200/70 px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50 md:block"
             onClick={() => setOpen(false)}
           >
             {t("authMenu.support")}
@@ -136,6 +136,31 @@ export function AuthButtons({
               })}
             </div>
           ) : null}
+
+          {/* Mobile-only: keep main nav first, then account/settings. */}
+          <div className="border-t border-zinc-200/70 md:hidden">
+            <Link
+              href="/account"
+              className="block px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+              onClick={() => setOpen(false)}
+            >
+              {t("authMenu.profile")}
+            </Link>
+            <Link
+              href="/settings"
+              className="block px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+              onClick={() => setOpen(false)}
+            >
+              {t("authMenu.settings")}
+            </Link>
+            <Link
+              href="/support"
+              className="block border-t border-zinc-200/70 px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+              onClick={() => setOpen(false)}
+            >
+              {t("authMenu.support")}
+            </Link>
+          </div>
 
           <div className="border-t border-zinc-200/70 p-2 md:hidden">
             <CurrencyBadge

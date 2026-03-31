@@ -84,8 +84,7 @@ export function AssetsTimelineFilters({
               <option value="last30">{t("datePreset.last30")}</option>
               <option value="last90">{t("datePreset.last90")}</option>
               <option value="ytd">{t("datePreset.ytd")}</option>
-              <option value="last365">{t("datePreset.last365")}</option>
-              <option value="all">{t("datePreset.all")}</option>
+              <option value="lastYear">{t("datePreset.lastYear")}</option>
             </Select>
           </div>
         </div>
