@@ -11,6 +11,7 @@ export type RangePreset =
   | ""
   | "today"
   | "yesterday"
+  | "custom"
   | "last7"
   | "last30"
   | "last90"

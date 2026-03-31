@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/store/useAuth";
 import { DEFAULT_TX_CURRENCY, useCurrency } from "@/store/useCurrency";
+import { useFxRate } from "@/store/useFxRate";
 import { useFxRates } from "@/store/useFxRates";
+import { usePreferences } from "@/store/usePreferences";
+import { usePrices } from "@/store/usePrices";
 import { mapTx, useTransactions } from "@/store/useTransactions";
 import type { Transaction } from "@/types/transactions";
 import { txExecutedAtIso, txExecutedAtMs } from "@/lib/transactionTime";
@@ -20,6 +23,16 @@ import {
   toDateInputValue,
   type RangePreset,
 } from "@/lib/assetTimeline";
+import {
+  computePositionsAvgCost,
+  computePositionsFifo,
+  currentValue,
+  investedTotal,
+  realizedPnlFromPositions,
+  round2,
+  totalFees,
+  unrealizedPnl,
+} from "@/lib/calculations";
 import { AssetsTimelineFilters } from "@/components/assets/AssetsTimelineFilters";
 import { AssetsTimelineChartBody } from "@/components/assets/AssetsTimelineChartBody";
 import { AssetsRangeSummary } from "@/components/assets/AssetsRangeSummary";
@@ -36,17 +49,28 @@ export default function AssetsTimelinePage() {
   }, [authHydrated, user, router]);
   const { currency } = useCurrency();
   const { rates } = useFxRates();
+  const { usdThb } = useFxRate();
+  const { prefs } = usePreferences();
+  const { prices, refreshMarket, hydrated: pricesHydrated } = usePrices();
   const { txs, hydrated, error } = useTransactions();
 
   const toDisplayMoney = React.useCallback(
-    (value: number, from?: import("@/store/useCurrency").AppCurrency, fxAtTrade?: number) => {
-      const src = (from ?? DEFAULT_TX_CURRENCY) as import("@/store/useCurrency").AppCurrency;
+    (
+      value: number,
+      from?: import("@/store/useCurrency").AppCurrency,
+      fxAtTrade?: number,
+    ) => {
+      const src = (from ??
+        DEFAULT_TX_CURRENCY) as import("@/store/useCurrency").AppCurrency;
       const dst = currency;
 
-      if (fxAtTrade && Number.isFinite(fxAtTrade) && fxAtTrade > 0) {
+      // Use stored trade-time FX only when it looks plausible.
+      // Many historical rows may have fxRateAtTrade = 1 (default), which would otherwise block conversion.
+      const fx = Number(fxAtTrade);
+      if (Number.isFinite(fx) && fx > 5) {
         if (src === dst) return value;
-        if (src === "USD" && dst === "THB") return value * fxAtTrade;
-        if (src === "THB" && dst === "USD") return value / fxAtTrade;
+        if (src === "USD" && dst === "THB") return value * fx;
+        if (src === "THB" && dst === "USD") return value / fx;
       }
 
       if (src === dst) return value;
@@ -139,16 +163,17 @@ export default function AssetsTimelinePage() {
 
   React.useEffect(() => {
     if (!hydrated) return;
-    if (!oldest || !newest) return;
-    if (!rangePreset) {
-      setFrom((prev) => (prev ? prev : toDateInputValue(oldest)));
-      setTo((prev) => (prev ? prev : toDateInputValue(newest)));
-    }
-  }, [hydrated, oldest, newest, rangePreset]);
+    if (from || to) return;
+    const now = new Date();
+    setRangePreset("last30");
+    setFrom(toDateInputValue(daysAgo(29)));
+    setTo(toDateInputValue(now));
+  }, [hydrated, from, to]);
 
   const applyPreset = React.useCallback(
     (preset: RangePreset) => {
       const now = new Date();
+      if (preset === "custom" || !preset) return;
       if (preset === "all") {
         setFrom(oldest ? toDateInputValue(oldest) : "");
         setTo(newest ? toDateInputValue(newest) : "");
@@ -213,6 +238,77 @@ export default function AssetsTimelinePage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [txs]);
 
+  // Market-mode summary (to match Dashboard): convert txs to USD using spot USD/THB,
+  // compute positions with chosen cost basis, then value with live market prices.
+  const fxSpot = React.useMemo(
+    () => (Number.isFinite(usdThb) && usdThb > 0 ? usdThb : 36),
+    [usdThb],
+  );
+  const filteredTxsUsd = React.useMemo(() => {
+    return filteredTxs.map((t) => {
+      const src = t.currency ?? "THB";
+      if (src === "USD") return t;
+      return {
+        ...t,
+        price: t.price / fxSpot,
+        fee: (t.fee ?? 0) / fxSpot,
+        tax: (t.tax ?? 0) / fxSpot,
+        currency: "USD" as const,
+      } satisfies Transaction;
+    });
+  }, [filteredTxs, fxSpot]);
+  const positions = React.useMemo(
+    () =>
+      prefs.costBasis === "fifo"
+        ? computePositionsFifo(filteredTxsUsd)
+        : computePositionsAvgCost(filteredTxsUsd),
+    [filteredTxsUsd, prefs.costBasis],
+  );
+  const openPositions = React.useMemo(
+    () => positions.filter((p) => p.qty > 0),
+    [positions],
+  );
+  const quoteSymbols = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          openPositions
+            .map((p) => p.assetName.trim().toUpperCase())
+            .filter(Boolean),
+        ),
+      ),
+    [openPositions],
+  );
+  React.useEffect(() => {
+    if (!hydrated || !pricesHydrated) return;
+    if (quoteSymbols.length === 0) return;
+    refreshMarket(quoteSymbols);
+  }, [hydrated, pricesHydrated, quoteSymbols, refreshMarket]);
+
+  const marketSummary = React.useMemo(() => {
+    const investedUsd = investedTotal(filteredTxsUsd);
+    const feesUsd = totalFees(filteredTxsUsd);
+    const realizedUsd = realizedPnlFromPositions(positions);
+    const mvOpenUsd = currentValue(openPositions, prices);
+    const unrealUsd = unrealizedPnl(openPositions, prices);
+    const totalPnlUsd = realizedUsd + unrealUsd;
+    const totalReturnPct =
+      investedUsd > 0 ? round2((totalPnlUsd / investedUsd) * 100) : null;
+    const toDisp = (nUsd: number) =>
+      currency === "THB" ? nUsd * fxSpot : nUsd;
+    return {
+      investedDisp: round2(toDisp(investedUsd)),
+      feesDisp: round2(toDisp(feesUsd)),
+      realizedDisp: round2(toDisp(realizedUsd)),
+      marketValueOpenDisp: round2(toDisp(mvOpenUsd)),
+      unrealizedDisp: round2(toDisp(unrealUsd)),
+      totalPnlDisp: round2(toDisp(totalPnlUsd)),
+      totalReturnPct,
+      quotedOpenCount: openPositions.filter((p) => p.qty > 0).length,
+      openCount: openPositions.length,
+    };
+  }, [filteredTxsUsd, positions, openPositions, prices, currency, fxSpot]);
+
   const series = React.useMemo(
     () => buildTimelines(filteredTxs, asset, toDisplayMoney),
     [filteredTxs, asset, toDisplayMoney],
@@ -229,7 +325,7 @@ export default function AssetsTimelinePage() {
   const handleRangePresetChange = React.useCallback(
     (v: RangePreset) => {
       setRangePreset(v);
-      if (!v) return;
+      if (!v || v === "custom") return;
       applyPreset(v);
     },
     [applyPreset],
@@ -253,8 +349,8 @@ export default function AssetsTimelinePage() {
           {t("assets.title")}
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
-          {t("assets.subtitlePrefix")} ({currency}) · {t("assets.subtitleGreen")} ·{" "}
-          {t("assets.subtitleRed")}
+          {t("assets.subtitlePrefix")} ({currency}) ·{" "}
+          {t("assets.subtitleGreen")} · {t("assets.subtitleRed")}
         </p>
       </div>
 
@@ -268,13 +364,15 @@ export default function AssetsTimelinePage() {
           onRangePresetChange={handleRangePresetChange}
           from={from}
           onFromChange={(v) => {
-            setRangePreset("");
+            setRangePreset("custom");
             setFrom(v);
+            if (v && to && new Date(v) > new Date(to)) setTo(v);
           }}
           to={to}
           onToChange={(v) => {
-            setRangePreset("");
+            setRangePreset("custom");
             setTo(v);
+            if (from && v && new Date(v) < new Date(from)) setFrom(v);
           }}
           oldest={oldest}
           newest={newest}
@@ -312,6 +410,15 @@ export default function AssetsTimelinePage() {
               assetFilter={asset}
               currency={currency}
               toDisplayMoney={toDisplayMoney}
+              market={{
+                investedDisp: marketSummary.investedDisp,
+                feesDisp: marketSummary.feesDisp,
+                realizedDisp: marketSummary.realizedDisp,
+                unrealizedDisp: marketSummary.unrealizedDisp,
+                marketValueOpenDisp: marketSummary.marketValueOpenDisp,
+                totalPnlDisp: marketSummary.totalPnlDisp,
+                totalReturnPct: marketSummary.totalReturnPct,
+              }}
             />
           </div>
         </Card>

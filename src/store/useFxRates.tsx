@@ -37,7 +37,8 @@ function safeWrite(v: FxLatestStored) {
 }
 
 function sanitizeRates(rates: unknown): Partial<Record<AppCurrency, number>> {
-  const out: Partial<Record<AppCurrency, number>> = { USD: 1 };
+  // Ensure core currencies always exist; otherwise converters may no-op.
+  const out: Partial<Record<AppCurrency, number>> = { USD: 1, THB: 36 };
   if (!rates || typeof rates !== "object") return out;
   const want: AppCurrency[] = ["USD", "THB", "EUR", "JPY", "GBP", "CNY"];
   for (const c of want) {

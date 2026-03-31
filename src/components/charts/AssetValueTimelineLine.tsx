@@ -12,7 +12,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Button } from "@/components/ui/Button";
 import type { AppCurrency } from "@/store/useCurrency";
 import { useCurrency } from "@/store/useCurrency";
 import { formatMoney } from "@/lib/format";
@@ -179,7 +178,7 @@ function LineActiveDot(props: {
   }
 
   return (
-    <circle cx={cx} cy={cy} r={6} fill={fill} stroke="#fff" strokeWidth={2.5} />
+    <circle cx={cx} cy={cy} r={5} fill={fill} stroke="#fff" strokeWidth={2.5} />
   );
 }
 
@@ -381,9 +380,6 @@ export function AssetValueTimelineLine({
   height?: number;
 }) {
   const { currency } = useCurrency();
-  const [tooltipTrigger, setTooltipTrigger] = React.useState<"hover" | "click">(
-    "hover",
-  );
 
   const hasData = series.some(
     (s) => s.points.length > 0 || s.buys.length > 0 || s.sells.length > 0,
@@ -472,34 +468,7 @@ export function AssetValueTimelineLine({
             จุดขาย
           </span>
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
-          <span className="text-[11px] text-zinc-500">คำอธิบาย:</span>
-          <Button
-            type="button"
-            variant={tooltipTrigger === "hover" ? "secondary" : "ghost"}
-            className="h-7 rounded-lg px-2.5 text-[11px] shadow-none"
-            aria-pressed={tooltipTrigger === "hover"}
-            onClick={() => setTooltipTrigger("hover")}
-          >
-            เลื่อนชี้
-          </Button>
-          <Button
-            type="button"
-            variant={tooltipTrigger === "click" ? "secondary" : "ghost"}
-            className="h-7 rounded-lg px-2.5 text-[11px] shadow-none"
-            aria-pressed={tooltipTrigger === "click"}
-            onClick={() => setTooltipTrigger("click")}
-          >
-            คลิกตรึง
-          </Button>
-        </div>
       </div>
-      {tooltipTrigger === "click" ? (
-        <p className="text-center text-[11px] text-zinc-500 sm:text-left">
-          คลิกบนเส้นหรือจุดซื้อ/ขายเพื่อเปิด — คลิกจุดอื่นเพื่อย้าย —
-          คลิกพื้นที่ว่างของกราฟเพื่อปิด
-        </p>
-      ) : null}
 
       <div
         style={{ height }}
@@ -547,7 +516,7 @@ export function AssetValueTimelineLine({
             />
             <Tooltip
               content={tooltipContent}
-              trigger={tooltipTrigger}
+              trigger="hover"
               cursor={{
                 stroke: "rgba(113,113,122,0.35)",
                 strokeWidth: 1,
@@ -559,7 +528,7 @@ export function AssetValueTimelineLine({
               allowEscapeViewBox={{ x: false, y: true }}
               shared={false}
               wrapperStyle={{
-                pointerEvents: tooltipTrigger === "click" ? "auto" : "none",
+                pointerEvents: "none",
                 zIndex: 20,
               }}
             />
@@ -579,11 +548,13 @@ export function AssetValueTimelineLine({
             {series.map((s) => (
               <Line
                 key={`line-${s.assetName}`}
-                type="natural"
+                type="monotoneX"
                 dataKey={s.assetName}
                 name={s.assetName}
                 stroke={s.color}
-                strokeWidth={3.25}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 dot={false}
                 connectNulls={false}
                 isAnimationActive={false}

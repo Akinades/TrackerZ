@@ -23,6 +23,15 @@ type Props = {
   assetFilter: string;
   currency: AppCurrency;
   toDisplayMoney: ToDisplayMoneyFn;
+  market?: {
+    investedDisp: number;
+    feesDisp: number;
+    realizedDisp: number;
+    unrealizedDisp: number;
+    marketValueOpenDisp: number;
+    totalPnlDisp: number;
+    totalReturnPct: number | null;
+  };
 };
 
 export function AssetsRangeSummary({
@@ -30,6 +39,7 @@ export function AssetsRangeSummary({
   assetFilter,
   currency,
   toDisplayMoney,
+  market,
 }: Props) {
   const buys = React.useMemo(
     () =>
@@ -102,19 +112,8 @@ export function AssetsRangeSummary({
     };
   }, [txs, toDisplayMoney]);
 
-  const equityNowApprox = React.useMemo(
-    () => round2(sellNetTotal + remaining.value),
-    [sellNetTotal, remaining.value],
-  );
-  const simplePnl = React.useMemo(
-    () => round2(equityNowApprox - buyTotalOutflow),
-    [equityNowApprox, buyTotalOutflow],
-  );
-  const simplePnlPct = React.useMemo(
-    () =>
-      buyTotalOutflow > 0 ? round2((simplePnl / buyTotalOutflow) * 100) : null,
-    [simplePnl, buyTotalOutflow],
-  );
+  const marketPnl = market?.totalPnlDisp ?? null;
+  const marketPnlPct = market?.totalReturnPct ?? null;
 
   const avgBuyPerTrade = React.useMemo(
     () => (buys.length > 0 ? round2(buyTotalOutflow / buys.length) : null),
@@ -160,47 +159,44 @@ export function AssetsRangeSummary({
         <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr] lg:items-stretch">
           <div className="p-1 md:pr-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              ผลลัพธ์รวมช่วงนี้ (ประมาณการ)
+              ผลลัพธ์รวมช่วงนี้ (แบบเดียวกับ Dashboard)
             </div>
             <div
               className={`mt-2 text-3xl font-extrabold tabular-nums tracking-tight md:text-4xl ${
-                simplePnl >= 0 ? "text-emerald-700" : "text-rose-600"
+                (marketPnl ?? 0) >= 0 ? "text-emerald-700" : "text-rose-600"
               }`}
             >
-              {simplePnl >= 0 ? "กำไร " : "ขาดทุน "}
-              {formatMoney(Math.abs(simplePnl), currency)}
+              {(marketPnl ?? 0) >= 0 ? "กำไร " : "ขาดทุน "}
+              {marketPnl == null ? "—" : formatMoney(Math.abs(marketPnl), currency)}
             </div>
             <p className="mt-2 text-sm font-semibold text-zinc-600 md:text-base">
-              {simplePnlPct == null
-                ? "คำนวณจาก เงินขายสุทธิ + มูลค่าหน่วยที่เหลือ - มูลค่าซื้อรวม"
-                : `คิดเป็น ${simplePnl >= 0 ? "+" : ""}${simplePnlPct.toFixed(2)}% ของทุนซื้อรวม`}
+              {marketPnlPct == null
+                ? "คำนวณจาก realized + unrealized (อิงราคาตลาดปัจจุบัน)"
+                : `คิดเป็น ${(marketPnl ?? 0) >= 0 ? "+" : ""}${marketPnlPct.toFixed(2)}% ของทุนซื้อรวม`}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2 text-sm font-semibold tabular-nums text-zinc-600 md:text-base">
               <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1">
-                {formatMoney(sellNetTotal, currency)}
+                {market?.realizedDisp == null ? "—" : formatMoney(market.realizedDisp, currency)}
               </span>
               <span className="text-zinc-400">+</span>
               <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1">
-                {formatMoney(remaining.value, currency)}
-              </span>
-              <span className="text-zinc-400">-</span>
-              <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1">
-                {formatMoney(buyTotalOutflow, currency)}
+                {market?.unrealizedDisp == null ? "—" : formatMoney(market.unrealizedDisp, currency)}
               </span>
               <span className="text-zinc-400">=</span>
               <span
                 className={`rounded-lg px-2.5 py-1 ${
-                  simplePnl >= 0
+                  (marketPnl ?? 0) >= 0
                     ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80"
                     : "bg-rose-50 text-rose-600 ring-1 ring-rose-200/80"
                 }`}
               >
-                {simplePnl >= 0 ? "+" : "-"}
-                {formatMoney(Math.abs(simplePnl), currency)}
+                {marketPnl == null ? "—" : `${marketPnl >= 0 ? "+" : "-"}${formatMoney(Math.abs(marketPnl), currency)}`}
               </span>
             </div>
             <p className="mt-4 text-sm font-medium text-zinc-500 md:text-base">
-              มูลค่าหน่วยที่เหลือ {formatMoney(remaining.value, currency)} ({remaining.qty} หน่วย)
+              มูลค่าที่เหลืออยู่ (ราคาตลาด){" "}
+              {market?.marketValueOpenDisp == null ? "—" : formatMoney(market.marketValueOpenDisp, currency)}{" "}
+              ({remaining.qty} หน่วย)
             </p>
           </div>
 
@@ -208,10 +204,10 @@ export function AssetsRangeSummary({
             <div className="grid divide-y divide-zinc-200/70">
               <div className="pb-3">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                  เงินขายสุทธิ
+                  Realized (ขายแล้ว)
                 </div>
                 <div className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
-                  {formatMoney(sellNetTotal, currency)}
+                  {market?.realizedDisp == null ? "—" : formatMoney(market.realizedDisp, currency)}
                 </div>
               </div>
               <div className="py-3">
@@ -219,7 +215,7 @@ export function AssetsRangeSummary({
                   มูลค่าที่เหลืออยู่ (ราคาตลาด)
                 </div>
                 <div className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
-                  {formatMoney(remaining.value, currency)}
+                  {market?.marketValueOpenDisp == null ? "—" : formatMoney(market.marketValueOpenDisp, currency)}
                 </div>
                 <p className="mt-1 text-[10px] text-zinc-500">
                   คงเหลือ {remaining.qty} หน่วย
@@ -227,10 +223,10 @@ export function AssetsRangeSummary({
               </div>
               <div className="pt-3">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                  มูลค่าซื้อรวม
+                  ทุนซื้อรวม
                 </div>
                 <div className="mt-1 text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
-                  {formatMoney(buyTotalOutflow, currency)}
+                  {market?.investedDisp == null ? "—" : formatMoney(market.investedDisp, currency)}
                 </div>
               </div>
             </div>

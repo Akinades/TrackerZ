@@ -41,7 +41,9 @@ export function AssetsTimelineFilters({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-xl">
           <div className="grid gap-1.5">
-            <span className="text-xs font-medium text-zinc-500">{t("assets.filters.asset")}</span>
+            <span className="text-xs font-medium text-zinc-500">
+              {t("assets.filters.asset")}
+            </span>
             <Select
               value={asset}
               onChange={(e) => onAssetChange(e.target.value)}
@@ -58,10 +60,14 @@ export function AssetsTimelineFilters({
             </Select>
           </div>
           <div className="grid gap-1.5">
-            <span className="text-xs font-medium text-zinc-500">{t("assets.filters.preset")}</span>
+            <span className="text-xs font-medium text-zinc-500">
+              {t("assets.filters.preset")}
+            </span>
             <Select
               value={rangePreset}
-              onChange={(e) => onRangePresetChange(e.target.value as RangePreset)}
+              onChange={(e) =>
+                onRangePresetChange(e.target.value as RangePreset)
+              }
               disabled={!hydrated}
               className="h-11 rounded-2xl border-zinc-200/80 bg-white px-3 text-sm shadow-none"
               aria-label="Date range preset"
@@ -69,6 +75,11 @@ export function AssetsTimelineFilters({
               <option value="">{t("assets.filters.choosePreset")}</option>
               <option value="today">{t("datePreset.today")}</option>
               <option value="yesterday">{t("datePreset.yesterday")}</option>
+              {rangePreset === "custom" ? (
+                <option value="custom" hidden>
+                  {t("datePreset.custom")}
+                </option>
+              ) : null}
               <option value="last7">{t("datePreset.last7")}</option>
               <option value="last30">{t("datePreset.last30")}</option>
               <option value="last90">{t("datePreset.last90")}</option>
@@ -80,7 +91,9 @@ export function AssetsTimelineFilters({
         </div>
         <div className="flex w-full flex-wrap items-end gap-2 sm:gap-3 lg:justify-end">
           <div className="grid min-w-[140px] flex-1 gap-1.5 sm:flex-initial">
-            <span className="text-xs font-medium text-zinc-500">{t("assets.filters.from")}</span>
+            <span className="text-xs font-medium text-zinc-500">
+              {t("assets.filters.from")}
+            </span>
             <Input
               type="date"
               className="h-11 rounded-2xl border-zinc-200/80 bg-white px-3 text-sm shadow-none"
@@ -90,7 +103,9 @@ export function AssetsTimelineFilters({
             />
           </div>
           <div className="grid min-w-[140px] flex-1 gap-1.5 sm:flex-initial">
-            <span className="text-xs font-medium text-zinc-500">{t("assets.filters.to")}</span>
+            <span className="text-xs font-medium text-zinc-500">
+              {t("assets.filters.to")}
+            </span>
             <Input
               type="date"
               className="h-11 rounded-2xl border-zinc-200/80 bg-white px-3 text-sm shadow-none"

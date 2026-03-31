@@ -435,6 +435,7 @@ export const en = {
   datePreset: {
     today: "Today",
     yesterday: "Yesterday",
+    custom: "Custom",
     last7: "Last 7 days",
     last30: "Last 30 days",
     last90: "Last 90 days",

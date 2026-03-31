@@ -433,6 +433,7 @@ export const th = {
   datePreset: {
     today: "วันนี้",
     yesterday: "เมื่อวาน",
+    custom: "กำหนดเอง",
     last7: "7 วัน",
     last30: "30 วัน",
     last90: "90 วัน",
