@@ -119,7 +119,9 @@ export default function HomePage() {
               />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold">{t("home.featureLogTitle")}</div>
+              <div className="text-sm font-semibold">
+                {t("home.featureLogTitle")}
+              </div>
               <div className="mt-2 text-sm text-zinc-600">
                 {t("home.featureLogDesc")}
               </div>
@@ -138,7 +140,9 @@ export default function HomePage() {
               />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold">{t("home.featureAvgCostTitle")}</div>
+              <div className="text-sm font-semibold">
+                {t("home.featureAvgCostTitle")}
+              </div>
               <div className="mt-2 text-sm text-zinc-600">
                 {t("home.featureAvgCostDesc")}
               </div>
@@ -157,7 +161,9 @@ export default function HomePage() {
               />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold">{t("home.featureChartTitle")}</div>
+              <div className="text-sm font-semibold">
+                {t("home.featureChartTitle")}
+              </div>
               <div className="mt-2 text-sm text-zinc-600">
                 {t("home.featureChartDesc")}
               </div>
@@ -171,7 +177,9 @@ export default function HomePage() {
         <Card className="p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <div className="text-base font-semibold">{t("home.whyTitle")}</div>
+              <div className="text-base font-semibold">
+                {t("home.whyTitle")}
+              </div>
               <div className="mt-1 text-sm text-zinc-600">
                 {t("home.whyDesc")}
               </div>
@@ -248,7 +256,9 @@ export default function HomePage() {
         <Card className="relative overflow-hidden p-6">
           <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-emerald-50" />
           <div className="relative grid gap-3">
-            <div className="text-sm font-semibold">{t("home.devicesTitle")}</div>
+            <div className="text-sm font-semibold">
+              {t("home.devicesTitle")}
+            </div>
             <div className="text-sm text-zinc-600">{t("home.devicesDesc")}</div>
             <div className="relative mx-auto mt-3 h-40 w-full max-w-md sm:h-44">
               <Image
@@ -267,21 +277,30 @@ export default function HomePage() {
           <div className="text-sm font-semibold">{t("home.faqTitle")}</div>
           <div className="mt-3 grid gap-3 text-sm text-zinc-600">
             <div className="rounded-2xl border border-zinc-200/70 bg-white p-4">
-              <div className="font-medium text-zinc-900">{t("home.faqFreeQ")}</div>
+              <div className="font-medium text-zinc-900">
+                {t("home.faqFreeQ")}
+              </div>
               <div className="mt-1">
                 {t("home.faqFreeAPrefix")}{" "}
-                <Link href="/support" className="font-medium text-emerald-700 underline underline-offset-2">
+                <Link
+                  href="/support"
+                  className="font-medium text-emerald-700 underline underline-offset-2"
+                >
                   {t("authMenu.support")}
                 </Link>{" "}
                 {t("home.faqFreeASuffix")}
               </div>
             </div>
             <div className="rounded-2xl border border-zinc-200/70 bg-white p-4">
-              <div className="font-medium text-zinc-900">{t("home.faqAssetsQ")}</div>
+              <div className="font-medium text-zinc-900">
+                {t("home.faqAssetsQ")}
+              </div>
               <div className="mt-1">{t("home.faqAssetsA")}</div>
             </div>
             <div className="rounded-2xl border border-zinc-200/70 bg-white p-4">
-              <div className="font-medium text-zinc-900">{t("home.faqAccountingQ")}</div>
+              <div className="font-medium text-zinc-900">
+                {t("home.faqAccountingQ")}
+              </div>
               <div className="mt-1">{t("home.faqAccountingA")}</div>
             </div>
           </div>

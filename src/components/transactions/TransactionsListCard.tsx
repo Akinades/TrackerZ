@@ -52,23 +52,28 @@ export function TransactionsListCard({ m }: Props) {
               {tr("transactions.list.items")}
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              variant="secondary"
-              onClick={exportCsv}
-              disabled={!hydrated || txs.length === 0}
-              className="h-9 rounded-2xl px-4 py-0"
-            >
-              {tr("transactions.list.exportCsv")}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={pickImportFile}
-              disabled={!hydrated || importing}
-              className="h-9 rounded-2xl px-4 py-0"
-            >
-              {tr("transactions.list.importFiles")}
-            </Button>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={exportCsv}
+                disabled={!hydrated || txs.length === 0}
+                className="h-9 rounded-2xl px-4 py-0"
+              >
+                {tr("transactions.list.exportCsv")}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={pickImportFile}
+                disabled={!hydrated || importing}
+                className="h-9 rounded-2xl px-4 py-0"
+              >
+                {tr("transactions.list.importFiles")}
+              </Button>
+            </div>
+            <div className="text-[11px] text-zinc-500">
+              {tr("transactions.list.importHint")}
+            </div>
           </div>
         </div>
       </div>

@@ -120,7 +120,8 @@ export const en = {
     quoteThai: "If you can't measure it, you can't improve it.",
     ctaStartFree: "Get started (free)",
     ctaLogin: "Sign in",
-    dataStored: "Your portfolio data is stored in a central database (MongoDB).",
+    dataStored:
+      "Your portfolio data is stored in a central database (MongoDB).",
     featureLogTitle: "Transactions log",
     featureLogDesc:
       "Buy/sell, price, amount, fees, timestamp—plus date range filters.",
@@ -188,15 +189,15 @@ export const en = {
     cardFeedbackDesc:
       "Found a bug or have an idea? Email the team directly. We read every message and use it to improve TrackerZ.",
     qrTitle: "Scan to support",
-    qrMissing:
-      "QR image missing—add promptpay-qr.png in public/support.",
+    qrMissing: "QR image missing—add promptpay-qr.png in public/support.",
     supportBlurbPrefix:
       "TrackerZ is fully free to use — if you'd like to support, visit",
   },
   settings: {
     title: "Settings",
     primaryCurrencyTitle: "Primary currency",
-    primaryCurrencyDesc: "Used to display numbers on the Dashboard (with conversion)",
+    primaryCurrencyDesc:
+      "Used to display numbers on the Dashboard (with conversion)",
     fxTitle: "Exchange rate (USD/THB)",
     fxDesc: "Used when toggling THB ↔ USD (MVP: manual input)",
     fxLeft: "1 USD =",
@@ -219,7 +220,8 @@ export const en = {
     levelsCalcHint:
       "Levels are calculated from total return % (based on cumulative cost) and require sufficient transaction history.",
     contactTitle: "Contact & feedback",
-    contactDesc: "Found a bug or have an idea? Click the email below to open your mail app.",
+    contactDesc:
+      "Found a bug or have an idea? Click the email below to open your mail app.",
     contactEmailLabel: "Email:",
   },
   plan: {
@@ -232,7 +234,8 @@ export const en = {
     backSettings: "Back to settings",
   },
   dashboard: {
-    introPrefix: "Review key numbers below, then drill into each asset in the table —",
+    introPrefix:
+      "Review key numbers below, then drill into each asset in the table —",
     introUnreal: "Unrealized P/L",
     introMid: "is based on the latest market price vs average cost, and",
     introReal: "Realized P/L",
@@ -265,7 +268,8 @@ export const en = {
       partialPricesOf: "of",
       partialPricesSuffix:
         'positions — "Market value" and unrealized part of "P/L" count only priced assets',
-      priceSource: "Prices come from a market data source (loaded on this page)",
+      priceSource:
+        "Prices come from a market data source (loaded on this page)",
       feesTaxes: "Accumulated fees + taxes",
     },
     top5: {
@@ -282,14 +286,16 @@ export const en = {
       ofCost: "of cost",
       ofCostShort: "of cost",
       buySellTitle: "Buy / Sell transactions count",
-      buySellSubtitle: "Horizontal bar chart — counts all transactions in this account",
+      buySellSubtitle:
+        "Horizontal bar chart — counts all transactions in this account",
       buyLabel: "Buy:",
       sellLabel: "Sell:",
       items: "items",
     },
     holdings: {
       title: "All holdings",
-      subtitle: "Sorted by remaining cost (high → low) · scroll horizontally on mobile",
+      subtitle:
+        "Sorted by remaining cost (high → low) · scroll horizontally on mobile",
       items: "items",
       empty: "No open holdings (or everything has been sold)",
       cols: {
@@ -367,8 +373,9 @@ export const en = {
       showingPrefix: "Showing",
       showingOf: "of",
       items: "items",
-      exportCsv: "Export CSV",
-      importFiles: "Import files",
+      exportCsv: "Export file",
+      importFiles: "Import file",
+      importHint: "Supported: .csv, .tsv, .json, .xlsx, .xls",
       loading: "Loading…",
       empty: "No transactions yet — add your first one",
       cols: {
@@ -478,7 +485,8 @@ export const en = {
     },
     rangeSummary: {
       title: "Summary for selected range",
-      subtitle: "Numbers and transactions — shown separately from the chart above",
+      subtitle:
+        "Numbers and transactions — shown separately from the chart above",
     },
   },
   locale: {
@@ -488,4 +496,3 @@ export const en = {
     shortEn: "EN",
   },
 } as const;
-

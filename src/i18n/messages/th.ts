@@ -149,8 +149,7 @@ export const th = {
       "ได้เต็มยุทธภพ — บันทึก วิเคราะห์ และ Import ได้ครบ ไม่มีแพ็กแบ่งชั้น ถ้าอยากช่วยค่าน้ำชาให้ผู้พัฒนา แวะหน้า",
     faqFreeASuffix: "ได้ตามใจศรัทธา",
     faqAssetsQ: "รองรับสินทรัพย์อะไรบ้าง?",
-    faqAssetsA:
-      "หุ้น คริปโต ฟอเร็กซ์ ทอง และสินทรัพย์อื่นๆ ในพอร์ตเดียวกัน",
+    faqAssetsA: "หุ้น คริปโต ฟอเร็กซ์ ทอง และสินทรัพย์อื่นๆ ในพอร์ตเดียวกัน",
     faqAccountingQ: "ต้องเก่งเรื่องบัญชีก่อนไหม?",
     faqAccountingA:
       "ไม่ต้อง ระบบช่วยคำนวณตัวเลขหลักให้อัตโนมัติและแสดงผลแบบเข้าใจง่าย",
@@ -188,7 +187,8 @@ export const th = {
     qrTitle: "สแกนโอนสนับสนุน",
     qrMissing:
       "ยังไม่มีรูป QR — ใส่ไฟล์ promptpay-qr.png ในโฟลเดอร์ public/support",
-    supportBlurbPrefix: "ใช้งาน TrackerZ ฟรีเต็มรูปแบบ — อยากสนับสนุนสำนักได้ที่หน้า",
+    supportBlurbPrefix:
+      "ใช้งาน TrackerZ ฟรีเต็มรูปแบบ — อยากสนับสนุนสำนักได้ที่หน้า",
   },
   settings: {
     title: "ตั้งค่า",
@@ -230,7 +230,8 @@ export const th = {
     backSettings: "กลับการตั้งค่า",
   },
   dashboard: {
-    introPrefix: "ดูตัวเลขสำคัญด้านล่าง แล้วเจาะรายละเอียดแต่ละสินทรัพย์ในตาราง —",
+    introPrefix:
+      "ดูตัวเลขสำคัญด้านล่าง แล้วเจาะรายละเอียดแต่ละสินทรัพย์ในตาราง —",
     introUnreal: "กำไรค้าง",
     introMid: "คิดจากราคาตลาดล่าสุดเทียบต้นทุนเฉลี่ย,",
     introReal: "ขายแล้ว",
@@ -287,7 +288,8 @@ export const th = {
     },
     holdings: {
       title: "สินทรัพย์ที่ถือทั้งหมด",
-      subtitle: "เรียงตามต้นทุนคงค้าง (มาก → น้อย) · เลื่อนตารางซ้าย–ขวาบนมือถือได้",
+      subtitle:
+        "เรียงตามต้นทุนคงค้าง (มาก → น้อย) · เลื่อนตารางซ้าย–ขวาบนมือถือได้",
       items: "รายการ",
       empty: "ยังไม่มีสินทรัพย์ที่ถือค้าง (หรือขายหมดแล้ว)",
       cols: {
@@ -319,7 +321,8 @@ export const th = {
     },
     allocationTargets: {
       title: "สัดส่วนพอร์ต (Allocation)",
-      subtitle: "เปอร์เซ็นต์จากต้นทุนคงค้าง (ยังถือ) เทียบเป้าหมายในหน้า Settings",
+      subtitle:
+        "เปอร์เซ็นต์จากต้นทุนคงค้าง (ยังถือ) เทียบเป้าหมายในหน้า Settings",
       target: "Target",
     },
     prices: {
@@ -365,8 +368,9 @@ export const th = {
       showingPrefix: "แสดง",
       showingOf: "/ ทั้งหมด",
       items: "รายการ",
-      exportCsv: "Export CSV",
-      importFiles: "Import Files",
+      exportCsv: "ส่งออกไฟล์",
+      importFiles: "นำเข้าไฟล์",
+      importHint: "รองรับไฟล์: .csv, .tsv, .json, .xlsx, .xls",
       loading: "กำลังโหลดข้อมูล…",
       empty: "ยังไม่มีรายการ ลองเพิ่มรายการแรกได้เลย",
       cols: {
@@ -486,4 +490,3 @@ export const th = {
     shortEn: "EN",
   },
 } as const;
-
