@@ -7,6 +7,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Scatter,
   Tooltip,
@@ -33,6 +34,8 @@ export const SERIES_COLORS = [
 export type PositionPoint = {
   ts: number;
   value: number;
+  /** Optional signed value for tooltip when plotted value is transformed (e.g. abs()). */
+  tipValue?: number;
   tipKind: "position";
   tipAsset: string;
   tipQty: number;
@@ -318,12 +321,14 @@ function TimelineTooltipBody({
   currency,
   allBuys,
   allSells,
+  valueLabelBySeries,
 }: {
   active?: boolean;
   payload?: ReadonlyArray<{ payload?: unknown }> | undefined;
   currency: AppCurrency;
   allBuys: readonly TradePoint[];
   allSells: readonly TradePoint[];
+  valueLabelBySeries?: Record<string, string>;
 }) {
   if (!active || !payload?.length) return null;
 
@@ -471,6 +476,12 @@ function TimelineTooltipBody({
   }
 
   if (d.tipKind !== "position") return null;
+  const valueLabel =
+    (valueLabelBySeries && valueLabelBySeries[d.tipAsset]) || "มูลค่าถือ (โดยประมาณ)";
+  const valueToShow =
+    typeof (d as any).tipValue === "number" && Number.isFinite((d as any).tipValue)
+      ? (d as any).tipValue
+      : d.value;
   return (
     <div
       className="min-w-[200px] rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs shadow-lg"
@@ -480,15 +491,17 @@ function TimelineTooltipBody({
       <div className="mt-0.5 text-[11px] text-zinc-500">{timeStr}</div>
       <div className="mt-2 space-y-1 border-t border-zinc-100 pt-2 tabular-nums">
         <div className="flex justify-between gap-4">
-          <span className="text-zinc-500">มูลค่าถือ (โดยประมาณ)</span>
+          <span className="text-zinc-500">{valueLabel}</span>
           <span className="font-medium text-zinc-900">
-            {formatMoney(d.value, currency)}
+            {formatMoney(valueToShow, currency)}
           </span>
         </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-zinc-500">จำนวนคงเหลือ</span>
-          <span className="font-medium text-zinc-900">{d.tipQty}</span>
-        </div>
+        {Number.isFinite(d.tipQty) && d.tipQty !== 0 ? (
+          <div className="flex justify-between gap-4">
+            <span className="text-zinc-500">จำนวนคงเหลือ</span>
+            <span className="font-medium text-zinc-900">{d.tipQty}</span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -620,6 +633,9 @@ export function AssetValueTimelineLine({
   locale = "th",
   showTradeLegend = true,
   showArea = false,
+  yDomain,
+  showZeroLine = false,
+  valueLabelBySeries,
 }: {
   series: AssetSeries[];
   height?: number;
@@ -629,6 +645,9 @@ export function AssetValueTimelineLine({
   locale?: "th" | "en";
   showTradeLegend?: boolean;
   showArea?: boolean;
+  yDomain?: [number | "auto", number | "auto"];
+  showZeroLine?: boolean;
+  valueLabelBySeries?: Record<string, string>;
 }) {
   const { currency } = useCurrency();
 
@@ -803,9 +822,10 @@ export function AssetValueTimelineLine({
         currency={currency}
         allBuys={allBuys}
         allSells={allSells}
+        valueLabelBySeries={valueLabelBySeries}
       />
     ),
-    [currency, allBuys, allSells],
+    [currency, allBuys, allSells, valueLabelBySeries],
   );
 
   if (!hasData) {
@@ -876,10 +896,17 @@ export function AssetValueTimelineLine({
               tick={{ fill: "rgb(113,113,122)", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
-              domain={[0, "auto"]}
+              domain={yDomain ?? ([0, "auto"] as const)}
               tickFormatter={(v) => formatMoney(Number(v), currency)}
               width={76}
             />
+            {showZeroLine ? (
+              <ReferenceLine
+                y={0}
+                stroke="rgba(113,113,122,0.35)"
+                strokeDasharray="4 4"
+              />
+            ) : null}
             <Tooltip
               content={tooltipContent}
               trigger="hover"
@@ -922,6 +949,21 @@ export function AssetValueTimelineLine({
                 connectNulls={false}
               />
             ) : null}
+
+            {showArea && series.length > 1
+              ? series.map((s) => (
+                  <Area
+                    key={`area-${s.assetName}`}
+                    type="monotoneX"
+                    dataKey={s.assetName}
+                    stroke="transparent"
+                    fill={s.color}
+                    fillOpacity={0.08}
+                    isAnimationActive={false}
+                    connectNulls={false}
+                  />
+                ))
+              : null}
 
             {series.map((s) => (
               <Line

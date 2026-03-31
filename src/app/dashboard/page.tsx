@@ -7,7 +7,6 @@ import { useAuth } from "@/store/useAuth";
 import { useDashboardPortfolio } from "@/hooks/useDashboardPortfolio";
 import { DashboardDemoEmptyCard } from "@/components/dashboard/DashboardDemoEmptyCard";
 import { DashboardPortfolioSummaryCard } from "@/components/dashboard/DashboardPortfolioSummaryCard";
-import { DashboardPortfolioGrowthCard } from "@/components/dashboard/DashboardPortfolioGrowthCard";
 import { DashboardTopFiveCard } from "@/components/dashboard/DashboardTopFiveCard";
 import { DashboardHoldingsTableCard } from "@/components/dashboard/DashboardHoldingsTableCard";
 import { DashboardAllocationPieCard } from "@/components/dashboard/DashboardAllocationPieCard";
@@ -83,7 +82,6 @@ export default function DashboardPage() {
       ) : null}
 
       <DashboardPortfolioSummaryCard d={d} />
-      <DashboardPortfolioGrowthCard d={d} />
       <DashboardTopFiveCard d={d} />
       <DashboardHoldingsTableCard d={d} />
       <DashboardAllocationPieCard d={d} />

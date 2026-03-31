@@ -13,6 +13,7 @@ import {
   startOfMonth,
   startOfPrevYear,
   startOfYear,
+  txBuyOutflowDisplay,
 } from "@/lib/assetTimeline";
 import { useFxRate } from "@/store/useFxRate";
 import { useI18n } from "@/components/shared/I18nProvider";
@@ -83,6 +84,11 @@ export function DashboardPortfolioGrowthCard({ d }: Props) {
     );
 
     const byMonthHasTx = new Set<string>();
+    const sortedTxs = [...(d.txs as Transaction[])].slice().sort((a, b) => {
+      return txExecutedAtMs(a) - txExecutedAtMs(b);
+    });
+    let txi = 0;
+    let investedCum = 0;
     for (const tx of d.txs as Transaction[]) {
       const ms = txExecutedAtMs(tx);
       if (!Number.isFinite(ms)) continue;
@@ -93,26 +99,57 @@ export function DashboardPortfolioGrowthCard({ d }: Props) {
     // Sample total portfolio series at each month-end.
     const totalPts = total.points.slice().sort((a, b) => a.ts - b.ts);
     let j = -1;
+    const totalLabel = t("dashboard.growth.totalLabel");
+    const pnlLabel = t("dashboard.summary.pnlLabel");
     const points = monthsBetween(range.from, range.to).map(({ start, end }) => {
       const k = monthKey(start);
       const endMs = end.getTime();
       while (j + 1 < totalPts.length && totalPts[j + 1]!.ts <= endMs) j += 1;
       const v = j >= 0 ? totalPts[j]!.value : 0;
+      while (txi < sortedTxs.length) {
+        const tx = sortedTxs[txi]!;
+        const ms = txExecutedAtMs(tx);
+        if (!Number.isFinite(ms) || ms > endMs) break;
+        if (tx.side === "buy") investedCum += txBuyOutflowDisplay(tx, toDisplayMoney);
+        txi += 1;
+      }
+      const pnl = v - investedCum;
       return {
         // Anchor at month-start so the first month sits flush left.
         ts: start.getTime(),
         value: byMonthHasTx.has(k) ? v : 0,
+        pnl: byMonthHasTx.has(k) ? pnl : 0,
         tipKind: "position" as const,
-        tipAsset: t("dashboard.growth.totalLabel"),
+        tipAsset: totalLabel,
         tipQty: 0,
       };
     });
 
     return [
       {
-        assetName: t("dashboard.growth.totalLabel"),
+        assetName: totalLabel,
         color: "#10b981",
-        points,
+        points: points.map((p) => ({
+          ts: p.ts,
+          value: p.value,
+          tipKind: "position" as const,
+          tipAsset: totalLabel,
+          tipQty: 0,
+        })),
+        buys: [],
+        sells: [],
+      },
+      {
+        assetName: pnlLabel,
+        color: "#ef4444",
+        points: points.map((p) => ({
+          ts: p.ts,
+          value: Math.abs(p.pnl),
+          tipValue: p.pnl,
+          tipKind: "position" as const,
+          tipAsset: pnlLabel,
+          tipQty: 0,
+        })),
         buys: [],
         sells: [],
       },
@@ -239,6 +276,12 @@ export function DashboardPortfolioGrowthCard({ d }: Props) {
             locale={locale}
             showTradeLegend={false}
             showArea
+            yDomain={["auto", "auto"]}
+            showZeroLine
+            valueLabelBySeries={{
+              [t("dashboard.growth.totalLabel")]: "มูลค่าพอร์ต (โดยประมาณ)",
+              [t("dashboard.summary.pnlLabel")]: "กำไร/ขาดทุน (โดยประมาณ)",
+            }}
           />
         )}
       </div>
