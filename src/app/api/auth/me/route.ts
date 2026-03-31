@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendFetch, getAccessTokenFromCookies } from "@/lib/backendServer";
-import { shouldUseSecureAuthCookie } from "@/lib/authCookie";
+import { authCookieMaxAgeSeconds, shouldUseSecureAuthCookie } from "@/lib/authCookie";
 
 export async function GET() {
   const token = await getAccessTokenFromCookies();
@@ -29,7 +29,16 @@ export async function GET() {
   }
 
   const user = (json as any)?.user ?? (json as any)?.data?.user ?? json;
-  return NextResponse.json({ user });
+  // Sliding session: refresh cookie expiry on successful auth checks.
+  const res = NextResponse.json({ user });
+  res.cookies.set("trackerz_token", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: shouldUseSecureAuthCookie(),
+    path: "/",
+    maxAge: authCookieMaxAgeSeconds(),
+  });
+  return res;
 }
 
 export async function PATCH(req: Request) {
@@ -59,6 +68,15 @@ export async function PATCH(req: Request) {
   }
 
   const user = (json as { user?: unknown })?.user ?? (json as { data?: { user?: unknown } })?.data?.user ?? json;
-  return NextResponse.json({ user });
+  // Sliding session: also refresh cookie on successful profile updates.
+  const res = NextResponse.json({ user });
+  res.cookies.set("trackerz_token", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: shouldUseSecureAuthCookie(),
+    path: "/",
+    maxAge: authCookieMaxAgeSeconds(),
+  });
+  return res;
 }
 

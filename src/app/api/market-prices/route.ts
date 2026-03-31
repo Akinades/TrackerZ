@@ -204,11 +204,16 @@ export async function GET(req: Request) {
     } satisfies QuoteResponse);
   }
 
-  const cash = symbols.filter((s) => /^[A-Z]{3}$/.test(s) && !isCrypto(s));
   const crypto = symbols.filter(isCrypto);
   const fx = symbols.filter(isFx);
   const metals = symbols.filter(isMetal);
   const stocks = symbols.filter(isStock);
+  // Treat 3-letter symbols as "cash currencies" only when they are NOT stocks.
+  // Example: "AMD" is both a US stock ticker and Armenian Dram currency code.
+  // If we include it in cash, FX rates would override stock quotes.
+  const cash = symbols.filter(
+    (s) => /^[A-Z]{3}$/.test(s) && !isCrypto(s) && !isStock(s),
+  );
 
   // Stooq supports both stocks and metals in our symbol conventions.
   const stooqSyms = [...stocks, ...metals];

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backendServer";
-import { shouldUseSecureAuthCookie } from "@/lib/authCookie";
+import { authCookieMaxAgeSeconds, shouldUseSecureAuthCookie } from "@/lib/authCookie";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -26,7 +26,8 @@ export async function POST(req: Request) {
       httpOnly: true,
       sameSite: "lax",
       secure: secureCookie,
-      path: "/"
+      path: "/",
+      maxAge: authCookieMaxAgeSeconds()
     });
   }
   return res;
