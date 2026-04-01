@@ -350,12 +350,7 @@ export function AccountProfileClient({ user }: Props) {
         title="เปลี่ยนรหัสผ่าน"
         className="max-w-md"
       >
-        <p className="mb-4 text-xs leading-relaxed text-zinc-500">
-          ส่งไปที่{" "}
-          <code className="rounded bg-zinc-100 px-1 py-0.5 text-[10px]">
-            POST /api/auth/change-password
-          </code>
-        </p>
+        
         <div className="grid gap-4">
           <div className="grid gap-1.5">
             <label
