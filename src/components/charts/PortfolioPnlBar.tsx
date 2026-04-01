@@ -1,30 +1,21 @@
 "use client";
 
 import * as React from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
+import type { BarSeriesOption, EChartsOption } from "echarts";
+import { useBelowSm } from "@/hooks/useBelowSm";
 import { useCurrency } from "@/store/useCurrency";
 import { formatMoney, formatNumber2 } from "@/lib/format";
 
+const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
+
 export type PnlRow = {
   name: string;
-  /** ผลรวมกำไร/ขาดทุนต่อสินทรัพย์ = ขายแล้ว + ค้างตามตลาด (สกุลเงินที่แสดง) */
   total: number;
-  /** รายละเอียดใน tooltip */
   realized?: number;
   unrealized?: number;
 };
 
-/** โทนพาสเทล — ไม่เข้ม */
 const COLOR_PROFIT = "#a8e6cf";
 const COLOR_LOSS = "#f5b5b5";
 
@@ -36,6 +27,7 @@ function rowTotal(row: PnlRow): number {
 }
 
 export function PortfolioPnlBar({ data, height }: { data: PnlRow[]; height?: number }) {
+  const narrowMobile = useBelowSm();
   const { currency } = useCurrency();
   const cleaned = React.useMemo(() => {
     return data
@@ -54,6 +46,95 @@ export function PortfolioPnlBar({ data, height }: { data: PnlRow[]; height?: num
     return 340;
   }, [height]);
 
+  const option = React.useMemo<EChartsOption>(() => {
+    const names = cleaned.map((d) => d.name);
+    const barData: BarSeriesOption["data"] = cleaned.map((d) => ({
+      value: d.total,
+      name: d.name,
+      realized: d.realized,
+      unrealized: d.unrealized,
+      itemStyle: {
+        color: d.total >= 0 ? COLOR_PROFIT : COLOR_LOSS,
+        borderRadius:
+          d.total >= 0 ? ([6, 6, 0, 0] as const) : ([0, 0, 6, 6] as const),
+      },
+    }));
+
+    return {
+      animation: false,
+      textStyle: { fontFamily: "inherit" },
+      grid: {
+        left: narrowMobile ? 40 : 52,
+        right: narrowMobile ? 6 : 14,
+        top: 16,
+        bottom: narrowMobile ? 72 : 64,
+        containLabel: false,
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        backgroundColor: "rgba(255,255,255,0.98)",
+        borderColor: "#e4e4e7",
+        borderWidth: 1,
+        padding: [10, 12],
+        textStyle: { color: "#18181b", fontSize: 12 },
+        formatter: (params: unknown) => {
+          const arr = params as Array<{ dataIndex: number }>;
+          const idx = arr[0]?.dataIndex;
+          if (idx == null) return "";
+          const row = cleaned[idx]!;
+          const sign = row.total >= 0 ? "กำไร" : "ขาดทุน";
+          return `<div style="font-weight:600;margin-bottom:4px">${row.name}</div>` +
+            `<div><span style="color:#71717a">รวม (${sign}): </span><span style="font-weight:600">${formatMoney(row.total, currency)}</span></div>` +
+            `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #f4f4f5;font-size:11px;color:#52525b">` +
+            `ขายแล้ว: <span style="font-weight:500">${formatMoney(row.realized, currency)}</span><br/>` +
+            `ค้างตามตลาด: <span style="font-weight:500">${formatMoney(row.unrealized, currency)}</span>` +
+            `</div>`;
+        },
+      },
+      xAxis: {
+        type: "category",
+        data: names,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: "#52525b",
+          fontSize: 10,
+          rotate: narrowMobile ? 32 : 28,
+          interval: 0,
+        },
+      },
+      yAxis: {
+        type: "value",
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: "#71717a",
+          fontSize: narrowMobile ? 10 : 11,
+          formatter: (v: number) => formatNumber2(v, "th-TH"),
+        },
+        splitLine: {
+          lineStyle: { color: "rgba(24,24,27,0.06)", type: "dashed" },
+        },
+      },
+      series: [
+        {
+          type: "bar",
+          name: "รวม",
+          barMaxWidth: 48,
+          barCategoryGap: "18%",
+          data: barData,
+          markLine: {
+            silent: true,
+            symbol: "none",
+            lineStyle: { color: "rgb(180,180,187)", width: 1 },
+            data: [{ yAxis: 0 }],
+          },
+        },
+      ],
+    };
+  }, [cleaned, currency, narrowMobile]);
+
   if (cleaned.length === 0) {
     return (
       <div className="text-sm text-zinc-400">
@@ -63,8 +144,8 @@ export function PortfolioPnlBar({ data, height }: { data: PnlRow[]; height?: num
   }
 
   return (
-    <div className="grid gap-2">
-      <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-600">
+    <div className="grid w-full min-w-0 gap-2">
+      <div className="flex flex-col gap-2 text-xs text-zinc-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
         <span className="inline-flex items-center gap-1.5">
           <span
             className="inline-block size-2.5 rounded-sm border border-zinc-200/80"
@@ -83,80 +164,14 @@ export function PortfolioPnlBar({ data, height }: { data: PnlRow[]; height?: num
       </div>
 
       <div style={{ height: chartHeight }} className="w-full min-w-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            accessibilityLayer={false}
-            data={cleaned}
-            margin={{ top: 8, right: 12, left: 4, bottom: 8 }}
-            barCategoryGap="14%"
-          >
-            <CartesianGrid stroke="rgba(24,24,27,0.06)" strokeDasharray="4 5" vertical={false} />
-            <XAxis
-              dataKey="name"
-              type="category"
-              tick={{ fill: "rgb(82,82,91)", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-              interval={0}
-              angle={-28}
-              textAnchor="end"
-              height={62}
-            />
-            <YAxis
-              type="number"
-              tick={{ fill: "rgb(113,113,122)", fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(v) => formatNumber2(Number(v), "th-TH")}
-              width={44}
-            />
-            <ReferenceLine y={0} stroke="rgb(180,180,187)" strokeWidth={1} />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const row = payload[0].payload as {
-                  name: string;
-                  total: number;
-                  realized: number;
-                  unrealized: number;
-                };
-                const sign = row.total >= 0 ? "กำไร" : "ขาดทุน";
-                return (
-                  <div
-                    className="rounded-xl border border-zinc-200 bg-white/98 px-3 py-2 text-xs shadow-sm"
-                    style={{ color: "rgb(24,24,27)" }}
-                  >
-                    <div className="font-semibold text-zinc-900">{row.name}</div>
-                    <div className="mt-1">
-                      <span className="text-zinc-500">รวม ({sign}): </span>
-                      <span className="font-medium tabular-nums">
-                        {formatMoney(row.total, currency)}
-                      </span>
-                    </div>
-                    <div className="mt-1 space-y-0.5 border-t border-zinc-100 pt-1 text-zinc-600">
-                      <div>
-                        ขายแล้ว:{" "}
-                        <span className="tabular-nums">{formatMoney(row.realized, currency)}</span>
-                      </div>
-                      <div>
-                        ค้างตามตลาด:{" "}
-                        <span className="tabular-nums">{formatMoney(row.unrealized, currency)}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }}
-            />
-            <Bar dataKey="total" name="รวม" radius={[6, 6, 6, 6]} maxBarSize={48}>
-              {cleaned.map((entry, index) => (
-                <Cell
-                  key={`cell-${entry.name}-${index}`}
-                  fill={entry.total >= 0 ? COLOR_PROFIT : COLOR_LOSS}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <ReactECharts
+          option={option}
+          style={{ height: "100%", width: "100%" }}
+          notMerge
+          lazyUpdate
+          opts={{ renderer: "canvas" }}
+          autoResize
+        />
       </div>
     </div>
   );

@@ -25,7 +25,6 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
     realizedDisp,
     invested,
     investedDisp,
-    feesDisp,
     totalPnlDisp,
     totalReturnPct,
     pricesError
@@ -79,18 +78,31 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
             {t("dashboard.summary.subtitle")}
           </div>
         </div>
-        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
-          <select
-            className="h-9 w-full rounded-2xl border border-zinc-200/70 bg-white px-3 text-xs text-zinc-700 sm:w-[170px]"
-            value={String(d.pollMinutes)}
-            onChange={(e) => d.setPollMinutes(Number(e.target.value))}
-            aria-label={t("dashboard.prices.pollAria")}
-          >
-            <option value="0">{t("dashboard.prices.pollOff")}</option>
-            <option value="1">{t("dashboard.prices.poll1m")}</option>
-            <option value="5">{t("dashboard.prices.poll5m")}</option>
-            <option value="15">{t("dashboard.prices.poll15m")}</option>
-          </select>
+        <div className="flex w-full items-start justify-between gap-2 sm:w-auto sm:justify-end">
+          <div className="flex min-w-0 flex-1 flex-col gap-1 sm:w-[170px] sm:flex-none">
+            <select
+              className="h-9 w-full rounded-2xl border border-zinc-200/70 bg-white px-3 text-xs text-zinc-700"
+              value={String(d.pollMinutes)}
+              onChange={(e) => d.setPollMinutes(Number(e.target.value))}
+              aria-label={t("dashboard.prices.pollAria")}
+            >
+              <option value="0">{t("dashboard.prices.pollOff")}</option>
+              <option value="1">{t("dashboard.prices.poll1m")}</option>
+              <option value="5">{t("dashboard.prices.poll5m")}</option>
+              <option value="15">{t("dashboard.prices.poll15m")}</option>
+            </select>
+            {hydrated &&
+            typeof d.pricesLastUpdatedAt === "number" &&
+            (pricesError || openPositions.length > 0 || txsLength > 0) ? (
+              <p className="pl-3 text-[11px] leading-snug text-zinc-500">
+                {t("dashboard.prices.lastUpdated")}{" "}
+                {new Date(d.pricesLastUpdatedAt).toLocaleTimeString(undefined, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            ) : null}
+          </div>
           <Button
             variant="secondary"
             className="h-9 shrink-0 rounded-2xl px-3 py-0 text-xs"
@@ -101,7 +113,7 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardSummaryStat
           label={t("dashboard.summary.costLabel")}
           hint={t("dashboard.summary.costHint")}
@@ -216,17 +228,8 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
           }
         />
       </div>
-      {hydrated && (pricesError || openPositions.length > 0 || txsLength > 0) ? (
+      {hydrated && (pricesError || openPositions.length > 0) ? (
         <div className="mt-4 space-y-2 border-t border-zinc-100 pt-3 text-xs leading-relaxed text-zinc-500">
-          {typeof d.pricesLastUpdatedAt === "number" ? (
-            <p>
-              {t("dashboard.prices.lastUpdated")}{" "}
-              {new Date(d.pricesLastUpdatedAt).toLocaleTimeString(undefined, {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          ) : null}
           {pricesError ? (
             <p className="text-rose-600/90">{t("dashboard.summary.pricesFailed")}</p>
           ) : openPositions.length > 0 && quotedOpenCount < openPositions.length ? (
@@ -237,11 +240,6 @@ export function DashboardPortfolioSummaryCard({ d }: Props) {
             </p>
           ) : openPositions.length > 0 ? (
             <p>{t("dashboard.summary.priceSource")}</p>
-          ) : null}
-          {txsLength > 0 ? (
-            <p>
-              {t("dashboard.summary.feesTaxes")} {formatMoney(feesDisp, currency)}
-            </p>
           ) : null}
         </div>
       ) : null}

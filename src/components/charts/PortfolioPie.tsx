@@ -1,9 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import dynamic from "next/dynamic";
+import type { EChartsOption } from "echarts";
+import { useBelowSm } from "@/hooks/useBelowSm";
 import { useCurrency } from "@/store/useCurrency";
 import { formatMoney, formatNumber2 } from "@/lib/format";
+
+const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
 export type PieSlice = {
   name: string;
@@ -11,79 +15,118 @@ export type PieSlice = {
 };
 
 const COLORS = [
-  "#86efac", // emerald-300
-  "#93c5fd", // blue-300
-  "#fcd34d", // amber-300
-  "#f9a8d4", // pink-300
-  "#c4b5fd", // violet-300
-  "#5eead4", // teal-300
-  "#fda4af", // rose-300
-  "#bef264" // lime-300
+  "#86efac",
+  "#93c5fd",
+  "#fcd34d",
+  "#f9a8d4",
+  "#c4b5fd",
+  "#5eead4",
+  "#fda4af",
+  "#bef264",
 ];
 
 export function PortfolioPie({
   data,
-  height = 260
+  height = 420,
 }: {
   data: PieSlice[];
   height?: number;
 }) {
+  const compact = useBelowSm();
   const { currency } = useCurrency();
   const cleaned = React.useMemo(
     () => data.filter((d) => Number.isFinite(d.value) && d.value > 0),
-    [data]
+    [data],
   );
   const total = React.useMemo(
     () => cleaned.reduce((s, d) => s + d.value, 0),
-    [cleaned]
+    [cleaned],
   );
+
+  const option = React.useMemo<EChartsOption>(() => {
+    const pieData = cleaned.map((d, idx) => ({
+      name: d.name,
+      value: d.value,
+      itemStyle: {
+        color: COLORS[idx % COLORS.length],
+        borderColor: "#ffffff",
+        borderWidth: 2,
+      },
+    }));
+
+    return {
+      animation: false,
+      textStyle: { fontFamily: "inherit" },
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "rgba(255,255,255,0.96)",
+        borderColor: "#e4e4e7",
+        borderWidth: 1,
+        padding: [10, 12],
+        textStyle: { color: "#18181b", fontSize: 13 },
+        formatter: (p) => {
+          const param = p as { name: string; value: number };
+          const v = Number(param.value);
+          const pct = total > 0 ? (v / total) * 100 : 0;
+          return `${param.name}<br/><span style="font-weight:600">${formatMoney(v, currency)}</span> (${formatNumber2(pct, "th-TH")}%)`;
+        },
+      },
+      legend: {
+        type: "scroll",
+        orient: "horizontal",
+        bottom: 2,
+        left: "center",
+        width: "96%",
+        icon: "circle",
+        itemWidth: 10,
+        itemHeight: 10,
+        itemGap: compact ? 10 : 12,
+        textStyle: { fontSize: compact ? 13 : 14, color: "#3f3f46" },
+      },
+      series: [
+        {
+          type: "pie",
+          radius: compact ? "58%" : "72%",
+          center: ["50%", compact ? "44%" : "46%"],
+          padAngle: 1,
+          avoidLabelOverlap: true,
+          label: {
+            show: !compact,
+            formatter: "{b}\n{d}%",
+            fontSize: 12,
+            color: "#52525b",
+          },
+          labelLine: { show: !compact, length: 12, length2: 10 },
+          emphasis: {
+            scale: true,
+            scaleSize: 4,
+            itemStyle: {
+              shadowBlur: 12,
+              shadowColor: "rgba(0,0,0,0.12)",
+            },
+          },
+          data: pieData,
+        },
+      ],
+    };
+  }, [cleaned, compact, currency, total]);
 
   if (cleaned.length === 0) {
     return <div className="text-sm text-zinc-500">ยังไม่มีข้อมูลมูลค่าปัจจุบัน (ใส่ราคาให้ครบก่อน)</div>;
   }
 
+  const chartHeight = compact ? Math.max(height, 360) : height;
+
   return (
-    <div style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart accessibilityLayer={false}>
-          <Pie
-            data={cleaned}
-            dataKey="value"
-            nameKey="name"
-            innerRadius={0}
-            outerRadius={105}
-            paddingAngle={1}
-            stroke="#ffffff"
-            strokeWidth={3}
-            isAnimationActive={false}
-          >
-            {cleaned.map((_, idx) => (
-              <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(value: unknown, name: unknown) => {
-              const v = typeof value === "number" ? value : Number(value);
-              const pct = total > 0 ? (v / total) * 100 : 0;
-              return [`${formatMoney(v, currency)} (${formatNumber2(pct, "th-TH")}%)`, String(name)];
-            }}
-            contentStyle={{
-              background: "rgba(255,255,255,0.95)",
-              border: "1px solid rgb(228,228,231)",
-              borderRadius: 12
-            }}
-          />
-          <Legend
-            layout="vertical"
-            align="right"
-            verticalAlign="middle"
-            formatter={(value: string) => (
-              <span className="text-xs text-zinc-700">{value}</span>
-            )}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+    <div style={{ height: chartHeight }} className="w-full min-w-0">
+      <ReactECharts
+        option={option}
+        style={{ height: "100%", width: "100%" }}
+        notMerge
+        lazyUpdate
+        opts={{ renderer: "canvas" }}
+        autoResize
+      />
     </div>
   );
 }
-
