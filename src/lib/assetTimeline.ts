@@ -3,7 +3,7 @@ import {
   SERIES_COLORS,
   type AssetSeries,
   type PositionPoint,
-} from "@/components/charts/AssetValueTimelineLine";
+} from "@/components/charts/assetTimelineTypes";
 import type { Transaction } from "@/types/transactions";
 import { txExecutedAtIso, txExecutedAtMs } from "@/lib/transactionTime";
 
