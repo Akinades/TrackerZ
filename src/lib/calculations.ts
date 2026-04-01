@@ -22,7 +22,7 @@ export function totalFees(txs: Transaction[]) {
 }
 
 export function investedTotal(txs: Transaction[]) {
-  // Sum buy notional + buy fee (simple MVP view)
+  // Sum buy notional + buy fee
   const total = txs.reduce((sum, t) => {
     if (t.side !== "buy") return sum;
     return sum + txTotalCost(t);
@@ -154,7 +154,7 @@ export function computePositionsAvgCost(txs: Transaction[]) {
       pos.realizedPnl += proceeds - costOut;
       pos.qty -= amount;
       if (pos.qty <= 0) {
-        // If position goes flat/short, reset basis (MVP behavior)
+        // If position goes flat/short, reset basis
         pos.qty = Math.max(0, pos.qty);
         pos.avgCost = 0;
         pos.costBasis = 0;

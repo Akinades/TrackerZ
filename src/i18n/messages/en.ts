@@ -1,7 +1,6 @@
 export const en = {
   app: {
     name: "TrackerZ",
-    mvp: "MVP",
   },
   common: {
     loading: "Loading…",
@@ -97,7 +96,7 @@ export const en = {
       successToast: "Account created",
       failedTitle: "Sign-up failed",
       termsModalTitle: "Terms of Service",
-      termsShort: "MVP short version — review with legal before production use",
+      termsShort: "review with legal before production use",
       terms1Title: "1. Service",
       terms1Body:
         "TrackerZ provides portfolio logging and analysis. Information shown is not investment advice.",
@@ -199,7 +198,7 @@ export const en = {
     primaryCurrencyDesc:
       "Used to display numbers on the Dashboard (with conversion)",
     fxTitle: "Exchange rate (USD/THB)",
-    fxDesc: "Used when toggling THB ↔ USD (MVP: manual input)",
+    fxDesc: "Used when toggling THB ↔ USD ",
     fxLeft: "1 USD =",
     fxRight: "THB",
     costBasisTitle: "Cost basis method",

@@ -1,7 +1,6 @@
 export const th = {
   app: {
     name: "TrackerZ",
-    mvp: "MVP",
   },
   common: {
     loading: "กำลังโหลด…",
@@ -97,7 +96,7 @@ export const th = {
       successToast: "สมัครสมาชิกสำเร็จ",
       failedTitle: "สมัครสมาชิกไม่สำเร็จ",
       termsModalTitle: "เงื่อนไขการใช้งาน",
-      termsShort: "ฉบับย่อสำหรับ MVP — ปรับแต่งกับทีมกฎหมายก่อนใช้งานจริง",
+      termsShort: "ปรับแต่งกับทีมกฎหมายก่อนใช้งานจริง",
       terms1Title: "1. การให้บริการ",
       terms1Body:
         "TrackerZ ให้บริการบันทึกและวิเคราะห์พอร์ตการลงทุนตามที่ระบุบนเว็บไซต์ ข้อมูลที่แสดงไม่ถือเป็นคำแนะนำการลงทุน",
@@ -195,7 +194,7 @@ export const th = {
     primaryCurrencyTitle: "สกุลเงินหลัก",
     primaryCurrencyDesc: "ใช้เพื่อแสดงผลตัวเลขใน Dashboard (พร้อม conversion)",
     fxTitle: "อัตราแลกเปลี่ยน (USD/THB)",
-    fxDesc: "ใช้สำหรับแปลงตัวเลขเมื่อสลับ THB ↔ USD (MVP ใส่เองก่อน)",
+    fxDesc: "ใช้สำหรับแปลงตัวเลขเมื่อสลับ THB ↔ USD ",
     fxLeft: "1 USD =",
     fxRight: "THB",
     costBasisTitle: "วิธีคำนวณต้นทุน/กำไร (Cost basis)",

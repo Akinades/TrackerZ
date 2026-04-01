@@ -39,9 +39,7 @@ export function Navbar() {
             <span className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-zinc-900 bg-clip-text text-2xl font-semibold text-transparent sm:text-xl">
               TrackerZ
             </span>
-            <span className="rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-              MVP
-            </span>
+            
           </span>
         </Link>
         <div className="flex items-center gap-2">
