@@ -29,8 +29,8 @@ export function DashboardTopFiveCard({ d }: Props) {
           <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-600">
             {t("dashboard.top5.sectionTitle")}
           </div>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="grid gap-2">
+          <div className="grid items-start gap-5 sm:grid-cols-2">
+            <div className="grid gap-2 self-start">
               <div className="text-[11px] font-medium text-emerald-700">{t("dashboard.top5.best")}</div>
               {top5UnrealizedWinners.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/50 px-3 py-5 text-center text-xs text-zinc-400">
@@ -65,7 +65,7 @@ export function DashboardTopFiveCard({ d }: Props) {
                 ))
               )}
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 self-start">
               <div className="text-[11px] font-medium text-rose-600">{t("dashboard.top5.worst")}</div>
               {top5UnrealizedLosers.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/50 px-3 py-5 text-center text-xs text-zinc-400">
