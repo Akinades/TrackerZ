@@ -14,7 +14,7 @@ import { notify } from "@/lib/notify";
 import { useAuth, type AuthUser } from "@/store/useAuth";
 import type { PublicUser } from "@/types/publicUser";
 import { Modal } from "@/components/ui/Modal";
-import { Mail, UserRound, Sparkles } from "lucide-react";
+import { Mail, UserRound, Sparkles, Eye, EyeOff } from "lucide-react";
 import { getLevelByPerformance } from "@/lib/levels";
 import { useDashboardPortfolio } from "@/hooks/useDashboardPortfolio";
 
@@ -56,6 +56,9 @@ export function AccountProfileClient({ user }: Props) {
   const [newPw, setNewPw] = React.useState("");
   const [confirmPw, setConfirmPw] = React.useState("");
   const [pwBusy, setPwBusy] = React.useState(false);
+  const [showCurrentPw, setShowCurrentPw] = React.useState(false);
+  const [showNewPw, setShowNewPw] = React.useState(false);
+  const [showConfirmPw, setShowConfirmPw] = React.useState(false);
 
   const closePwModal = React.useCallback(() => {
     setPwModalOpen(false);
@@ -63,6 +66,9 @@ export function AccountProfileClient({ user }: Props) {
     setCurrentPw("");
     setNewPw("");
     setConfirmPw("");
+    setShowCurrentPw(false);
+    setShowNewPw(false);
+    setShowConfirmPw(false);
   }, []);
 
   const openPwModal = React.useCallback(() => {
@@ -95,10 +101,13 @@ export function AccountProfileClient({ user }: Props) {
     }
   };
 
+  const newPwMatchesConfirm =
+    confirmPw.length === 0 || newPw === confirmPw;
+
   const handleChangePassword = async () => {
     setPwError(null);
     if (newPw !== confirmPw) {
-      setPwError("รหัสผ่านใหม่กับยืนยันไม่ตรงกัน");
+      setPwError("รหัสผ่านใหม่กับยืนยันรหัสผ่านใหม่ต้องตรงกัน");
       return;
     }
     if (newPw.length < 6) {
@@ -359,16 +368,32 @@ export function AccountProfileClient({ user }: Props) {
             >
               รหัสผ่านปัจจุบัน
             </label>
-            <Input
-              id="modal-currentPw"
-              type="password"
-              value={currentPw}
-              onChange={(e) => {
-                setPwError(null);
-                setCurrentPw(e.target.value);
-              }}
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <Input
+                id="modal-currentPw"
+                type={showCurrentPw ? "text" : "password"}
+                value={currentPw}
+                onChange={(e) => {
+                  setPwError(null);
+                  setCurrentPw(e.target.value);
+                }}
+                className="pr-10"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                onClick={() => setShowCurrentPw((v) => !v)}
+                aria-label={showCurrentPw ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                aria-pressed={showCurrentPw}
+              >
+                {showCurrentPw ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            </div>
           </div>
           <div className="grid gap-1.5">
             <label
@@ -377,17 +402,33 @@ export function AccountProfileClient({ user }: Props) {
             >
               รหัสผ่านใหม่
             </label>
-            <Input
-              id="modal-newPw"
-              type="password"
-              value={newPw}
-              onChange={(e) => {
-                setPwError(null);
-                setNewPw(e.target.value);
-              }}
-              autoComplete="new-password"
-              minLength={6}
-            />
+            <div className="relative">
+              <Input
+                id="modal-newPw"
+                type={showNewPw ? "text" : "password"}
+                value={newPw}
+                onChange={(e) => {
+                  setPwError(null);
+                  setNewPw(e.target.value);
+                }}
+                className="pr-10"
+                autoComplete="new-password"
+                minLength={6}
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                onClick={() => setShowNewPw((v) => !v)}
+                aria-label={showNewPw ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                aria-pressed={showNewPw}
+              >
+                {showNewPw ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            </div>
           </div>
           <div className="grid gap-1.5">
             <label
@@ -396,16 +437,47 @@ export function AccountProfileClient({ user }: Props) {
             >
               ยืนยันรหัสผ่านใหม่
             </label>
-            <Input
-              id="modal-confirmPw"
-              type="password"
-              value={confirmPw}
-              onChange={(e) => {
-                setPwError(null);
-                setConfirmPw(e.target.value);
-              }}
-              autoComplete="new-password"
-            />
+            <div className="relative">
+              <Input
+                id="modal-confirmPw"
+                type={showConfirmPw ? "text" : "password"}
+                value={confirmPw}
+                onChange={(e) => {
+                  setPwError(null);
+                  setConfirmPw(e.target.value);
+                }}
+                className={
+                  confirmPw.length > 0 && !newPwMatchesConfirm
+                    ? "border-rose-300 pr-10 focus:ring-rose-200"
+                    : "pr-10"
+                }
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                onClick={() => setShowConfirmPw((v) => !v)}
+                aria-label={showConfirmPw ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                aria-pressed={showConfirmPw}
+              >
+                {showConfirmPw ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            </div>
+            {confirmPw.length > 0 && newPw.length > 0 ? (
+              newPwMatchesConfirm ? (
+                <p className="text-xs text-emerald-700">
+                  รหัสผ่านใหม่กับยืนยันตรงกัน
+                </p>
+              ) : (
+                <p className="text-xs text-rose-700" role="status">
+                  รหัสผ่านใหม่กับยืนยันต้องตรงกัน
+                </p>
+              )
+            ) : null}
           </div>
           {pwError ? (
             <p
@@ -419,7 +491,13 @@ export function AccountProfileClient({ user }: Props) {
           <div className="flex flex-wrap gap-2 pt-1">
             <Button
               type="button"
-              disabled={pwBusy || !currentPw || !newPw || !confirmPw}
+              disabled={
+                pwBusy ||
+                !currentPw ||
+                !newPw ||
+                !confirmPw ||
+                newPw !== confirmPw
+              }
               onClick={handleChangePassword}
             >
               {pwBusy ? "กำลังเปลี่ยน…" : "ยืนยันเปลี่ยนรหัสผ่าน"}
