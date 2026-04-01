@@ -71,23 +71,35 @@ export function PortfolioPie({
           return `${param.name}<br/><span style="font-weight:600">${formatMoney(v, currency)}</span> (${formatNumber2(pct, "th-TH")}%)`;
         },
       },
-      legend: {
-        type: "scroll",
-        orient: "horizontal",
-        bottom: 2,
-        left: "center",
-        width: "96%",
-        icon: "circle",
-        itemWidth: 10,
-        itemHeight: 10,
-        itemGap: compact ? 10 : 12,
-        textStyle: { fontSize: compact ? 13 : 14, color: "#3f3f46" },
-      },
+      legend: compact
+        ? {
+            type: "scroll",
+            orient: "horizontal",
+            bottom: 2,
+            left: "center",
+            width: "96%",
+            icon: "circle",
+            itemWidth: 10,
+            itemHeight: 10,
+            itemGap: 10,
+            textStyle: { fontSize: 13, color: "#3f3f46" },
+          }
+        : {
+            type: "scroll",
+            orient: "vertical",
+            right: "2%",
+            top: "middle",
+            icon: "circle",
+            itemWidth: 10,
+            itemHeight: 10,
+            textStyle: { fontSize: 14, color: "#3f3f46" },
+          },
       series: [
         {
           type: "pie",
-          radius: compact ? "58%" : "72%",
-          center: ["50%", compact ? "44%" : "46%"],
+          radius: compact ? "58%" : "68%",
+          // ~44% offsets the right-side legend so the pie reads centered in the full card.
+          center: compact ? ["50%", "44%"] : ["44%", "50%"],
           padAngle: 1,
           avoidLabelOverlap: true,
           label: {
