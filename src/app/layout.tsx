@@ -17,15 +17,15 @@ const kanit = Kanit({
 export const metadata: Metadata = {
   title: "TrackerZ",
   description: "Mini project tracker trader",
-  manifest: "/site.webmanifest",
+  manifest: "/TrackerZ_favicon/site.webmanifest",
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" }
+      { url: "/TrackerZ_favicon/favicon.ico" },
+      { url: "/TrackerZ_favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/TrackerZ_favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" }
     ],
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png"
+    shortcut: "/TrackerZ_favicon/favicon.ico",
+    apple: "/TrackerZ_favicon/apple-touch-icon.png"
   }
 };
 
