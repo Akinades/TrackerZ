@@ -58,6 +58,8 @@ export const th = {
       submit: "เข้าสู่ระบบ",
       noAccount: "ยังไม่มีบัญชี?",
       registerLink: "สมัครสมาชิก",
+      debtzHint: "สามารถใช้ชื่อผู้ใช้ของ DebtZ เพื่อเข้าสู่ระบบ TrackerZ ได้ด้วย",
+      debtzLinkLabel: "ดู DebtZ ที่นี่",
       successToast: "เข้าสู่ระบบสำเร็จ",
       failedTitle: "เข้าสู่ระบบไม่สำเร็จ",
       forgotModalTitle: "ลืมรหัสผ่าน (OTP)",

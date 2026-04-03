@@ -58,6 +58,8 @@ export const en = {
       submit: "Sign in",
       noAccount: "No account yet?",
       registerLink: "Create one",
+      debtzHint: "You can use your DebtZ username to sign in to TrackerZ.",
+      debtzLinkLabel: "View DebtZ here",
       successToast: "Signed in",
       failedTitle: "Sign-in failed",
       forgotModalTitle: "Forgot password (OTP)",

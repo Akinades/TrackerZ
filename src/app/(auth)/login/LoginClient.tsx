@@ -177,6 +177,17 @@ export function LoginClient() {
                 {t("auth.login.registerLink")}
               </Link>
             </div>
+            <div className="text-xs text-zinc-500">
+              {t("auth.login.debtzHint")}{" "}
+              <a
+                href="https://debtz.site"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-900 underline underline-offset-4 hover:text-zinc-700"
+              >
+                {t("auth.login.debtzLinkLabel")}
+              </a>
+            </div>
           </div>
         </div>
       </div>
