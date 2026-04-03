@@ -10,6 +10,7 @@ import { useCurrency } from "@/store/useCurrency";
 import { notify } from "@/lib/notify";
 import { useI18n } from "@/components/shared/I18nProvider";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
+import { ExternalLink } from "lucide-react";
 
 type MobileNavItem = {
   href: string;
@@ -107,8 +108,19 @@ export function AuthButtons({
           >
             {t("authMenu.support")}
           </Link>
+          <a
+            href="https://debtz.site"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("authMenu.debtzAppAria")}
+            className="hidden items-center justify-between gap-2 border-t border-zinc-200/70 px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50 md:flex"
+            onClick={() => setOpen(false)}
+          >
+            <span>{t("authMenu.debtzApp")}</span>
+            <ExternalLink className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+          </a>
 
-          <div className="border-t border-zinc-200/70 px-4 py-3">
+          <div className="hidden border-t border-zinc-200/70 px-4 py-3 md:block">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-medium text-zinc-600">{t("authMenu.language")}</div>
               <LanguageToggle />
@@ -160,14 +172,36 @@ export function AuthButtons({
             >
               {t("authMenu.support")}
             </Link>
+            <a
+              href="https://debtz.site"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t("authMenu.debtzAppAria")}
+              className="flex items-center justify-between gap-2 border-t border-zinc-200/70 px-4 py-3 text-sm text-zinc-800 hover:bg-zinc-50"
+              onClick={() => setOpen(false)}
+            >
+              <span>{t("authMenu.debtzApp")}</span>
+              <ExternalLink className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
+            </a>
           </div>
 
-          <div className="border-t border-zinc-200/70 p-2 md:hidden">
-            <CurrencyBadge
-              currency={currency}
-              onToggle={() => setCurrency(currency === "USD" ? "THB" : "USD")}
-              className="w-full justify-center shadow-none"
-            />
+          <div className="border-t border-zinc-200/70 px-4 py-3 md:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-medium text-zinc-600">{t("authMenu.currency")}</div>
+              <CurrencyBadge
+                currency={currency}
+                size="sm"
+                onToggle={() => setCurrency(currency === "USD" ? "THB" : "USD")}
+                ariaLabel={t("authMenu.currencyToggleAria")}
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-zinc-200/70 px-4 py-3 md:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-medium text-zinc-600">{t("authMenu.language")}</div>
+              <LanguageToggle />
+            </div>
           </div>
 
           <div className="border-t border-zinc-200/70 p-2">

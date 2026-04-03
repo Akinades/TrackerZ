@@ -15,7 +15,8 @@ export function CurrencyBadge({
   className,
   onToggle,
   variant = "default",
-  style = "pill"
+  style = "pill",
+  ariaLabel
 }: {
   currency: AppCurrency;
   size?: "sm" | "md";
@@ -23,6 +24,8 @@ export function CurrencyBadge({
   onToggle?: () => void;
   variant?: "default" | "inverted";
   style?: "pill" | "plain";
+  /** When `onToggle` is set, used as the button’s accessible name. */
+  ariaLabel?: string;
 }) {
   const s =
     style === "plain"
@@ -79,7 +82,7 @@ export function CurrencyBadge({
       type="button"
       onClick={onToggle}
       className={cls}
-      aria-label="Toggle currency"
+      aria-label={ariaLabel ?? "Toggle currency"}
     >
       {Inner}
     </button>
